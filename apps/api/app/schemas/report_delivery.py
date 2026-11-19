@@ -22,6 +22,9 @@ class LaudoSendRequest(BaseModel):
     #: Blank or absent: the default subject (study and version).
     subject: str | None = Field(default=None, max_length=2000)
     message: str | None = Field(default=None, max_length=20000)
+    #: D-249: the client's reply goes to the e-mail of the account that sends (the engineer), via
+    #: ``Reply-To``. ``False`` leaves it to the server's ``EMAIL_REPLY_TO``, or to the sender.
+    reply_to_engineer: bool = True
 
 
 class LaudoEmailPreviewOut(BaseModel):
@@ -38,6 +41,8 @@ class LaudoEmailPreviewOut(BaseModel):
     #: ``mock`` or ``smtp``: the preview says whether anything would really leave.
     provider: str
     email_configured: bool
+    #: Where a reply would go (the sending account's e-mail), or ``None`` when it is switched off.
+    reply_to: str | None = None
 
 
 class ReportDeliveryOut(BaseModel):

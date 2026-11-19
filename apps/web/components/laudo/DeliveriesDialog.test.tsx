@@ -9,11 +9,13 @@ import { SnackbarProvider } from "@/components/ui/Snackbar";
 
 const listLaudoDeliveries = vi.fn<(id: number) => Promise<LaudoDelivery[]>>();
 const revokeLaudoDelivery = vi.fn<(id: number) => Promise<LaudoDelivery>>();
+const resendLaudoDelivery = vi.fn<(id: number) => Promise<LaudoDelivery>>();
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   listLaudoDeliveries: (id: number) => listLaudoDeliveries(id),
   revokeLaudoDelivery: (id: number) => revokeLaudoDelivery(id),
+  resendLaudoDelivery: (id: number) => resendLaudoDelivery(id),
 }));
 
 const { DeliveriesDialog } = await import("./DeliveriesDialog");
@@ -75,6 +77,7 @@ function mount() {
 beforeEach(() => {
   listLaudoDeliveries.mockReset().mockResolvedValue([]);
   revokeLaudoDelivery.mockReset();
+  resendLaudoDelivery.mockReset();
 });
 
 describe("DeliveriesDialog (D-243)", () => {
@@ -156,5 +159,65 @@ describe("DeliveriesDialog (D-243)", () => {
     const confirm = await screen.findByRole("dialog", { name: t.revokeTitle });
     await user.click(within(confirm).getByRole("button", { name: t.revokeConfirm }));
     expect(await screen.findByText(t.revokeErrorTitle)).toBeInTheDocument();
+  });
+  it("resends with one click, no confirmation, and refreshes the history (D-249)", async () => {
+    listLaudoDeliveries.mockResolvedValue([delivery({ cc: ["copia@empresa.com.br"] })]);
+    resendLaudoDelivery.mockResolvedValue(delivery({ id: 2, cc: ["copia@empresa.com.br"], link_state: "ativo", open_count: 0 }));
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: t.resendLabel("cliente@empresa.com.br") }));
+    // One click: no dialog in between, the request goes out at once.
+    await waitFor(() => expect(resendLaudoDelivery).toHaveBeenCalledWith(1));
+    expect(screen.queryByRole("dialog", { name: t.revokeTitle })).not.toBeInTheDocument();
+    expect(await screen.findByText(t.resendToast(2))).toBeInTheDocument();
+    await waitFor(() => expect(listLaudoDeliveries.mock.calls.length).toBeGreaterThan(1));
+  });
+
+  it("says a simulated resend was only simulated", async () => {
+    listLaudoDeliveries.mockResolvedValue([delivery()]);
+    resendLaudoDelivery.mockResolvedValue(delivery({ id: 2, status: "simulado", provider: "mock" }));
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /^Reenviar o laudo/ }));
+    expect(await screen.findByText(t.resendSimulatedToast(1))).toBeInTheDocument();
+  });
+
+  it("a failed send can be sent again, and its row offers it too", async () => {
+    listLaudoDeliveries.mockResolvedValue([
+      delivery({ status: "falhou", error: "O servidor recusou.", link_state: "sem_link", expires_at: null, open_count: 0 }),
+    ]);
+    resendLaudoDelivery.mockResolvedValue(delivery({ id: 2 }));
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /^Reenviar o laudo/ }));
+    await waitFor(() => expect(resendLaudoDelivery).toHaveBeenCalledWith(1));
+  });
+
+  it("shows the hourly limit in words when the resend is refused", async () => {
+    listLaudoDeliveries.mockResolvedValue([delivery()]);
+    resendLaudoDelivery.mockRejectedValue(
+      new ApiError("Limite de 10 e-mail(s) de laudo na última hora atingido. Tente de novo mais tarde.", 429),
+    );
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /^Reenviar o laudo/ }));
+    expect(await screen.findByText(t.resendErrorTitle)).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/e-mail\(s\) de laudo/);
+  });
+
+  it("keeps the other resend buttons off while one is sending", async () => {
+    listLaudoDeliveries.mockResolvedValue([delivery({ id: 2 }), delivery({ id: 1, recipients: ["outro@empresa.com.br"] })]);
+    let release: (value: LaudoDelivery) => void = () => undefined;
+    resendLaudoDelivery.mockImplementation(() => new Promise((resolve) => (release = resolve)));
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: t.resendLabel("cliente@empresa.com.br") }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: t.resendLabel("outro@empresa.com.br") })).toBeDisabled(),
+    );
+    release(delivery({ id: 3 }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: t.resendLabel("outro@empresa.com.br") })).toBeEnabled(),
+    );
   });
 });

@@ -190,9 +190,41 @@ describe("SendLaudoDialog (D-242)", () => {
       cc: ["copia@empresa.com.br"],
       subject: "Laudo do suporte",
       message: "Segue o laudo.",
+      reply_to_engineer: true,
     });
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(await screen.findByText(t.sentToast(2))).toBeInTheDocument();
+  });
+
+  it("lets replies reach the engineer, says where, and lets that be switched off (D-249)", async () => {
+    previewLaudoEmail.mockResolvedValue({
+      subject: "Laudo de engenharia — Suporte leve (versão 2)",
+      html: "<p>Olá,</p>",
+      text: "Olá,",
+      attachment_name: "laudo-suporte-leve-v2.html",
+      provider: "smtp",
+      email_configured: true,
+      reply_to: "ana@exemplo.com",
+    });
+    sendLaudo.mockResolvedValue(delivery());
+    mount();
+    const user = userEvent.setup();
+    await screen.findByTitle(t.previewFrame);
+    const box = await screen.findByRole("checkbox", { name: t.replyToMe("ana@exemplo.com") });
+    expect(box).toBeChecked();
+    await waitFor(() =>
+      expect(previewLaudoEmail).toHaveBeenLastCalledWith(5, expect.objectContaining({ reply_to_engineer: true })),
+    );
+    await user.click(box);
+    expect(box).not.toBeChecked();
+    // The preview follows the choice, after its pause.
+    await waitFor(() =>
+      expect(previewLaudoEmail).toHaveBeenLastCalledWith(5, expect.objectContaining({ reply_to_engineer: false })),
+    );
+    await user.type(screen.getByLabelText(named(t.to)), "cliente@empresa.com.br{Enter}");
+    await user.click(sendButton());
+    await waitFor(() => expect(sendLaudo).toHaveBeenCalledTimes(1));
+    expect(sendLaudo.mock.calls[0]![1].reply_to_engineer).toBe(false);
   });
 
   it("counts an address still in the field when Enviar is pressed", async () => {

@@ -99,7 +99,7 @@ def _add_title_slide(presentation: Presentation, report: Report) -> None:
 
 def _add_sheet_slides(
     presentation: Presentation,
-    index: int,
+    index: int | str,
     name: str,
     header: list[str],
     rows: list[list[object]],

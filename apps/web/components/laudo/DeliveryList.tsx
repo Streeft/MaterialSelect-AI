@@ -60,14 +60,20 @@ export function validityText(delivery: LaudoDelivery): string | null {
 /**
  * Every e-mailing of one issued version, newest first: outcome, link life, openings. With
  * `onRevoke`, an active link also gets "Revogar link"; the confirmation belongs to whoever owns
- * the screen (a dialog does not nest inside another one).
+ * the screen (a dialog does not nest inside another one). With `onResend` (D-249), every row gets
+ * "Reenviar": one click, no confirmation, because it only repeats what the person already sent;
+ * `resending` is the id being sent, so the button says so and the rest wait.
  */
 export function DeliveryHistory({
   issued,
   onRevoke,
+  onResend,
+  resending = null,
 }: {
   issued: IssuedLaudo;
   onRevoke?: (delivery: LaudoDelivery) => void;
+  onResend?: (delivery: LaudoDelivery) => void;
+  resending?: number | null;
 }) {
   const history = useQuery({
     queryKey: ["laudo-deliveries", issued.id],
@@ -95,6 +101,9 @@ export function DeliveryHistory({
                 key={delivery.id}
                 delivery={delivery}
                 onRevoke={onRevoke ? () => onRevoke(delivery) : undefined}
+                onResend={onResend ? () => onResend(delivery) : undefined}
+                resending={resending === delivery.id}
+                busy={resending !== null}
               />
             ))}
           </ul>
@@ -108,9 +117,15 @@ export function DeliveryHistory({
 function DeliveryItem({
   delivery,
   onRevoke,
+  onResend,
+  resending,
+  busy,
 }: {
   delivery: LaudoDelivery;
   onRevoke?: () => void;
+  onResend?: () => void;
+  resending?: boolean;
+  busy?: boolean;
 }) {
   const state = delivery.link_state ?? "ativo";
   const validity = validityText(delivery);
@@ -129,6 +144,11 @@ function DeliveryItem({
         {[...delivery.recipients, ...delivery.cc.map((a) => `${a} (${t.copyPrefix})`)].join(", ")}
       </p>
       {delivery.error ? <p className="mt-1 text-danger-fg">{delivery.error}</p> : null}
+      {onResend && delivery.status === "falhou" ? (
+        <div className="mt-1 flex justify-end">
+          <ResendButton who={who} loading={resending} disabled={busy} onClick={onResend} />
+        </div>
+      ) : null}
       {delivery.status !== "falhou" ? (
         <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
           <p className="flex flex-col text-ink-muted">
@@ -136,15 +156,50 @@ function DeliveryItem({
             <span>{openedText(delivery)}</span>
             <span>{delivery.attached_pdf_sha256 ? t.pdfAttached : t.htmlAttached}</span>
           </p>
-          {onRevoke && (delivery.status === "enviado" || delivery.status === "simulado") ? (
-            state === "ativo" ? (
-              <Button size="sm" variant="danger" aria-label={t.revokeLabel(who)} onClick={onRevoke}>
-                {t.revoke}
-              </Button>
-            ) : null
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {onResend ? (
+              <ResendButton who={who} loading={resending} disabled={busy} onClick={onResend} />
+            ) : null}
+            {onRevoke && (delivery.status === "enviado" || delivery.status === "simulado") ? (
+              state === "ativo" ? (
+                <Button
+                  size="sm"
+                  variant="danger"
+                  aria-label={t.revokeLabel(who)}
+                  onClick={onRevoke}
+                >
+                  {t.revoke}
+                </Button>
+              ) : null
+            ) : null}
+          </div>
         </div>
       ) : null}
     </li>
+  );
+}
+
+function ResendButton({
+  who,
+  loading,
+  disabled,
+  onClick,
+}: {
+  who: string;
+  loading?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      aria-label={t.resendLabel(who)}
+      loading={loading}
+      disabled={disabled && !loading}
+      onClick={onClick}
+    >
+      {t.resend}
+    </Button>
   );
 }

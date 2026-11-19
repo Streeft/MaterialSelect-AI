@@ -62,6 +62,7 @@ from app.routers import (
     knowledge,
     laudos,
     materials,
+    me,
     my_records,
     notebooks,
     part_cost,
@@ -125,6 +126,10 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # D-249: the web app fetches some downloads (the catalogue CSV, the Eco audit) to see how they
+    # ended, and a cross-origin page may read only the headers listed here: without this the
+    # server's own file name never reached it and every download was named by the page.
+    expose_headers=["Content-Disposition"],
 )
 
 
@@ -367,6 +372,8 @@ app.include_router(
 app.include_router(
     saved_views.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
+# D-249: the account's own appearance needs a login and nothing more (no subscription gate).
+app.include_router(me.router, prefix="/api")
 app.include_router(
     charts.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )

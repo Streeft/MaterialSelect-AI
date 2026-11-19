@@ -2415,12 +2415,14 @@ div[data-surface="rail"] .msds-rail-item {
    their own classes at 20 to 36 px. Every button and every link that is not set
    inside running text gets the invisible hit area; fields and summaries, which
    cannot have one (a native control draws its own box), grow to --target-min.
-   Not covered, on purpose: Plotly's modebar (its own library, and the same
-   actions are in the toolbar above the figure), tabs (their `::after` is the
+   Not covered, on purpose: tabs (their `::after` is the
    indicator; the tab itself grows) — the views bar's `.ds-view-tab` too, a tab
    drawn as a pressed button: with this rule its indicator became a bar across
    the label on a phone (seen in D-248's 390 px captures) —, and a link in a
-   sentence (WCAG 2.5.8 inline exception). */
+   sentence (WCAG 2.5.8 inline exception). Plotly's modebar, left out here in D-226, is
+   covered since D-249, by growing its own buttons (`components/charts/figures.css`),
+   not by an `::after`: its bar is a row of 22 px boxes, and a hit area that overlapped
+   the next button would make a tap land on the wrong tool. */
 @media (pointer: coarse) {
   :where(button, a[href], summary):not(.modebar *) {
     position: relative;

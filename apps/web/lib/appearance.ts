@@ -3,9 +3,12 @@
  * and motion. The theme (light/dark) lives in `lib/theme.ts` and the table
  * density in `lib/density.ts`; the Aparência page shows all of them together.
  *
- * Kept on this device, in `localStorage`, the way the theme and the density are.
- * Every access is in try/catch: private mode or a full disk only means the choice
- * is not remembered.
+ * Kept on this device, in `localStorage`, the way the theme and the density are — and, since
+ * D-249, **also on the account** (`GET/PUT /api/me/appearance`, `lib/appearanceSync.ts`), so the
+ * choice follows the reader to the next device. The device copy stays the one the page reads
+ * (the head script cannot wait for a request, or the colour would flash) and the fallback when the
+ * account cannot be reached. Every access is in try/catch: private mode or a full disk only means
+ * the choice is not remembered on this device.
  *
  * Nothing here invents a colour. "A cor do app" picks one of the route palettes
  * already in `app/globals.css` — ramps built by the OKLCH recipe of D-38/D-73,
@@ -142,9 +145,19 @@ export function subscribeAppearance(onChange: () => void): () => void {
   };
 }
 
-/** Changes part of the appearance, applies it now and remembers it. */
-export function setAppearance(change: Partial<Appearance>): Appearance {
-  const next = { ...readAppearance(), ...change };
+/** Who hears of a change the reader made here (the account sync, D-249); `null` when nobody. */
+let onReaderChange: ((next: Appearance) => void) | null = null;
+
+/** Registers the one listener for the reader's own changes. Returns how to unregister it. */
+export function setAppearanceChangeHandler(handler: ((next: Appearance) => void) | null): () => void {
+  onReaderChange = handler;
+  return () => {
+    if (onReaderChange === handler) onReaderChange = null;
+  };
+}
+
+/** Wears `next` and remembers it on this device; tells the store's listeners. */
+function wear(next: Appearance): void {
   applyAppearanceToDocument(next, document.documentElement);
   try {
     window.localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(next));
@@ -153,7 +166,30 @@ export function setAppearance(change: Partial<Appearance>): Appearance {
   }
   cachedRaw = undefined;
   for (const listener of listeners) listener();
+}
+
+/** Changes part of the appearance, applies it now, remembers it and lets the account know. */
+export function setAppearance(change: Partial<Appearance>): Appearance {
+  const next = { ...readAppearance(), ...change };
+  wear(next);
+  onReaderChange?.(next);
   return next;
+}
+
+/**
+ * Wears an appearance that came **from the account** (D-249): the same as `setAppearance`, minus
+ * telling the account, which is where it came from. Anything unknown falls back to the default,
+ * as a stored value does.
+ */
+export function adoptAppearance(remote: Record<string, unknown>): Appearance {
+  const next = parseAppearance(JSON.stringify(remote));
+  wear(next);
+  return next;
+}
+
+/** Whether two appearances are the same choice. */
+export function sameAppearance(a: Appearance, b: Appearance): boolean {
+  return a.color === b.color && a.contrast === b.contrast && a.motion === b.motion && a.rail === b.rail;
 }
 
 /**

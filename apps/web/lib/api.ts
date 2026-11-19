@@ -804,6 +804,44 @@ export type SourcePatch = Partial<
   /** D-244: the registration fields (`label` is never `null`; the others clear with `null`). */
   Partial<Pick<SourceRecord, "label" | "reference" | "license_label" | "license_url">>;
 
+/** D-249: a source registered by hand; label and licence are required, the rest may stay blank. */
+export interface SourceCreate {
+  label: string;
+  license_label: string;
+  license_url?: string | null;
+  reference?: string | null;
+  contains_third_party_data?: boolean;
+  authors?: string | null;
+  title?: string | null;
+  publisher?: string | null;
+  year?: number | null;
+  url?: string | null;
+  accessed_on?: string | null;
+}
+
+/** D-249: the source that kept the citations after a merge, and how many rows moved to it. */
+export interface SourceMergeResult {
+  target: SourceRecord;
+  moved: number;
+}
+
+export function createSource(body: SourceCreate): Promise<SourceRecord> {
+  return request<SourceRecord>("/api/sources", { method: "POST", body: JSON.stringify(body) });
+}
+
+/** D-249: only a source nothing cites; a cited one is a 409 that says what cites it. */
+export function deleteSource(id: number): Promise<void> {
+  return request<void>(`/api/sources/${id}`, { method: "DELETE" });
+}
+
+/** D-249: every citation of `id` moves to `targetId` and `id` is removed, audited. */
+export function mergeSource(id: number, targetId: number): Promise<SourceMergeResult> {
+  return request<SourceMergeResult>(`/api/sources/${id}/mesclar`, {
+    method: "POST",
+    body: JSON.stringify({ target_id: targetId }),
+  });
+}
+
 /** D-244: every registered source, for the Admin's list (`GET /api/sources`). */
 export function listSources(): Promise<SourceRecord[]> {
   return request<SourceRecord[]>("/api/sources");
@@ -1359,6 +1397,45 @@ export function catalogueExportUrl(format: ExportFormat): string {
   return `${API_URL}/api/exports/catalogo.${format}`;
 }
 
+/**
+ * The line the server writes at the end of a catalogue CSV that broke half way (D-244). The
+ * status was already sent, so the file itself says it is incomplete; D-249 reads it back so the
+ * screen can say so too, instead of leaving the reader to open the file and notice.
+ */
+export const CSV_STREAM_ERROR_PREFIX = "# ERRO:";
+
+/** Whether the end of a CSV carries the server's "interrupted" line (a line of its own, last). */
+export function csvEndsInStreamError(tail: string): boolean {
+  const lines = tail.split(/\r?\n/).filter((line) => line.trim() !== "");
+  return lines.length > 0 && lines[lines.length - 1]!.replace(/^\uFEFF/, "").startsWith(CSV_STREAM_ERROR_PREFIX);
+}
+
+/** How much of the end of the file is read to look for that line: it is one short line. */
+const CSV_TAIL_BYTES = 1024;
+
+/**
+ * The catalogue as a file, fetched (D-249) so the page can see how it ended: a CSV that came back
+ * cut says so in its last line, and `truncated` is true then. Only the CSV can end that way (it
+ * is streamed; the spreadsheet is built whole before it is sent). The caller saves the blob under
+ * the server's own filename, truncated or not, and tells the reader.
+ */
+export async function downloadCatalogueFile(
+  format: ExportFormat,
+): Promise<{ blob: Blob; filename: string; truncated: boolean }> {
+  const res = await fetch(catalogueExportUrl(format), {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new ApiError(await errorMessage(res, "Falha ao gerar o arquivo do catálogo."), res.status);
+  }
+  const blob = await res.blob();
+  const match = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "");
+  const truncated =
+    format === "csv" && csvEndsInStreamError(await blob.slice(-CSV_TAIL_BYTES).text());
+  return { blob, filename: match?.[1] ?? `catalogo.${format}`, truncated };
+}
+
 export function studyExportUrl(studyId: number, format: ExportFormat): string {
   return `${API_URL}/api/exports/estudos/${studyId}.${format}`;
 }
@@ -1489,6 +1566,33 @@ export function laudoVersionUrl(studyId: number, version: number): string {
   return `${API_URL}/api/exports/estudos/${studyId}/laudo/versoes/${version}.html`;
 }
 
+// --- Aparência na conta (D-249) --------------------------------------------------
+
+/** The four choices kept on the account (`GET/PUT /api/me/appearance`). */
+export interface AccountAppearance {
+  color: string;
+  contrast: string;
+  motion: string;
+  rail: string;
+  /** False when the account never saved one: the fields are then the defaults. */
+  saved: boolean;
+  updated_at?: string | null;
+}
+
+export function getAccountAppearance(): Promise<AccountAppearance> {
+  return request<AccountAppearance>("/api/me/appearance");
+}
+
+/** Replaces the whole choice: the server writes the four fields together. */
+export function putAccountAppearance(
+  body: Pick<AccountAppearance, "color" | "contrast" | "motion" | "rail">,
+): Promise<AccountAppearance> {
+  return request<AccountAppearance>("/api/me/appearance", {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
 // --- Envio do laudo por e-mail (D-242) ----------------------------------------
 
 /** How one e-mailing ended; "simulado" is the mock provider: nothing left the server. */
@@ -1501,6 +1605,8 @@ export interface LaudoSendRequest {
   /** Blank: the server's default (study and version). */
   subject?: string | null;
   message?: string | null;
+  /** D-249: replies go to the account that sends (the engineer). Default on, on the server. */
+  reply_to_engineer?: boolean;
 }
 
 /** One row of an issued version's sending history. */
@@ -1541,6 +1647,8 @@ export interface LaudoEmailPreview {
   link_expires_at?: string | null;
   provider: string;
   email_configured: boolean;
+  /** Where a reply would go (the sending account's e-mail), or null when switched off (D-249). */
+  reply_to?: string | null;
 }
 
 export function sendLaudo(issuedId: number, body: LaudoSendRequest): Promise<LaudoDelivery> {
@@ -1552,7 +1660,7 @@ export function sendLaudo(issuedId: number, body: LaudoSendRequest): Promise<Lau
 
 export function previewLaudoEmail(
   issuedId: number,
-  body: Pick<LaudoSendRequest, "subject" | "message">,
+  body: Pick<LaudoSendRequest, "subject" | "message" | "reply_to_engineer">,
 ): Promise<LaudoEmailPreview> {
   return request<LaudoEmailPreview>(`/api/exports/laudos/${issuedId}/enviar/previa`, {
     method: "POST",
@@ -1562,6 +1670,11 @@ export function previewLaudoEmail(
 
 export function listLaudoDeliveries(issuedId: number): Promise<LaudoDelivery[]> {
   return request<LaudoDelivery[]>(`/api/exports/laudos/${issuedId}/envios`);
+}
+
+/** Send an earlier message again with one click (D-249): a new send, with a new link. */
+export function resendLaudoDelivery(deliveryId: number): Promise<LaudoDelivery> {
+  return request<LaudoDelivery>(`/api/exports/envios/${deliveryId}/reenviar`, { method: "POST" });
 }
 
 /** End the client link of one send (D-243): from then on it answers 410. */
@@ -2066,12 +2179,21 @@ export function batchArchiveNotebooks(
   });
 }
 
+/** One batch of "Esvaziar o arquivo" (D-249): how many went, and how many are still archived. */
+export interface EmptiedArchiveBatch {
+  deleted: number;
+  /** Absent on a server from before D-249, which deleted everything in one go. */
+  remaining?: number;
+}
+
 /**
- * D-236: delete for good every archived notebook of the caller, all or none. `expected` is the
- * count the person confirmed; the server answers 409 (and deletes nothing) if it changed.
+ * D-236, D-249: delete for good a batch of the caller's archived notebooks, all or none per batch.
+ * `expected` is the count the person confirmed (at first the whole archive, then the `remaining`
+ * of the previous batch); the server answers 409 (and deletes nothing) if it changed. Repeat with
+ * `remaining` until it is zero: `lib/emptyArchive.ts` does that, with progress.
  */
-export function emptyNotebookArchive(expected: number): Promise<{ deleted: number }> {
-  return request<{ deleted: number }>(`/api/notebooks/archived?expected=${expected}`, {
+export function emptyNotebookArchive(expected: number): Promise<EmptiedArchiveBatch> {
+  return request<EmptiedArchiveBatch>(`/api/notebooks/archived?expected=${expected}`, {
     method: "DELETE",
   });
 }

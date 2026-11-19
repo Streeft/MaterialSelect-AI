@@ -14,11 +14,13 @@ import {
   type MotionPreference,
   type RailPreference,
 } from "@/lib/appearance";
+import { serverSyncState, subscribeSyncState, syncState } from "@/lib/appearanceSync";
 import { setTableDensity, useTableDensity, type TableDensity } from "@/lib/density";
 import { OKABE_ITO } from "@/lib/design/palette";
 import { useAnnounce } from "@/components/ui/Announcer";
 import { PaneScaffold } from "@/components/layout/PaneScaffold";
 import {
+  Alert,
   ButtonGroup,
   ButtonGroupItem,
   DataQualityLegend,
@@ -58,6 +60,8 @@ export default function AppearancePage() {
   const appearance = useSyncExternalStore(subscribeAppearance, readAppearance, serverAppearance);
   const density = useTableDensity();
   const announce = useAnnounce();
+  // D-249: where the choice is kept, in words, so a device-only fallback is never silent.
+  const sync = useSyncExternalStore(subscribeSyncState, syncState, serverSyncState);
 
   function chooseColor(color: AppColor) {
     setAppearance({ color });
@@ -77,6 +81,15 @@ export default function AppearancePage() {
 
   const settings = (
     <div className="grid gap-4 sm:grid-cols-2">
+      {sync === "local" ? (
+        <Alert tone="warning" role="status" className="sm:col-span-2">
+          {t.syncLocal}
+        </Alert>
+      ) : (
+        <p role="status" data-sync={sync} className="text-support text-ink-muted sm:col-span-2">
+          {sync === "saving" ? t.syncSaving : sync === "saved" ? t.syncSaved : t.syncIdle}
+        </p>
+      )}
       <Setting title={t.themeTitle} hint={t.themeHint}>
         <ThemeToggle />
       </Setting>

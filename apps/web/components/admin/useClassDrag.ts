@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { edgeScrollDelta, scrollParent, scrollSpan } from "@/lib/autoScroll";
 import type { MaterialClass } from "@/lib/types";
 import { descendantIds } from "@/components/admin/MoveClassDialog";
 
@@ -29,6 +30,11 @@ function targetAt(x: number, y: number): DropTarget | null {
  * everything under it) are simply not offered here, as the "Mover para…" list does not offer them,
  * and the server still refuses one that gets through. Escape and a cancelled pointer drop nothing.
  *
+ * D-249: near the top or bottom edge of what scrolls (the page, or the box the tree sits in) the
+ * area scrolls by itself while the pointer is held there, faster the closer to the edge, so a target
+ * far down a long tree can be reached — on a phone the grip's `touch-action: none` leaves the
+ * finger no other way. What is under the pointer is looked up again after each step.
+ *
  * Keyboards have no gesture, so "Mover para…" stays the other way to make the same move.
  */
 export function useClassDrag({
@@ -40,6 +46,9 @@ export function useClassDrag({
 }) {
   const [dragged, setDragged] = useState<MaterialClass | null>(null);
   const [over, setOver] = useState<DropTarget | null>(null);
+  // Where the pointer is, and what scrolls under it: read each frame by the autoscroll loop.
+  const pointer = useRef<{ x: number; y: number } | null>(null);
+  const scroller = useRef<HTMLElement | null>(null);
   const blocked = dragged ? descendantIds(dragged, classes) : null;
   const accepts = (target: DropTarget) =>
     dragged !== null && (target === "root" || !blocked?.has(target));
@@ -55,9 +64,29 @@ export function useClassDrag({
       setOver(null);
     }
     function onPointerMove(event: PointerEvent) {
+      pointer.current = { x: event.clientX, y: event.clientY };
       const target = targetAt(event.clientX, event.clientY);
       setOver(allowed(target) ? target : null);
     }
+    // Scroll while the pointer rests near an edge: a drag stops moving the pointer long before
+    // it stops needing the page to move.
+    let frame = 0;
+    function tick() {
+      const at = pointer.current;
+      if (at) {
+        const [top, bottom] = scrollSpan(scroller.current);
+        const delta = edgeScrollDelta(at.y, top, bottom);
+        if (delta !== 0) {
+          if (scroller.current) scroller.current.scrollTop += delta;
+          else window.scrollBy(0, delta);
+          // The page moved under a still pointer: the row it is over has changed.
+          const target = targetAt(at.x, at.y);
+          setOver(allowed(target) ? target : null);
+        }
+      }
+      frame = requestAnimationFrame(tick);
+    }
+    frame = requestAnimationFrame(tick);
     function onPointerUp(event: PointerEvent) {
       const target = targetAt(event.clientX, event.clientY);
       end();
@@ -71,6 +100,7 @@ export function useClassDrag({
     document.addEventListener("pointercancel", end);
     document.addEventListener("keydown", onKeyDown);
     return () => {
+      cancelAnimationFrame(frame);
       document.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("pointerup", onPointerUp);
       document.removeEventListener("pointercancel", end);
@@ -86,6 +116,8 @@ export function useClassDrag({
         // Only the primary button of a mouse; a finger or a pen always has button 0.
         if (event.button !== 0) return;
         event.preventDefault();
+        pointer.current = { x: event.clientX, y: event.clientY };
+        scroller.current = scrollParent(event.currentTarget);
         setDragged(cls);
         setOver(null);
       },

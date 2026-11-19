@@ -76,6 +76,63 @@ export const curadoriaText = {
     licenseLabelHint: "Nome curto, como CC-BY-4.0 ou Domínio público. Em branco fica como “sem licença registrada”.",
     licenseUrl: "Endereço da licença",
     errorLabelRequired: "Informe o rótulo da fonte.",
+    // --- Criar, apagar e mesclar (D-249) ---
+    introActions:
+      "Crie uma fonte, apague a que nenhum dado cita ou mescle uma em outra: os dados que citavam a primeira passam a citar a segunda.",
+    colCitations: "Citada por",
+    citations: (count: number) =>
+      count === 0 ? "nenhum dado" : count === 1 ? "1 dado" : `${count} dados`,
+    citationsUnknown: "não contada",
+    create: "Nova fonte",
+    createTitle: "Nova fonte",
+    createHint:
+      "Toda fonte entra dizendo o que permite: rótulo e licença são obrigatórios. Quem cadastra fica registrado como quem revisou, e isso não muda depois.",
+    errorLicenseRequired: "Informe a licença ou a procedência da fonte.",
+    thirdPartyField: "Pode conter dado de terceiros",
+    thirdPartyHint:
+      "Marque quando a fonte traz conteúdo protegido de outra origem. O sinal acompanha os dados que citam esta fonte e não sai numa mescla.",
+    createSave: "Cadastrar fonte",
+    created: (label: string) => `Fonte «${label}» cadastrada.`,
+    createFailed: "Não foi possível cadastrar a fonte.",
+    deleteAction: "Apagar",
+    deleteActionFor: (label: string) => `Apagar a fonte ${label}`,
+    deleteTitle: "Apagar esta fonte?",
+    deleteMessage: (label: string) =>
+      `A fonte «${label}» não é citada por nenhum dado e sai do cadastro. Você ainda pode desfazer por alguns segundos.`,
+    deleteConfirm: "Apagar fonte",
+    deleted: (label: string) => `Fonte «${label}» apagada.`,
+    deleteBlocked: "Citada: mescle em vez de apagar",
+    demoKept: "Fonte de demonstração: sai só com o dado fictício.",
+    mergeAction: "Mesclar",
+    mergeActionFor: (label: string) => `Mesclar a fonte ${label} em outra`,
+    mergeTitle: (label: string) => `Mesclar «${label}» em…`,
+    mergeHint:
+      "Todos os dados que citam esta fonte passam a citar a escolhida, e esta sai do cadastro. Fica registrado na auditoria, nas duas fontes.",
+    mergeTarget: "Fonte de destino",
+    mergePick: "Escolha a fonte de destino",
+    mergeNoTargets: "Não há outra fonte para receber esta.",
+    mergeFlagged:
+      "Esta fonte está sinalizada como possível conteúdo de terceiros: só pode ser mesclada em outra sinalizada.",
+    mergeLicenseDiffers: (from: string, to: string) =>
+      `As licenças são diferentes: os dados deixam de citar «${from}» e passam a citar «${to}». Confira que isso é o que você quer.`,
+    mergeContinue: "Continuar",
+    mergeConfirmTitle: "Mesclar estas fontes?",
+    mergeConfirmMessage: (from: string, to: string, count: number | null) => {
+      const tail = `«${from}» é removida. Isso não se desfaz por aqui.`;
+      if (count === 0) return `Nenhum dado cita «${from}»: ela é removida e «${to}» fica como está. Isso não se desfaz por aqui.`;
+      if (count === 1) return `O dado que cita «${from}» passa a citar «${to}», e ${tail}`;
+      if (count === null) return `Os dados que citam «${from}» passam a citar «${to}», e ${tail}`;
+      return `Os ${count} dados que citam «${from}» passam a citar «${to}», e ${tail}`;
+    },
+    mergeConfirm: "Mesclar fontes",
+    merged: (from: string, to: string, moved: number) =>
+      moved === 0
+        ? `«${from}» foi mesclada em «${to}». Nenhum dado a citava.`
+        : moved === 1
+          ? `«${from}» foi mesclada em «${to}»: 1 dado passou a citar «${to}».`
+          : `«${from}» foi mesclada em «${to}»: ${moved} dados passaram a citar «${to}».`,
+    mergeFailed: "Não foi possível mesclar as fontes.",
+    deleteFailed: "Não foi possível apagar a fonte.",
   },
   // Admin › Classes: "Mover para…", the tree edit that touches only the parent.
   move: {
@@ -152,6 +209,19 @@ export const curadoriaText = {
     emptiedArchive: (n: number) =>
       n === 1 ? "1 caderno apagado de vez." : `${n} cadernos apagados de vez.`,
     emptyArchiveFailed: "Não foi possível esvaziar o arquivo. Nenhum caderno foi apagado.",
+    // In stages (D-249): thousands of notebooks are deleted in short batches, with progress.
+    emptyArchiveStages:
+      "São muitos cadernos: a limpeza roda em etapas curtas, mostra o andamento e pode ser parada entre uma etapa e outra. O que já foi apagado não volta.",
+    emptyArchiveProgress: (deleted: number, total: number) =>
+      `Apagando o arquivo: ${deleted.toLocaleString("pt-BR")} de ${total.toLocaleString("pt-BR")} cadernos.`,
+    emptyArchiveStop: "Parar",
+    emptyArchiveStopping: "Parando depois desta etapa…",
+    emptyArchiveStopped: (deleted: number, total: number) =>
+      `Limpeza parada: ${deleted.toLocaleString("pt-BR")} de ${total.toLocaleString("pt-BR")} cadernos apagados; o resto continua no arquivo.`,
+    emptyArchivePartial: (deleted: number, total: number) =>
+      deleted === 0
+        ? "Nenhum caderno foi apagado."
+        : `A limpeza parou no meio: ${deleted.toLocaleString("pt-BR")} de ${total.toLocaleString("pt-BR")} cadernos já foram apagados; os outros continuam no arquivo.`,
   },
   // Meus registros: deleting several own records at once.
   records: {

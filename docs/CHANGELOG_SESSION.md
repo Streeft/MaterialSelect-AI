@@ -120,6 +120,26 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 206 — 19/11/26 — Pendências do TODO, parte 7: laudo, fontes, árvore, CSV, barra do Plotly, aparência na conta, arquivo em etapas (D-249)
+
+**O que mudou.** *Laudo:* "Reenviar" com um clique no histórico de envios (`POST /api/exports/envios/{id}/reenviar`, mesmo caminho e mesmo
+limite de e-mails por hora do primeiro envio, auditoria sem endereços); `Reply-To` com o e-mail da conta do engenheiro (caixa "Respostas do
+cliente chegam em …", `reply_to_engineer`; `EMAIL_REPLY_TO` vira o recuo); o anexo técnico entrou no PowerPoint (apêndice `A1`, `A2`…, até 60
+linhas por tabela, com o corte dito no título); memória do `laudo.html` **75,3 → 14,5 MB** por requisição (os candidatos vêm sem os ~50 valores
+cada; as linhas da proveniência vêm de `ChartRepository.value_rows`). *Fontes:* criar, apagar (só a que nenhum dado cita; as nove tabelas com
+`source_id` contadas) e mesclar (as citações vão ao destino, auditado nas duas; demonstrativa e "terceiros" protegidas) em `/app/admin/fontes`, com
+`ConfirmDialog` e Desfazer no apagar. *Árvore de classes:* autoscroll ao arrastar perto da borda. *CSV do catálogo:* buscado pelo app, avisa na
+tela quando vem com `# ERRO:` no fim; a API passou a expor `Content-Disposition` (nome do arquivo). *Barra do Plotly:* botões de 44 px em ponteiro
+grosso; o `mobile.spec` agora mede a barra. *Aparência:* cor, contraste, movimento e barra lateral na conta (`GET/PUT /api/me/appearance`, tabela
+`user_appearance`, migração `13dda33de502`), com a cópia local como primeira pintura e recuo. *Cadernos:* "Esvaziar o arquivo" em lotes de 50, com
+andamento, Parar e a contagem confirmada valendo lote a lote.
+
+**Testes novos.** Backend: `test_laudo_email` (Reply-To, `TestResend`), `test_laudo_pdf_link` (anexo do PowerPoint e o corte dito),
+`test_laudo_annex_memory`, `test_memory_per_request` (teto 100 → 30 MB), `test_source_admin`, `test_appearance_api`, `test_migration_aparencia`,
+`test_cors_exposed_headers`, `test_notebooks_empty_archive` (lotes). Frontend: `DeliveriesDialog`/`SendLaudoDialog`, `fontes/page`,
+`autoScroll`, `arrastar`, `CatalogueExportButtons`, `modebarTargets`, `appearanceSync`, `aparencia`, `emptyArchive`, `cadernosTela`. E2E:
+`conta-aparencia`, `catalogo-csv`, e casos novos em `laudo`, `curadoria` e `mobile`. Migração `13dda33de502`; depois do merge: Deploy da API.
+
 ## Sessão 205 — 19/11/26 — Material 3 Expressive, parte 6: molas como `linear()`, ícones que se mexem, forma que responde (D-248)
 
 **O que mudou.** Frontend apenas (pedido do autor, intensidade "Máximo"). Tokens: as 16 durações do M3, `--m3-ease-emphasized`,

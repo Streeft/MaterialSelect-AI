@@ -228,6 +228,100 @@ test("admin/fontes: o curador corrige a licença de uma fonte e a lista mostra o
   await expect(page.getByText(`Licença de teste ${stamp}`)).toBeVisible();
 });
 
+test("admin/fontes: o curador cria, mescla e apaga fontes, com confirmação e Desfazer (D-249)", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const stamp = Date.now();
+  const from = `Fonte E2E origem ${stamp}`;
+  const into = `Fonte E2E destino ${stamp}`;
+  const listed = async () =>
+    (await (await page.request.get(`${API}/api/sources`)).json()) as { id: number; label: string; citations: number }[];
+
+  await page.goto("/app/admin/fontes");
+  await expect(page.getByRole("heading", { name: "Fontes de dados" })).toBeVisible({ timeout: 45_000 });
+
+  // Criar: rótulo e licença são obrigatórios, e o motivo aparece ao lado do campo.
+  for (const label of [from, into]) {
+    await page.getByRole("button", { name: "Nova fonte" }).click();
+    const dialog = page.getByRole("dialog", { name: "Nova fonte" });
+    await dialog.getByRole("button", { name: "Cadastrar fonte" }).click();
+    await expect(dialog.getByText("Informe o rótulo da fonte.")).toBeVisible();
+    await expect(dialog.getByText("Informe a licença ou a procedência da fonte.")).toBeVisible();
+    await dialog.getByLabel(/^Rótulo/).fill(label);
+    await dialog.getByLabel(/^Licença/).fill("Uso autorizado de teste");
+    await dialog.getByRole("button", { name: "Cadastrar fonte" }).click();
+    await expect(page.getByText(`Fonte «${label}» cadastrada.`)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("rowheader", { name: new RegExp(label) })).toBeVisible();
+  }
+  const created = (await listed()).filter((s) => s.label === from || s.label === into);
+  expect(created).toHaveLength(2);
+  expect(created.every((s) => s.citations === 0)).toBe(true);
+  const fromId = created.find((s) => s.label === from)!.id;
+
+  // Uma fonte que o servidor já tem não se repete.
+  await page.getByRole("button", { name: "Nova fonte" }).click();
+  const again = page.getByRole("dialog", { name: "Nova fonte" });
+  await again.getByLabel(/^Rótulo/).fill(from);
+  await again.getByLabel(/^Licença/).fill("Uso autorizado de teste");
+  await again.getByRole("button", { name: "Cadastrar fonte" }).click();
+  await expect(again.getByRole("alert")).toContainText("Já existe uma fonte com o rótulo");
+  await again.getByRole("button", { name: "Cancelar" }).click();
+
+  // Uma fonte citada não se apaga: o servidor recusa e diz o que a cita; aqui, nem o botão existe.
+  // A fonte citada nasce de um registro próprio com um valor que a cita (as do demo não contam: não se apagam por aqui).
+  const citedLabel = `Fonte E2E citada ${stamp}`;
+  const classes = (await (await page.request.get(`${API}/api/classes`)).json()) as { id: number }[];
+  const material = await page.request.post(`${API}/api/materials`, {
+    data: {
+      name: `Material E2E das fontes ${stamp}`,
+      class_id: classes[0]!.id,
+      description: "Registro próprio para citar uma fonte.",
+      keywords: [],
+      values: [
+        { property_slug: "densidade", kind: "scalar", value: 2.5, unit: "g/cm**3", source_label: citedLabel },
+      ],
+    },
+  });
+  expect(material.ok(), await material.text()).toBe(true);
+  const cited = (await listed()).find((s) => s.label === citedLabel)!;
+  expect(cited.citations).toBeGreaterThan(0);
+  await page.reload();
+  await expect(page.getByRole("rowheader", { name: new RegExp(citedLabel) })).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole("button", { name: `Apagar a fonte ${citedLabel}` })).toHaveCount(0);
+  const refused = await page.request.delete(`${API}/api/sources/${cited.id}`);
+  expect(refused.status()).toBe(409);
+  expect(((await refused.json()) as { detail: string }).detail).toMatch(/Mescle-a em outra fonte/);
+
+  // Mesclar: escolhe o destino, confirma, e a origem some.
+  await page.getByRole("button", { name: `Mesclar a fonte ${from} em outra` }).click();
+  const merge = page.getByRole("dialog", { name: `Mesclar «${from}» em…` });
+  await merge.getByLabel("Fonte de destino").selectOption({ label: into });
+  await merge.getByRole("button", { name: "Continuar" }).click();
+  const confirm = page.getByRole("dialog", { name: "Mesclar estas fontes?" });
+  await expect(confirm.getByText(/Nenhum dado cita/)).toBeVisible();
+  await confirm.getByRole("button", { name: "Mesclar fontes" }).click();
+  await expect(page.getByText(`«${from}» foi mesclada em «${into}». Nenhum dado a citava.`)).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByRole("rowheader", { name: new RegExp(from) })).toHaveCount(0);
+  expect((await listed()).some((s) => s.id === fromId)).toBe(false);
+
+  // Apagar: confirma, a linha some, e o Desfazer a traz de volta sem ter chamado o servidor.
+  await page.getByRole("button", { name: `Apagar a fonte ${into}` }).click();
+  const del = page.getByRole("dialog", { name: "Apagar esta fonte?" });
+  await del.getByRole("button", { name: "Apagar fonte" }).click();
+  await expect(page.getByText(`Fonte «${into}» apagada.`)).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: new RegExp(into) })).toHaveCount(0);
+  await page.getByRole("button", { name: "Desfazer" }).click();
+  await expect(page.getByRole("rowheader", { name: new RegExp(into) })).toBeVisible();
+  expect((await listed()).some((s) => s.label === into)).toBe(true);
+
+  // Sem Desfazer, o pedido sai quando o aviso passa.
+  await page.getByRole("button", { name: `Apagar a fonte ${into}` }).click();
+  await page.getByRole("dialog", { name: "Apagar esta fonte?" }).getByRole("button", { name: "Apagar fonte" }).click();
+  await expect.poll(async () => (await listed()).some((s) => s.label === into), { timeout: 30_000 }).toBe(false);
+});
+
 test("cadernos: Esvaziar o arquivo apaga só os arquivados, depois de confirmar", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   const stamp = Date.now();

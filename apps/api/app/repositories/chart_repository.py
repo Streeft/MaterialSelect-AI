@@ -9,9 +9,12 @@ queries — by ``selectinload``, never a join, for the values (D-231).
 
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from app.models.enums import DataQuality
 from app.models.material import Material
 from app.models.material_class import MaterialClass
 from app.models.material_property_value import MaterialPropertyValue
@@ -20,6 +23,29 @@ from app.models.process import Process, ProcessClass
 from app.models.process_attribute import ProcessAttributeDefinition, ProcessAttributeValue
 from app.models.property_definition import PropertyDefinition
 from app.repositories.visibility import visible_materials
+
+
+class ValueRow(NamedTuple):
+    """One stored value, as the plain columns a report reads (D-249).
+
+    What an annex line needs and nothing else — no ORM object, no definition, no source — so
+    a table over hundreds of candidates holds a few thousand small tuples instead of the whole
+    catalogue as objects.
+    """
+
+    material_id: int
+    slug: str
+    name: str
+    #: The definition's canonical unit and the value's own, which wins when it has one.
+    definition_unit: str | None
+    canonical_unit: str | None
+    is_missing: bool
+    normalized_value: float | None
+    value_scalar: float | None
+    value_typical: float | None
+    original_unit: str | None
+    conversion_method: str | None
+    data_quality: DataQuality
 
 
 class ChartRepository:
@@ -39,6 +65,7 @@ class ChartRepository:
         material_ids: list[int] | None = None,
         class_slugs: list[str] | None = None,
         property_slugs: list[str] | None = None,
+        with_values: bool = True,
     ) -> list[Material]:
         """Return active materials with values, definitions, class and source.
 
@@ -54,6 +81,12 @@ class ChartRepository:
         then deliberately partial, so the query refreshes the materials it
         touches (``populate_existing``) and the caller must not read other
         properties from them.
+
+        ``with_values=False`` (D-249) loads the materials **without touching their values**:
+        ``property_values`` stays an ordinary lazy collection, so nothing is partial and a later
+        read gets everything. For a report that needs the identity of hundreds of candidates and
+        reads their values through :meth:`value_rows` — the laudo's annex held ~66 MB of ORM
+        values it never used, for a catalogue of 32 thousand.
         """
         values_loader = (
             Material.property_values.and_(
@@ -64,11 +97,9 @@ class ChartRepository:
             if property_slugs is not None
             else Material.property_values
         )
-        stmt = (
-            select(Material)
-            .join(MaterialClass, Material.class_id == MaterialClass.id)
-            .options(
-                joinedload(Material.material_class),
+        options = [joinedload(Material.material_class)]
+        if with_values:
+            options += [
                 # ``selectinload``, not a join, for the values (D-231): joined,
                 # every one of the ~32 thousand value rows of the full demo
                 # catalogue came back carrying its material's, definition's and
@@ -77,7 +108,11 @@ class ChartRepository:
                 # few dozen rows, loaded once and shared through the identity map.
                 selectinload(values_loader).selectinload(MaterialPropertyValue.property_definition),
                 selectinload(values_loader).selectinload(MaterialPropertyValue.source),
-            )
+            ]
+        stmt = (
+            select(Material)
+            .join(MaterialClass, Material.class_id == MaterialClass.id)
+            .options(*options)
             .where(Material.is_active.is_(True))
             .where(visible_materials(self.viewer_id))
             # ``id`` breaks ties: the demo catalogue repeats names (the releases
@@ -88,9 +123,44 @@ class ChartRepository:
             stmt = stmt.where(Material.id.in_(material_ids))
         if class_slugs:
             stmt = stmt.where(MaterialClass.slug.in_(class_slugs))
-        if property_slugs is not None:
+        if property_slugs is not None and with_values:
             stmt = stmt.execution_options(populate_existing=True)
         return list(self.db.execute(stmt).scalars().unique().all())
+
+    def value_rows(
+        self, material_ids: list[int], property_slugs: list[str]
+    ) -> dict[int, dict[str, ValueRow]]:
+        """The stored values of some properties of some materials, as plain rows (D-249).
+
+        ``{material_id: {slug: row}}``; a material that has no value for a slug has no entry for
+        it, which is how a caller tells "absent" from a value. Two columns' worth of filters
+        (the ids and the slugs) bound the result to the few properties a decision rested on.
+        """
+        if not material_ids or not property_slugs:
+            return {}
+        stmt = (
+            select(
+                MaterialPropertyValue.material_id,
+                PropertyDefinition.slug,
+                PropertyDefinition.name,
+                PropertyDefinition.canonical_unit,
+                MaterialPropertyValue.canonical_unit,
+                MaterialPropertyValue.is_missing,
+                MaterialPropertyValue.normalized_value,
+                MaterialPropertyValue.value_scalar,
+                MaterialPropertyValue.value_typical,
+                MaterialPropertyValue.original_unit,
+                MaterialPropertyValue.conversion_method,
+                MaterialPropertyValue.data_quality,
+            )
+            .join(PropertyDefinition, PropertyDefinition.id == MaterialPropertyValue.property_id)
+            .where(MaterialPropertyValue.material_id.in_(material_ids))
+            .where(PropertyDefinition.slug.in_(property_slugs))
+        )
+        rows: dict[int, dict[str, ValueRow]] = {}
+        for row in self.db.execute(stmt):
+            rows.setdefault(row[0], {})[row[1]] = ValueRow(*row)
+        return rows
 
     def list_material_ids(self) -> list[int]:
         """Ids of the active, visible materials, in the order :meth:`list_materials` lists them.

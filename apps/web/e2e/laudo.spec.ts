@@ -102,6 +102,9 @@ test("laudo: pré-visualiza com marca de rascunho, emite e abre a versão congel
   const send = page.getByRole("dialog", { name: "Enviar a versão 1 ao cliente" });
   await expect(send).toBeVisible();
   await expect(send.getByText("Envio por e-mail não configurado neste servidor")).toBeVisible();
+  // D-249: replies reach the engineer, said next to the preview, and switchable.
+  const replyTo = send.getByRole("checkbox", { name: /^Respostas do cliente chegam em / });
+  await expect(replyTo).toBeChecked({ timeout: 30_000 });
   const mail = send.frameLocator('iframe[title="Pré-visualização do e-mail que será enviado"]');
   await expect(mail.getByText("Segue o laudo de engenharia emitido.")).toBeVisible({
     timeout: 30_000,
@@ -180,6 +183,15 @@ test("laudo: pré-visualiza com marca de rascunho, emite e abre a versão congel
   await expect(page.getByText("Link revogado.", { exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(deliveries.getByText(/^Revogado em /)).toBeVisible();
   await expect(deliveries.getByRole("button", { name: /^Revogar o link/ })).toHaveCount(0);
+  // D-249: send it again with one click (no confirmation): a new send with a new link, in the
+  // history beside the revoked one, which stays revoked.
+  await deliveries
+    .getByRole("button", { name: /^Reenviar o laudo para cliente@empresa\.com\.br/ })
+    .click();
+  await expect(page.getByText(/Reenvio simulado a 1 endereço/)).toBeVisible({ timeout: 30_000 });
+  await expect(deliveries.getByText("Link ativo")).toBeVisible({ timeout: 30_000 });
+  await expect(deliveries.getByText(/^Revogado em /)).toBeVisible();
+  await expect(deliveries.getByRole("listitem")).toHaveCount(2);
   await deliveries.getByRole("button", { name: "Concluir" }).click();
   await expect(deliveries).toBeHidden();
 

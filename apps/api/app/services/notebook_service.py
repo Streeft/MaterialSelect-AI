@@ -354,15 +354,17 @@ class NotebookService:
         self._discard(self.notebook(notebook_id))
         self.db.commit()
 
-    def _discard(self, notebook: Notebook) -> None:
+    def _discard(self, notebook: Notebook, running: list[StudioArtifact] | None = None) -> None:
         """Remove one notebook with everything in it, without committing.
 
         A generation still running holds a reserved unit, and its job will
         find no artifact to finish or fail: hand the unit back here, as
         deleting the artifact alone does — through the same guarded delete,
         so a job failing at this very moment cannot refund it a second time.
+        ``running`` is the owner's list of those, when the caller already has it
+        (a batch reads it once, not once per notebook).
         """
-        for artifact in self.repo.running():
+        for artifact in self.repo.running() if running is None else running:
             if artifact.notebook_id != notebook.id:
                 continue
             day = created_day(artifact.created_at)
@@ -370,16 +372,27 @@ class NotebookService:
                 self.repo.release(day, "artifacts")
         self.repo.delete(notebook)
 
-    def empty_archive(self, expected: int) -> int:
-        """Delete for good every archived notebook of the owner; how many (D-236).
+    #: Notebooks one "Esvaziar o arquivo" request deletes at most (D-249). The call used to be one
+    #: transaction over the whole archive; with thousands of notebooks that is minutes of work in
+    #: one request, and a failure at the end undid all of it. Each request now is one bounded
+    #: transaction and the screen repeats it, showing the progress.
+    EMPTY_ARCHIVE_BATCH = 50
+    EMPTY_ARCHIVE_MAX_BATCH = 200
 
-        ``expected`` is the number the person saw and confirmed. If the archive
-        holds another number now (another tab archived or brought one back), the
-        call is refused and nothing is deleted: a notebook the person never saw
-        in the confirmation is not theirs to have destroyed by it. All or
-        nothing — one transaction, so a failure half way leaves every notebook.
-        Only the caller's own archived notebooks are ever reached: the ids come
-        from a query scoped to the owner, and an active notebook is not one.
+    def empty_archive(self, expected: int, limit: int | None = None) -> tuple[int, int]:
+        """Delete for good a batch of the owner's archived notebooks: ``(deleted, remaining)``.
+
+        ``expected`` is the number the person saw and confirmed — at the start, and for each
+        following batch the ``remaining`` the previous one answered. If the archive holds another
+        number now (another tab archived or brought one back), the call is refused and nothing is
+        deleted: a notebook the person never saw in the confirmation is not theirs to have
+        destroyed by it, and a run that finds the archive changed stops where it is.
+
+        One batch is one transaction — all or nothing — of at most ``limit`` notebooks (default
+        ``EMPTY_ARCHIVE_BATCH``, never above ``EMPTY_ARCHIVE_MAX_BATCH``), oldest first, so a run
+        that stops half way has deleted whole notebooks and nothing else. Only the caller's own
+        archived notebooks are ever reached: the ids come from a query scoped to the owner, and an
+        active notebook is not one.
         """
         ids = self.repo.archived_ids()
         if len(ids) != expected:
@@ -387,10 +400,13 @@ class NotebookService:
                 f"O arquivo mudou: a confirmação era de {expected} e agora há {len(ids)}. "
                 "Recarregue a lista e confirme de novo."
             )
-        for notebook_id in ids:
-            self._discard(self.notebook(notebook_id))
+        size = min(limit or self.EMPTY_ARCHIVE_BATCH, self.EMPTY_ARCHIVE_MAX_BATCH)
+        chosen = ids[:size]
+        running = self.repo.running() if chosen else []
+        for notebook_id in chosen:
+            self._discard(self.notebook(notebook_id), running)
         self.db.commit()
-        return len(ids)
+        return len(chosen), len(ids) - len(chosen)
 
     def notebook(self, notebook_id: int) -> Notebook:
         notebook = self.repo.get(notebook_id)

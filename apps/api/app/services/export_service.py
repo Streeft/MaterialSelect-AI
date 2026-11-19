@@ -100,8 +100,13 @@ class ExportService:
         root_group_description = service.describe_pipeline(study)
         candidate_ids = [c.record_id for c in result.candidates]
         if result.universe == "material":
+            # Identity only (D-249): the annex reads the few properties the decision rested on
+            # through ``value_rows``, so the ~50 values of every candidate stay in the database.
             records = {
-                m.id: m for m in self.chart_repo.list_materials(material_ids=candidate_ids or [-1])
+                m.id: m
+                for m in self.chart_repo.list_materials(
+                    material_ids=candidate_ids or [-1], with_values=False
+                )
             }
         else:
             records = {
@@ -687,12 +692,13 @@ class ExportService:
         slugs = self._relevant_slugs(study, result)
         names = {p.slug: p.name for p in self.chart_repo.list_properties()}
         rows: list[list[object]] = []
+        stored = self.chart_repo.value_rows([c.record_id for c in result.candidates], slugs)
 
         for candidate in result.candidates:
             material = materials.get(candidate.record_id)
             if material is None:
                 continue
-            by_slug = {v.property_definition.slug: v for v in material.property_values}
+            by_slug = stored.get(candidate.record_id, {})
             for slug in slugs:
                 value = by_slug.get(slug)
                 origin = "Próprio" if self._is_own_record(material) else "Catálogo"
@@ -702,13 +708,12 @@ class ExportService:
                         [material.name, label, _MISSING, _MISSING, "—", "—", "—", "—", origin]
                     )
                     continue
-                definition = value.property_definition
                 rows.append(
                     [
                         material.name,
-                        definition.name,
+                        value.name,
                         _MISSING if value.is_missing else format_number(value.normalized_value),
-                        pretty_unit(definition.canonical_unit),
+                        pretty_unit(value.definition_unit),
                         (
                             _MISSING
                             if value.is_missing

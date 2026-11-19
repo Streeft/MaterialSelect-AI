@@ -37,6 +37,7 @@ from app.domain.email_address import (
     clean_addresses,
     clean_message,
     clean_subject,
+    is_valid_address,
 )
 from app.domain.errors import NotFoundError, ServiceUnavailableError, ValidationError
 from app.exporters.laudo import recommended_name, short_code
@@ -191,6 +192,18 @@ class ReportDeliveryService:
 
     # --- the message ---------------------------------------------------------
 
+    def _reply_to(self, payload: LaudoSendRequest) -> str | None:
+        """The engineer's address for ``Reply-To`` (D-249): the account that sends.
+
+        The account is the engineer who issued the laudo, so a client's "Responder" reaches the
+        person who signed it, not the shared sender of the deployment. An account address that
+        does not read as a plain address is left out rather than written into a header.
+        """
+        address = (self.user.email or "").strip()
+        if payload.reply_to_engineer and is_valid_address(address):
+            return address
+        return None
+
     @staticmethod
     def _email(
         report: IssuedReport,
@@ -243,11 +256,19 @@ class ReportDeliveryService:
             link_expires_at=expires,
             provider=settings.email_provider_name,
             email_configured=settings.email_configured,
+            reply_to=self._reply_to(payload),
         )
 
     # --- sending -------------------------------------------------------------
 
-    def send(self, project_id: int, issued_id: int, payload: LaudoSendRequest) -> ReportDeliveryOut:
+    def send(
+        self,
+        project_id: int,
+        issued_id: int,
+        payload: LaudoSendRequest,
+        *,
+        resend_of: int | None = None,
+    ) -> ReportDeliveryOut:
         report = self._owned(project_id, issued_id)
         to = clean_addresses(
             payload.recipients, label="Destinatários", minimum=1, maximum=MAX_RECIPIENTS
@@ -297,6 +318,7 @@ class ReportDeliveryService:
             text=render_text(mail),
             html=render_html(mail),
             attachments=(attachment,),
+            reply_to=self._reply_to(payload),
         )
 
         status, error = DELIVERY_SENT, None
@@ -338,6 +360,11 @@ class ReportDeliveryService:
                 "status": {"before": None, "after": status},
                 "destinatarios": {"before": None, "after": len(to) + len(cc)},
                 "anexo": {"before": None, "after": "pdf assinado" if pdf is not None else "html"},
+                **(
+                    {"reenvio_do_envio": {"before": None, "after": resend_of}}
+                    if resend_of is not None
+                    else {}
+                ),
             },
             project_id=project_id,
         )
@@ -345,6 +372,28 @@ class ReportDeliveryService:
         if status == DELIVERY_FAILED:
             raise ServiceUnavailableError(error or "Não foi possível enviar o e-mail.")
         return self.out(delivery)
+
+    # --- sending again -------------------------------------------------------
+
+    def resend(self, project_id: int, delivery_id: int) -> ReportDeliveryOut:
+        """Send an earlier message again, with one click (D-249): same people, subject and text.
+
+        It is a **new** send, not a revival: it gets its own row, its own link and its own
+        validity, counts against ``RATE_LIMIT_EMAIL_PER_HOUR`` like any other, and leaves the
+        old link as it was (the owner revokes it separately if it should stop). The attachment
+        is whatever the version carries *now* — if the signed PDF arrived after the first send,
+        the new message carries it. A failed send can be sent again the same way.
+        """
+        delivery = self.deliveries.get_owned(project_id, delivery_id)
+        if delivery is None:
+            raise NotFoundError("Envio não encontrado.")
+        payload = LaudoSendRequest(
+            recipients=list(delivery.recipients),
+            cc=list(delivery.cc),
+            subject=delivery.subject,
+            message=delivery.message,
+        )
+        return self.send(project_id, delivery.issued_report_id, payload, resend_of=delivery.id)
 
     # --- revoking ------------------------------------------------------------
 

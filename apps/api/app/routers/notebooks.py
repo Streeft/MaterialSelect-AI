@@ -156,14 +156,21 @@ def batch_archive_notebooks(
 @router.delete("/archived", response_model=EmptiedArchiveOut)
 def empty_archive(
     expected: int = Query(ge=0, description="How many archived notebooks the person confirmed."),
+    limit: int | None = Query(
+        default=None, ge=1, le=200, description="Most notebooks this request deletes (default 50)."
+    ),
     service: NotebookService = Depends(_service),
 ) -> EmptiedArchiveOut:
-    """Delete for good all of the caller's archived notebooks, all or none (D-236).
+    """Delete for good a batch of the caller's archived notebooks, all or none per batch (D-249).
 
     Declared before ``DELETE /{notebook_id}`` so ``archived`` is not read as an id.
-    ``expected`` is the count the person confirmed; a different count now is a 409.
+    ``expected`` is the count the person confirmed — the whole archive at first, then the
+    ``remaining`` of the previous answer; a different count now is a 409 and nothing is deleted.
+    The answer says how many were deleted and how many are left; the screen repeats the call
+    until none is.
     """
-    return EmptiedArchiveOut(deleted=service.empty_archive(expected))
+    deleted, remaining = service.empty_archive(expected, limit)
+    return EmptiedArchiveOut(deleted=deleted, remaining=remaining)
 
 
 @router.post(
