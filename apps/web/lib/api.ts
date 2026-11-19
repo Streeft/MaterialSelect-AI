@@ -574,6 +574,39 @@ export function replaceMaterialComposition(
   });
 }
 
+/** TM2-g (D-255): add one composition row, validated with the whole composition. */
+export function addMaterialCompositionEntry(
+  id: number,
+  entry: CompositionEntryIn,
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/composicao/linhas`, {
+    method: "POST",
+    body: JSON.stringify(entry),
+  });
+}
+
+/** TM2-g (D-255): rewrite one stored composition row; the others stay as stored. */
+export function updateMaterialCompositionEntry(
+  id: number,
+  entryId: number,
+  entry: CompositionEntryIn,
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/composicao/linhas/${entryId}`, {
+    method: "PUT",
+    body: JSON.stringify(entry),
+  });
+}
+
+/** TM2-g (D-255): remove one stored composition row. */
+export function deleteMaterialCompositionEntry(
+  id: number,
+  entryId: number,
+): Promise<MaterialDetail> {
+  return request<MaterialDetail>(`/api/materials/${id}/composicao/linhas/${entryId}`, {
+    method: "DELETE",
+  });
+}
+
 export function replaceMaterialDesignations(
   id: number,
   designations: DesignationIn[],

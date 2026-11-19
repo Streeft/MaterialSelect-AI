@@ -42,6 +42,13 @@ DENSITY = CaeQuantity("density", "densidade", "densidade")
 CTE = CaeQuantity("cte", "coef_expansao_termica", "coeficiente de expansão térmica")
 CONDUCTIVITY = CaeQuantity("conductivity", "condutividade_termica", "condutividade térmica")
 SPECIFIC_HEAT = CaeQuantity("specific_heat", "calor_especifico", "calor específico")
+#: D-255: the extended catalogue's G, K and Tm (D-188). G and K are written when
+#: catalogued and, when the material has no row for them, derived from E and ν by
+#: the isotropic relations — marked as derived, never where the catalogue
+#: declared them absent. Tm is only ever the catalogued value.
+SHEAR = CaeQuantity("shear", "modulo_cisalhamento", "módulo de cisalhamento")
+BULK = CaeQuantity("bulk", "modulo_volumetrico", "módulo volumétrico")
+MELTING = CaeQuantity("melting", "temp_fusao", "temperatura de fusão")
 
 #: In the order every card lists them.
 QUANTITIES: tuple[CaeQuantity, ...] = (
@@ -51,6 +58,9 @@ QUANTITIES: tuple[CaeQuantity, ...] = (
     CTE,
     CONDUCTIVITY,
     SPECIFIC_HEAT,
+    SHEAR,
+    BULK,
+    MELTING,
 )
 
 
@@ -108,6 +118,9 @@ SI_M = UnitSystem(
         "cte": (UnitTerm("K", "K", -1),),
         "conductivity": (UnitTerm("W", "W"), UnitTerm("m", "m", -1), UnitTerm("K", "K", -1)),
         "specific_heat": (UnitTerm("J", "J"), UnitTerm("kg", "kg", -1), UnitTerm("K", "K", -1)),
+        "shear": (UnitTerm("Pa", "Pa"),),
+        "bulk": (UnitTerm("Pa", "Pa"),),
+        "melting": (UnitTerm("kelvin", "K"),),
     },
 )
 
@@ -128,6 +141,9 @@ SI_MM = UnitSystem(
             UnitTerm("tonne", "t", -1),
             UnitTerm("K", "K", -1),
         ),
+        "shear": (UnitTerm("MPa", "MPa"),),
+        "bulk": (UnitTerm("MPa", "MPa"),),
+        "melting": (UnitTerm("kelvin", "K"),),
     },
 )
 
@@ -156,6 +172,10 @@ US_IN = UnitSystem(
             UnitTerm("s", "s", -2),
             UnitTerm("delta_degF", "degF", -1),
         ),
+        "shear": (UnitTerm("psi", "psi"),),
+        "bulk": (UnitTerm("psi", "psi"),),
+        # A temperature, not a difference: absolute degF (offset applied by Pint).
+        "melting": (UnitTerm("degF", "degF"),),
     },
 )
 

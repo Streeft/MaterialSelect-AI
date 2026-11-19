@@ -545,3 +545,53 @@ def test_espessura_nao_positiva_ou_infinita_e_recusada(face, nucleo) -> None:
         synthesize_sandwich(
             face_thickness=face, core_thickness=nucleo, face=_face(), core=_nucleo()
         )
+
+
+# --- D-255: G, K e Tm do catálogo ampliado ------------------------------------
+
+
+def test_g_e_k_do_composito_saem_como_par_de_limites() -> None:
+    first = _fibra(modulo_cisalhamento=_p(90.0e9), modulo_volumetrico=_p(150.0e9))
+    second = _matriz(modulo_cisalhamento=_p(1.3e9), modulo_volumetrico=_p(4.0e9))
+    values = _by_slug(synthesize_composite(fraction=0.6, first=first, second=second))
+    for slug, a, b in (
+        ("modulo_cisalhamento", 90.0e9, 1.3e9),
+        ("modulo_volumetrico", 150.0e9, 4.0e9),
+    ):
+        value = values[slug]
+        assert value.rule.basis == LIMITES and value.value is None
+        assert value.value_max == pytest.approx(0.6 * a + 0.4 * b)
+        assert value.value_min == pytest.approx(1 / (0.6 / a + 0.4 / b))
+
+
+def test_o_composito_funde_quando_o_primeiro_constituinte_funde() -> None:
+    first = _fibra(temp_fusao=_p(3900.0))
+    second = _matriz(temp_fusao=_p(530.0, DataQuality.ESTIMADO))
+    tm = _by_slug(synthesize_composite(fraction=0.6, first=first, second=second))["temp_fusao"]
+    assert tm.value == 530.0 and tm.rule.key == "primeira-fusao"
+    assert tm.quality == DataQuality.ESTIMADO
+
+
+def test_sem_tm_num_dos_pais_o_composito_nao_tem_tm_e_nunca_zero() -> None:
+    result = synthesize_composite(
+        fraction=0.6, first=_fibra(temp_fusao=_p(3900.0)), second=_matriz()
+    )
+    assert "temp_fusao" not in _by_slug(result)
+    assert "temp_fusao" in _skipped(result)
+
+
+def test_a_espuma_herda_a_fusao_e_nao_tem_g_nem_k() -> None:
+    solid = _solido(temp_fusao=_p(933.0), modulo_cisalhamento=_p(26.0e9))
+    result = synthesize_foam(relative_density=0.1, solid=solid)
+    assert _by_slug(result)["temp_fusao"].value == 933.0
+    reasons = _skipped(result)
+    assert "Gibson" in reasons["modulo_cisalhamento"]
+    assert "modulo_volumetrico" in reasons
+
+
+def test_o_painel_nao_tem_g_nem_k_porque_e_anisotropico() -> None:
+    face = _fibra(modulo_cisalhamento=_p(90.0e9), temp_fusao=_p(3900.0))
+    core = _matriz(modulo_cisalhamento=_p(1.3e9), temp_fusao=_p(530.0))
+    result = synthesize_sandwich(face_thickness=1.0, core_thickness=10.0, face=face, core=core)
+    assert "anisotrópico" in _skipped(result)["modulo_cisalhamento"]
+    assert _by_slug(result)["temp_fusao"].value == 530.0

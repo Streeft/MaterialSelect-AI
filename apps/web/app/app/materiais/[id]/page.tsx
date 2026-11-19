@@ -564,6 +564,7 @@ export default function MaterialDetailPage() {
                         <CompositionEditor
                           materialId={data.id}
                           entries={data.composition}
+                          materialIsDemo={data.is_demo}
                           onDone={() => setEditing(null)}
                         />
                       ) : (

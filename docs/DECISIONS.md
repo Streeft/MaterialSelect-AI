@@ -14968,3 +14968,84 @@ tem texto). Trocar `zod` por 4 agora (risco inalcançável contra reescrever tod
 (`plotly.js`, `next`, `eslint-config-next`, `vite`/`vitest` na faixa). Lighthouse conferido pelo CI.
 
 **Numeração.** D-254, Sessão 211 (conferidas em `origin/main` e nas branches abertas; o PR #276 entrou depois como D-252b, Sessão 209b).
+
+## D-255 — Pendências do TODO, parte 12: vetores antigos dos Cadernos refeitos, qualidade e fonte na composição, edição por linha, G/K/Tm no CAE e no Sintetizador, curvas demo no alongamento e dureza Rockwell
+
+*Decidida pelo assistente por delegação do autor, revisável.* (Sessão 212)
+
+**Contexto.** Últimas pendências de código do `TODO.md` ("Grupo O"): os vetores de fonte de caderno gravados antes do D-101 (3072 dimensões) que a
+busca semântica ignora; os resíduos TM2-f e TM2-g da composição (D-111); e os itens 4, 5 e 6 do catálogo ampliado (D-188/D-189). Todos conferidos
+abertos no código antes de começar.
+
+**Decisão — reembedar os Cadernos, só o vetor.** `python -m app.knowledge.notebook_reembed` conta (simulação, padrão) e, com `--apply`, troca os
+vetores de `notebook_embedding` cuja identidade não é a atual (`embedding_matches` em SQL: outro modelo, ou outras dimensões) pelos de
+`gemini-embedding-001` a 768. **Nunca apaga fonte, trecho, posição nem nota**: atualiza modelo, dimensões e bytes da linha que já existe; trecho que nunca
+teve vetor fica de fora (busca por palavras, como sempre). Idempotente e retomável (o que falta é recalculado do banco a cada execução; cada lote é
+gravado ao chegar). A leitura da cota é a do `app.knowledge.embed`, reaproveitando o compassador e as constantes dele: 429 por minuto espera o que o
+servidor pediu (até 120 s) e repete; 429 por dia, ou quatro por minuto seguidos, encerram com saída 0; 5xx e rede esperam 5, 15 e 45 s; 400 num lote
+reenvia um a um e o trecho recusado mantém o vetor antigo; o resto é configuração, saída 1. O log é público e o caderno é de quem o fez: só contagens e o
+nome do modelo. Duas ações novas em `admin-banco.yml`: `cadernos_reembedar_simular` (sem chave) e `cadernos_reembedar` (lê `GEMINI_API_KEY`, o mesmo
+segredo do `conhecimento.yml`; até 300 pedidos, lote 20, 90 RPM, 27 000 TPM, 60 min). O `status` do Cérebro passa a apontar a ação.
+
+**Decisão — TM2-f: qualidade e fonte ditas por linha.** `CompositionEntryIn` deixa de presumir `ESTIMADO`: `data_quality` passa a ser opcional **só para
+reaproveitar** — uma linha que substitui a gravada do mesmo elemento e condição mantém a qualidade e a fonte gravadas quando não as repete (antes, salvar
+de novo o formulário transformava um `IMPORTADO` em `ESTIMADO`); uma linha nova sem qualidade ou sem fonte é **400** com o elemento no texto. A fonte vem
+por `source_id` (fonte cadastrada; 400 se não existe; 400 se é de demonstração e o material é real) **ou** por `source_label` (rótulo novo ou existente,
+como antes) — os dois juntos são 422. A saída da composição ganha `id` e `source_id`. No formulário: "Qualidade do dado" por linha (pré-escolhida da
+gravada; "Escolha…" numa linha nova sem anterior) e "Fonte" como lista das fontes cadastradas (`GET /api/sources`; as de demonstração somem para registro
+real) com "Nova fonte (escrever o rótulo)"; a linha nova herda qualidade e fonte da anterior. A auditoria da composição passa a registrar qualidade e
+fonte ao lado do teor.
+
+**Decisão — TM2-g: uma linha por vez.** `POST /api/materials/{id}/composicao/linhas` (201), `PUT …/linhas/{entry_id}` e `DELETE …/linhas/{entry_id}`,
+cada um devolvendo a ficha. A linha é construída pelo mesmo `build_composition_entry` e **validada com a composição inteira** (`validate_composition`
+sobre as outras linhas gravadas mais ela: elemento repetido na condição, dois "resto", mínimos acima de 100 %); a edição mantém o `id` e a posição; a
+linha de outro material é 404; registro oficial é 409 (a guarda `test_material_write_guard` cobre as três rotas). Cada escrita entra na auditoria. Na
+tela, cada linha ganha "Salvar linha N" (POST na nova, PUT na gravada) e a lixeira de uma linha gravada remove pela API depois de `ConfirmDialog`; o
+"Salvar" de baixo continua substituindo o conjunto. O `PUT /composicao` inteiro fica, para quem cola uma composição toda.
+
+**Decisão — CAE lê G, K e Tm.** O cartão ganha `modulo_cisalhamento`, `modulo_volumetrico` e `temp_fusao`. Valor cadastrado sai como está. **Sem linha**
+para G ou K e com E e ν cadastrados, eles são **derivados** pelas relações isotrópicas G = E/2(1+ν) e K = E/3(1−2ν) (`app/calculations/elastic_constants.py`;
+G exige −1 < ν ≤ 0,5 e K exige ν < 0,5 — nunca infinito nem negativo), em unidade canônica e convertidos por `units.py`, marcados `derivation` (fórmula e o
+que leram), sem fonte própria e com a **pior** qualidade de E e ν. **Ausência declarada nunca é sobrescrita** pela relação (um "não se aplica: material
+anisotrópico" continua ausente). Tm só sai cadastrada, como temperatura absoluta (K, ou °F absoluto no sistema in-lbf-s). Nenhum *deck* (MAPDL, Abaqus,
+Nastran, LS-DYNA) põe G, K ou Tm num campo — um material isotrópico é E e ν, e um terceiro número sobredeterminaria o `MAT1` —: eles vão nos comentários
+com valor, proveniência e o motivo ("informativo"). O MatML leva os três como `PropertyData` (Shear Modulus, Bulk Modulus, Melting Point), o derivado
+apontando uma fonte "Derivado pelo MaterialSelect AI (relação isotrópica)" e a nota "Derivado, não cadastrado". Arquivos de referência regenerados.
+
+**Decisão — Sintetizador lê G, K e Tm.** Compósito: G e K por **Voigt–Reuss** (par de limites, pelo mesmo argumento do módulo); Tm pela regra nova "Fusão do
+primeiro constituinte" (`Tm = min(TmA, TmB)`, exata para o início da fusão; o rótulo não chama isso de "fusão do compósito"). Painel: Tm pela mesma
+regra; G e K **sem regra**, com motivo (anisotrópico por construção). Espuma: Tm herdada do sólido; G e K sem regra (a escala de Gibson–Ashby implementada
+é a do módulo de Young; a do volumétrico depende do gás). A justificativa antiga do painel ("o módulo de cisalhamento do núcleo não está catalogado") ficou
+falsa com o D-188 e foi reescrita: os modos do núcleo também leem a carga e o vão, que não são do material. Pai sem o número: o valor não é sintetizado,
+com o motivo — nunca zero.
+
+**Decisão — curvas demo reancoradas no alongamento.** `reanchor_demo_stress_strain` (chamado por `seed_extended.main()` depois do catálogo ampliado,
+para os 75 e os 593) reescreve a curva tensão–deformação **demo** a partir dos valores atuais, agora com a ruptura no `alongamento` cadastrado: metal dúctil
+(a uniforme vira alongamento/1,35; a família em temperatura estica a partir dela pela premissa de antes), polímero dúctil (estiramento até 60 % do
+alongamento), elastômero, CMC e frágil (amolecimento `c` resolvido para romper no alongamento quando 0 ≤ c ≤ 0,5 e E e σ são cadastrados). Onde a forma
+não comporta o alongamento (romperia antes do fim do trecho elástico), a premissa fica e a descrição diz isso. **Só reescreve** curva `is_demo` com a
+citação demo, de material demo sem dono, e que ainda é **exatamente** a semeada a partir dos mesmos valores (pontos, parâmetros e descrição): curva
+editada por curador ou já reancorada fica como está. Mantém id, título, fonte e data de criação. Idempotente (segunda execução reescreve 0; log
+`stress_strain_reanchored`). É a exceção estreita ao "nunca altera o gravado" do D-189: a curva demo era derivada, e o que se reescreve é a derivação.
+
+**Decisão — dureza Rockwell, uma definição por escala.** Como Shore A e D: três definições adimensionais (Pint `dimensionless`, sem eixo log, direção neutra,
+Nível 3), `dureza_rockwell_b` (HRB, metais macios), `dureza_rockwell_c` (HRC, metais duros) e `dureza_rockwell_m` (HRM, polímeros rígidos), em
+`ROCKWELL_PROPERTIES` (fora das 33 do D-188, que têm seed próprio), com verbete no glossário. Escala Rockwell não é unidade convertível: número de uma
+escala não vira número de outra, e o projeto não guarda tabela de conversão. Valores **só em demo** (`app/db/seed_demo_rockwell.py`, chamado por
+`seed_extended.main()`): cada material demo recebe as três linhas — a leitura na escala da família, posicionada pela própria resistência (metais) ou módulo
+(polímeros) numa tabela didática de ordem de grandeza com variação estável de ±1 por hash do nome, nota "Valor de exemplo (D-255)." — e **ausência com o
+motivo** nas outras duas (metal macio demais, cerâmica em Vickers, elastômero em Shore A…). Aditivo e idempotente (D-189), nunca material real; log
+`rockwell_values_created`/`rockwell_missing_declared`.
+
+**Alternativas recusadas.** Reembedar apagando e reingerindo a fonte (perderia notas e citações que apontam os trechos). Exigir `data_quality` em toda
+linha (quebraria quem salva de novo uma composição gravada sem repetir o que não mudou; reaproveitar é o pedido do TM2-f). `PATCH` parcial da linha
+(a linha é pequena e sempre validada inteira; meia linha abriria o estado "faixa sem unidade"). Escrever G no `MAT1` (sobredetermina o material com E e
+ν). Derivar G e K por cima de ausência declarada. Uma "Dureza Rockwell" única com a escala no valor (misturaria escalas na mesma coluna, e o filtro
+compararia HRB com HRC). Reancorar apagando e recriando a curva (mudaria o id que gráficos salvos e cartões citam).
+
+**Consequências.** Toca `apps/api`; **sem migração** (as definições Rockwell entram pelo seed, como as do D-188). Depois do merge: **Deploy da API**;
+**Administração do banco → `semear_referencia`** (cria as três definições Rockwell; ou `semear_demo`, por decisão do autor, que além delas reancora as
+curvas e grava os valores demo); **`cadernos_reembedar_simular`**, conferir a contagem, e **`cadernos_reembedar`** quantas vezes a cota pedir, até a
+simulação dizer "nada a fazer".
+
+**Numeração.** D-255, Sessão 212 (conferidas em `origin/main` e nas branches abertas; o PR #276 entrou depois como D-252b, Sessão 209b).

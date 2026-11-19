@@ -131,6 +131,9 @@ def test_si_m_kg_s_keeps_the_canonical_numbers() -> None:
             "cte": 1.2e-5,
             "conductivity": 50.0,
             "specific_heat": 460.0,
+            # D-255: no row for G or K, so both derived from E and nu (isotropic).
+            "shear": 2.1e11 / (2 * 1.3),
+            "bulk": 2.1e11 / (3 * 0.4),
         }
     )
 
@@ -210,7 +213,8 @@ def test_an_absent_quantity_is_omitted_with_a_comment_in_every_format() -> None:
     assert not any(k in abaqus for k in ("*CONDUCTIVITY, TYPE=ISO", "*SPECIFIC HEAT"))
     matml = ET.fromstring(CAE_FORMATS["matml"].render(card).split("\n", 2)[2])
     properties = {p.get("property") for p in matml.iter("PropertyData")}
-    assert properties == {"pr-density", "pr-young", "pr-poisson"}
+    # G and K are derived from E and nu (D-255), marked so; nothing else appears.
+    assert properties == {"pr-density", "pr-young", "pr-poisson", "pr-shear", "pr-bulk"}
 
 
 def test_a_value_declared_missing_is_not_registered_and_not_zero() -> None:

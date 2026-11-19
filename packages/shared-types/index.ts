@@ -164,6 +164,8 @@ export type CompositionState = "faixa" | "resto" | "ausente";
  * no minimum, and it is not 0.
  */
 export interface CompositionEntry {
+  /** TM2-g (D-255): the stored row, which the per-row edit and removal address. */
+  id?: number | null;
   element: string;
   element_name: string;
   atomic_number: number;
@@ -185,12 +187,20 @@ export interface CompositionEntry {
   conversion_method: string | null;
   notes: string | null;
   data_quality: DataQuality;
+  /** TM2-f (D-255): the registered source, so the form can offer it again. */
+  source_id?: number | null;
   source_label: string;
   citation: string | null;
   is_demo: boolean;
 }
 
-/** One element being written (TM2-a). `resto` and `ausente` carry no number. */
+/**
+ * One element being written (TM2-a). `resto` and `ausente` carry no number.
+ * TM2-f (D-255): the source is a registered one (`source_id`) or a label
+ * (`source_label`), never both; the quality is said, never assumed. A row
+ * replacing a stored one of the same element and condition may leave either
+ * out to keep the stored value; a new row without them is refused (400).
+ */
 export interface CompositionEntryIn {
   element: string;
   state: CompositionState;
@@ -200,10 +210,11 @@ export interface CompositionEntryIn {
   value_max?: number | null;
   value_nominal?: number | null;
   unit?: string | null;
-  source_label: string;
+  source_id?: number | null;
+  source_label?: string | null;
   citation?: string | null;
   notes?: string | null;
-  data_quality?: DataQuality;
+  data_quality?: DataQuality | null;
 }
 
 /** Why the atomic percent of a composition could not be derived (D-117). */

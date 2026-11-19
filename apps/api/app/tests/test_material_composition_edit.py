@@ -27,7 +27,12 @@ def _material_id(db_session, name: str) -> int:
 
 
 def _entry(element: str, **kw) -> dict:
-    return {"element": element, "source_label": "Folha de especificação X", **kw}
+    return {
+        "element": element,
+        "source_label": "Folha de especificação X",
+        "data_quality": "ESTIMADO",
+        **kw,
+    }
 
 
 def _put(client, material_id: int, entries: list[dict]):
@@ -134,12 +139,18 @@ class TestComposition:
         assert len(after) == len(before) > 0
 
     def test_a_source_is_required(self, client, db_session) -> None:
-        mid = _material_id(db_session, STEEL)
+        # TM2-f (D-255): a new row states its source; only a re-saved row keeps the stored one.
+        mid = _material_id(db_session, POLYMER)
         response = client.put(
             f"/api/materials/{mid}/composicao",
-            json={"entries": [{"element": "Cr", "value_max": 1, "unit": "%"}]},
+            json={
+                "entries": [
+                    {"element": "Cr", "value_max": 1, "unit": "%", "data_quality": "MEDIDO"}
+                ]
+            },
         )
-        assert response.status_code == 422
+        assert response.status_code == 400
+        assert "Informe a fonte de Cr" in response.json()["detail"]
 
     def test_the_change_is_audited(self, client, db_session) -> None:
         mid = _material_id(db_session, POLYMER)

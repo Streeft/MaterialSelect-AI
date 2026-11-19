@@ -120,6 +120,27 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 212 — 19/11/26 — Pendências do TODO, parte 12: vetores antigos dos Cadernos refeitos, qualidade e fonte na composição, edição por linha, G/K/Tm no CAE e no Sintetizador, curvas demo no alongamento, dureza Rockwell (D-255)
+
+**O que mudou.** *Cadernos:* `python -m app.knowledge.notebook_reembed` troca, só o vetor, os embeddings de fonte de caderno de outra identidade
+(os 3072 de antes do D-101) pelos de `gemini-embedding-001` a 768 — simulação por padrão, `--apply` em lotes, 429 lido como no `embed`, idempotente;
+ações `cadernos_reembedar_simular` e `cadernos_reembedar` no `admin-banco.yml`. *Composição (TM2-f/g):* cada linha diz qualidade e fonte (fonte
+cadastrada por `source_id` ou rótulo); regravar mantém as gravadas, linha nova sem elas é 400; `POST/PUT/DELETE …/composicao/linhas` validados com a
+composição inteira e auditados; na ficha, "Salvar linha N", remoção com confirmação, "Qualidade do dado" e a lista de fontes (sem as de demonstração
+para registro real). *CAE:* G, K e Tm no cartão; G e K derivados de E e ν (isotrópico) só sem linha, marcados e com a pior qualidade; nos *decks* vão como
+comentário informativo, no MatML como `PropertyData`. *Sintetizador:* G e K do compósito por Voigt–Reuss; Tm pela fusão do primeiro constituinte
+(compósito e painel) ou herdada (espuma); G e K sem regra, com motivo, no painel e na espuma. *Demo:* curvas tensão–deformação reancoradas no
+alongamento (só a curva demo ainda como semeada; 575 rompem nele, 91 mantêm a premissa com a razão escrita; segunda execução 0) e dureza Rockwell em três
+definições (B, C, M) com verbete, valores só em demo (318 leituras e 1716 ausências declaradas num banco limpo; segunda execução 0).
+
+**Testes novos.** Backend: `test_notebook_reembed` (simulação, troca só do vetor, idempotência, 429 por minuto e por dia, orçamento, 400 um a um,
+credencial, workflow), `test_composition_row_edit` (qualidade obrigatória na linha nova, reaproveitamento, fonte por id, demo recusada, linha a linha,
+validação do conjunto, 404, auditoria), `test_cae_extended_quantities` (relações isotrópicas, derivação marcada, ausência declarada respeitada, Tm em °F
+absoluto, MatML e *decks*), casos novos em `test_synthesis`, `test_demo_curve_reanchor` e `test_seed_demo_rockwell`; arquivos de referência do CAE
+regenerados. Frontend: `IdentityEditors` (qualidade mantida, pedida na linha nova, fonte cadastrada, linha salva por id, linha nova, remoção com
+confirmação). Sem migração; depois do merge: Deploy da API, `semear_referencia` (ou `semear_demo`, por decisão do autor) e `cadernos_reembedar_simular`
+→ `cadernos_reembedar`.
+
 ## Sessão 211 — 19/11/26 — Pendências do TODO, parte 11: ordenar e selecionar nas listas fora do catálogo, Processos agrupado por subfamília, `--state-disabled` nos controles, `maplibre-gl` crítico fechado (D-254)
 
 **O que mudou.** *Tabelas:* `useTableSort` (a D-131 era só do catálogo) ordena pelo cabeçalho, com `aria-sort` e teclado, Administrar › Fontes (fonte,

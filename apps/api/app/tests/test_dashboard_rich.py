@@ -66,7 +66,7 @@ class TestFilters:
         full = _get(client, "/overview")
         level1 = _get(client, "/overview", nivel=1)
         assert level1["materials"] == full["materials"] == 5
-        assert level1["properties"] < full["properties"] == 48
+        assert level1["properties"] < full["properties"] == 51
         slugs = {p["slug"] for p in level1["by_property"]}
         assert "densidade" in slugs and "coef_poisson" not in slugs
         assert level1["coverage"]["slots"] == 5 * level1["properties"]

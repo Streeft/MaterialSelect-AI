@@ -337,7 +337,8 @@ def format_status(status: KnowledgeStatus) -> list[str]:
             if stale:
                 line += (
                     f" {stale} de outra identidade que {cov.model} ({_dims(cov.dimensions)}) "
-                    f"ficam fora da busca semântica: essas fontes são buscadas só por palavras."
+                    f"ficam fora da busca semântica: essas fontes são buscadas só por palavras "
+                    f"até a ação `cadernos_reembedar` (Administração do banco) trocar os vetores."
                 )
         lines.append(line)
     else:

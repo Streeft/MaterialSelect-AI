@@ -40,6 +40,8 @@ on:
           - conhecimento_indexar_links
           - cadernos_posicao_trechos_simular
           - cadernos_posicao_trechos
+          - cadernos_reembedar_simular
+          - cadernos_reembedar
           - conceder
           - revogar
       email:
@@ -82,6 +84,8 @@ jobs:
           ACAO: ${{ inputs.acao }}
           EMAIL: ${{ inputs.email }}
           OFFICIAL_CATALOG_BUNDLE_URL: ${{ secrets.OFFICIAL_CATALOG_BUNDLE_URL }}
+          # Só `cadernos_reembedar` usa (D-255): a mesma chave do `conhecimento.yml`.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           set -euo pipefail
 
@@ -191,6 +195,28 @@ jobs:
               # guardado e só aceitando o trecho de texto idêntico (D-251).
               # Idempotente: uma segunda execução não encontra mais nada.
               python -m app.knowledge.chunk_positions --apply
+              ;;
+            cadernos_reembedar_simular | cadernos_reembedar)
+              # D-255: os vetores de fonte de caderno gravados antes do D-101
+              # (3072 dimensões) ficam fora da busca semântica, porque a pergunta
+              # é embedada com 768. Isto troca só o vetor — nunca apaga fonte nem
+              # trecho — pela identidade do `conhecimento.yml`. Idempotente e
+              # retomável: cada lote é gravado ao chegar; 429 por minuto espera,
+              # 429 por dia encerra com sucesso e a próxima execução continua.
+              # O log imprime só contagens (o caderno é material de quem o fez).
+              export KNOWLEDGE_EMBEDDING_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai"
+              export KNOWLEDGE_EMBEDDING_MODEL="gemini-embedding-001"
+              export KNOWLEDGE_EMBEDDING_DIMENSIONS="768"
+              if [ "$ACAO" = "cadernos_reembedar_simular" ]; then
+                python -m app.knowledge.notebook_reembed --batch 20
+              else
+                if [ -z "${GEMINI_API_KEY:-}" ]; then
+                  echo "::error::Crie o secret GEMINI_API_KEY — o mesmo do workflow Cérebro (conhecimento.yml)."
+                  exit 1
+                fi
+                export KNOWLEDGE_EMBEDDING_API_KEY="$GEMINI_API_KEY"
+                python -m app.knowledge.notebook_reembed --apply --max-requests 300 --batch 20 --rpm 90 --tpm 27000 --deadline-minutes 60
+              fi
               ;;
             conceder)
               exigir_email

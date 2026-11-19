@@ -32,6 +32,15 @@
 ** ESTIMADO; fonte: Fonte de teste CAE; licenca: Licenca de teste CAE
 ** calor especifico [*SPECIFIC HEAT] = 460000000. mJ*t^-1*K^-1; qualidade:
 ** ESTIMADO; fonte: Fonte de teste CAE; licenca: Licenca de teste CAE
+** modulo de cisalhamento = 80769.2307692 MPa; qualidade: ESTIMADO; derivado: G
+** = E/2(1+nu), solido isotropico, a partir do E e do nu representativos do
+** catalogo (informativo: o material isotropico deste cartao e definido por E e
+** nu, e o solver calcula G a partir deles)
+** modulo volumetrico = 175000. MPa; qualidade: ESTIMADO; derivado: K =
+** E/3(1-2nu), solido isotropico, a partir do E e do nu representativos do
+** catalogo (informativo: o material isotropico deste cartao e definido por E e
+** nu, e o solver calcula K a partir deles)
+** temperatura de fusao: nao cadastrado
 **
 ** Curva plastica (D-119):
 ** Curva tensao-deformacao: curva id 41 "Tracao CAE-1 (engenharia)"; qualidade:

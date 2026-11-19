@@ -24,9 +24,23 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 
+from app.calculations.elastic_constants import (
+    BULK_FORMULA,
+    SHEAR_FORMULA,
+    bulk_modulus,
+    shear_modulus,
+)
 from app.calculations.units import UnitError, from_canonical, to_canonical
 from app.domain.plasticity import PlasticTable
-from app.exporters.cae.quantities import QUANTITIES, YOUNG, CaeQuantity, UnitSystem
+from app.exporters.cae.quantities import (
+    BULK,
+    POISSON,
+    QUANTITIES,
+    SHEAR,
+    YOUNG,
+    CaeQuantity,
+    UnitSystem,
+)
 from app.exporters.cae.text import real
 from app.exporters.identity import CompositionLine, DesignationLine
 from app.exporters.report import OWN_RECORD_NOTICE
@@ -106,6 +120,9 @@ class CardValue:
     source_label: str | None = None
     source_is_demo: bool = False
     license_label: str | None = None
+    #: D-255: set when the value was computed, not catalogued — the formula and
+    #: what it read. ``source_label`` is then ``None``: no source stated it.
+    derivation: str | None = None
 
     @property
     def present(self) -> bool:
@@ -272,9 +289,69 @@ def _card_value(quantity: CaeQuantity, system: UnitSystem, stored: CatalogueValu
     )
 
 
+#: Worst first: a derived value is no more reliable than the least reliable input.
+_QUALITY_RANK = {"ESTIMADO": 0, "IMPORTADO": 1, "MEDIDO": 2}
+
+
+def _canonical_number(stored: CatalogueValue | None, unit: str) -> float | None:
+    """A catalogued value in ``unit``, or ``None`` when absent or unconvertible."""
+    if stored is None or stored.is_missing or stored.normalized_value is None:
+        return None
+    if not stored.canonical_unit:
+        return None
+    try:
+        return from_canonical(stored.normalized_value, stored.canonical_unit, unit)
+    except UnitError:
+        return None
+
+
+def _derived_moduli(
+    material: MaterialInput, system: UnitSystem, values: dict[str, CardValue]
+) -> dict[str, CardValue]:
+    """G and K from E and ν (D-255), only where the material has **no row** for them.
+
+    A row declared missing ("não se aplica: material anisotrópico") stays as
+    the catalogue wrote it: the isotropic relation would contradict it. Both
+    inputs must be catalogued numbers; the result carries the worse of their
+    qualities, no source of its own, and the formula in ``derivation``.
+    """
+    young_stored = material.values.get(YOUNG.slug)
+    poisson_stored = material.values.get(POISSON.slug)
+    young_pa = _canonical_number(young_stored, "Pa")
+    poisson = _canonical_number(poisson_stored, "dimensionless")
+    if young_pa is None or poisson is None:
+        return {}
+    assert young_stored is not None and poisson_stored is not None
+    qualities = [q for q in (young_stored.data_quality, poisson_stored.data_quality) if q]
+    quality = min(qualities, key=lambda q: _QUALITY_RANK.get(q, -1)) if qualities else None
+    derived: dict[str, CardValue] = {}
+    for quantity, formula, compute in (
+        (SHEAR, SHEAR_FORMULA, shear_modulus),
+        (BULK, BULK_FORMULA, bulk_modulus),
+    ):
+        if quantity.slug in material.values or values[quantity.key].present:
+            continue
+        canonical = compute(young_pa, poisson)
+        if canonical is None:
+            continue
+        derived[quantity.key] = CardValue(
+            quantity=quantity,
+            unit=system.symbol(quantity.key),
+            value=from_canonical(canonical, "Pa", system.pint_unit(quantity.key)),
+            data_quality=quality,
+            source_is_demo=young_stored.source_is_demo or poisson_stored.source_is_demo,
+            derivation=(
+                f"{formula}, sólido isotrópico, a partir do E e do nu representativos "
+                "do catálogo"
+            ),
+        )
+    return derived
+
+
 def build_card(material: MaterialInput, system: UnitSystem) -> CaeCard:
     """Convert every quantity of ``material`` into ``system``, or say why not."""
     values = {q.key: _card_value(q, system, material.values.get(q.slug)) for q in QUANTITIES}
+    values.update(_derived_moduli(material, system, values))
     is_demo = (
         material.is_demo
         or any(v.source_is_demo for v in values.values() if v.present)

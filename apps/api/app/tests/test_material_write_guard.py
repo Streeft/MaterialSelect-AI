@@ -41,6 +41,19 @@ PROBES: dict[tuple[str, str], object] = {
     ("PATCH", PREFIX): {"description": "ajuste"},
     ("PUT", PREFIX + "/values"): [],
     ("PUT", PREFIX + "/composicao"): {"entries": []},
+    ("POST", PREFIX + "/composicao/linhas"): {
+        "element": "Cr",
+        "state": "ausente",
+        "source_label": "Folha X",
+        "data_quality": "ESTIMADO",
+    },
+    ("PUT", PREFIX + "/composicao/linhas/{entry_id}"): {
+        "element": "Cr",
+        "state": "ausente",
+        "source_label": "Folha X",
+        "data_quality": "ESTIMADO",
+    },
+    ("DELETE", PREFIX + "/composicao/linhas/{entry_id}"): None,
     ("PUT", PREFIX + "/designacoes"): {"designations": []},
     ("DELETE", PREFIX): None,
     ("POST", PREFIX + "/curvas"): CURVE,
@@ -105,7 +118,7 @@ def test_every_material_write_route_is_covered() -> None:
 @pytest.mark.parametrize(("method", "template"), sorted(PROBES))
 def test_official_material_refuses_the_write(client, db_session, method, template) -> None:
     mid = _official(db_session)
-    path = template.format(material_id=mid, curve_id=1)
+    path = template.format(material_id=mid, curve_id=1, entry_id=1)
     body = PROBES[(method, template)]
     response = (
         client.request(method, path, json=body)

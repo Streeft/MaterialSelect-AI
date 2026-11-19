@@ -972,7 +972,11 @@ do seed por nome considera só `is_demo` sem dono.
 **Composição química e designações entraram no catálogo e na busca**
 ([D-105](DECISIONS.md), TM2, Sessão 60): `MaterialDesignation` e
 `MaterialCompositionEntry` (% em massa, trilha de unidade, fonte obrigatória),
-e a linguagem do D-55 ganhou `comp:`, `norma:` e `designacao:`. Regras que não
+e a linguagem do D-55 ganhou `comp:`, `norma:` e `designacao:`. Desde o
+[D-255](DECISIONS.md) a composição se edita **por linha** (`POST/PUT/DELETE
+…/composicao/linhas`, validada com a composição inteira e auditada), e toda linha
+diz **qualidade e fonte** (fonte cadastrada por `source_id` ou rótulo); a linha
+regravada sem elas mantém as gravadas, a nova sem elas é 400. Regras que não
 se afrouxam: o **resto é declarado, nunca calculado** e resto/ausente não
 carregam número (`CHECK` no banco); **sem linha de composição não é 0 %**; a
 faixa é lida por **alcance** (`≥ x` quando o máximo chega a x; "≤ máx." admite

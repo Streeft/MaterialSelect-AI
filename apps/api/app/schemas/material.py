@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.domain.text_input import strip_controls
 from app.models.enums import DataQuality, DesignationSystem
@@ -140,6 +140,8 @@ class CompositionEntryOut(BaseModel):
     not state is ``None`` — "C ≤ 0,08" has no minimum, and it is not 0.
     """
 
+    #: The stored row (TM2-g, D-255): what the per-row edit and removal address.
+    id: int | None = None
     element: str
     element_name: str
     atomic_number: int
@@ -158,6 +160,8 @@ class CompositionEntryOut(BaseModel):
     conversion_method: str | None = None
     notes: str | None = None
     data_quality: DataQuality
+    #: The registered source (TM2-f, D-255), so a form can offer it again.
+    source_id: int | None = None
     source_label: str
     citation: str | None = None
     is_demo: bool = False
@@ -171,6 +175,13 @@ class CompositionEntryIn(BaseModel):
     ``resto`` and ``ausente`` take **no number** — the balance is declared, never
     computed, and absence is never 0. The source is required: a content nobody
     stated is not data.
+
+    TM2-f (D-255): the source is a registered one (``source_id``) or the label of
+    a new or existing one (``source_label``), never both; the quality is said,
+    never assumed. Either may be left out only when the row replaces a stored row
+    of the same element and condition, whose source and quality are then kept —
+    a re-save never turns an ``IMPORTADO`` row into an ``ESTIMADO`` one. A new
+    row without them is refused (400) by the service.
     """
 
     element: str = Field(min_length=1, max_length=3)
@@ -181,10 +192,17 @@ class CompositionEntryIn(BaseModel):
     value_max: float | None = Field(default=None, allow_inf_nan=False)
     value_nominal: float | None = Field(default=None, allow_inf_nan=False)
     unit: str | None = Field(default=None, max_length=40)
-    source_label: str = Field(min_length=1, max_length=160)
+    source_id: int | None = Field(default=None, ge=1)
+    source_label: str | None = Field(default=None, min_length=1, max_length=160)
     citation: str | None = Field(default=None, max_length=500)
     notes: str | None = Field(default=None, max_length=500)
-    data_quality: DataQuality = DataQuality.ESTIMADO
+    data_quality: DataQuality | None = None
+
+    @model_validator(mode="after")
+    def _one_source(self) -> CompositionEntryIn:
+        if self.source_id is not None and self.source_label is not None:
+            raise ValueError("Informe a fonte cadastrada ou o rótulo de uma nova, não os dois.")
+        return self
 
 
 class CompositionReplaceIn(BaseModel):

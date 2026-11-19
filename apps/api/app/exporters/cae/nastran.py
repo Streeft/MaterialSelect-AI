@@ -10,9 +10,10 @@ four or five significant digits. ``$`` opens a comment line.
   it from ``E = 2(1+NU)G``; when two are blank it sets them to 0.0. Writing E
   alone would therefore become ``NU = 0`` inside the solver — the zero this
   project refuses — so such a card is refused (D-104). G is always left blank
-  and computed by the solver from E and NU: the catalogue holds no shear
-  modulus, and writing a computed one would put a derived number where a
-  reader expects a catalogued one.
+  and computed by the solver from E and NU: E and NU define the isotropic
+  material, and a third constant — catalogued or derived (D-255) — could only
+  over-determine it. The card's G, when there is one, is written in the
+  comments, with its source or its derivation.
 * **RHO and A blank are declared**, because the solver reads them as 0.0: the
   comment says what that means for the analysis.
 * Conductivity and specific heat belong to ``MAT4``, written by ``nastran_thermal.py``; TREF and GE are model parameters, not material data.
