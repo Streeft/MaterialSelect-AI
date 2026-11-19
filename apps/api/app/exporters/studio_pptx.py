@@ -30,13 +30,13 @@ it); the notices are handed over by the caller.
 
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 from io import BytesIO
 from typing import TYPE_CHECKING
 
 from app.exporters.emu import Inches, Pt
 from app.exporters.pptx import MARGIN, SLIDE_HEIGHT, SLIDE_WIDTH, add_notices_slide
+from app.exporters.xml_text import xml_legal
 from app.schemas.notebook import CitationOut
 
 if TYPE_CHECKING:
@@ -51,9 +51,6 @@ NO_CITATIONS = "Nenhum trecho citado."
 WITHHELD_TITLE = "Parte do que foi gerado foi omitida"
 #: References per slide: at three lines each, eight fill the page at 12 pt.
 REFERENCES_PER_SLIDE = 8
-
-#: Characters XML cannot carry (the same set as ``studio._NOT_XML``).
-_NOT_XML = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f￾￿]")
 
 _SUBTLE_RGB = (71, 85, 105)
 
@@ -70,7 +67,7 @@ _WIDTH = SLIDE_WIDTH - 2 * MARGIN
 
 def _clean(text: object) -> str:
     """``text`` as XML-legal text; the illegal characters are dropped."""
-    return _NOT_XML.sub("", "" if text is None else str(text))
+    return xml_legal("" if text is None else str(text))
 
 
 def _where(citation: CitationOut) -> str:

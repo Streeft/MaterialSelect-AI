@@ -36,6 +36,7 @@ import urllib.request
 from collections.abc import Callable
 from typing import Any, Protocol
 
+from app.ai.google_quota import wait_text
 from app.config import Settings
 from app.config import settings as default_settings
 from app.domain.errors import ValidationError
@@ -349,11 +350,13 @@ class EmbeddingClient:
         # is scrubbed *before* the cut — cutting first could keep only the
         # start of a key that straddles it, which no replace would then match.
         detail = self._without_key(detail)[:_DETAIL_LIMIT]
+        retry_after = retry_after_of(exc, message, error)
+        daily = is_daily_quota(message, error)
         return EmbeddingHttpError(
-            self._http_message(exc.code, detail),
+            self._http_message(exc.code, detail, retry_after, daily),
             status=exc.code,
-            retry_after=retry_after_of(exc, message, error),
-            daily=is_daily_quota(message, error),
+            retry_after=retry_after,
+            daily=daily,
             detail=detail,
         )
 
@@ -367,7 +370,9 @@ class EmbeddingClient:
                 text = text.replace(key, "[chave omitida]")
         return text
 
-    def _http_message(self, code: int, detail: str) -> str:
+    def _http_message(
+        self, code: int, detail: str, retry_after: float | None = None, daily: bool = False
+    ) -> str:
         if code in (401, 403):
             return (
                 f"O servidor de embeddings recusou a credencial ({code}). Defina "
@@ -381,8 +386,10 @@ class EmbeddingClient:
             ).strip()
         if code == 429:
             return (
-                "Limite de requisições atingido ao gerar embeddings (429). Reduza "
-                f"KNOWLEDGE_EMBEDDING_BATCH e tente de novo. {detail}"
+                "O limite de requisições do serviço de embeddings foi atingido (429); "
+                f"tente de novo em {wait_text(retry_after, daily)}. Enquanto isso a busca "
+                "usa só a via léxica, sem a semântica. Se acontecer em lote, reduza "
+                f"KNOWLEDGE_EMBEDDING_BATCH. {detail}"
             ).strip()
         return f"O servidor de embeddings respondeu com erro {code}. {detail}".strip()
 

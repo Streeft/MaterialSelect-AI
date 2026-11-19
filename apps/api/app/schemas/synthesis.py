@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.calculations.family_sweep import LINEAR, LOGARITMICA, MAX_STEPS, MIN_STEPS
 from app.calculations.synthesis import COMPOSITO, ESPUMA, PAINEL
+from app.domain.text_input import strip_controls
 from app.schemas.selection import IndexIn
 
 
@@ -68,6 +69,11 @@ class SynthesisRequest(BaseModel):
     #: classe (árvore, gráficos, painel) precisa que alguém tenha decidido.
     class_id: int
     description: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("name", "description", mode="before")
+    @classmethod
+    def _no_control_characters(cls, value: object) -> object:
+        return strip_controls(value)
 
     #: Compósito: os dois constituintes e a fração volumétrica do primeiro.
     #: Espuma: só ``parent_a_id`` e a densidade relativa.

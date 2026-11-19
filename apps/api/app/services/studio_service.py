@@ -90,6 +90,7 @@ MAX_COLUMN_CHARS = 60
 _UNKNOWN = {"quantidade": "desconhecida", "dificuldade": "desconhecida"}
 
 INTERRUPTED = "A geração foi interrompida antes de terminar (o servidor reiniciou). Gere de novo."
+AI_FAILED = "A IA não conseguiu responder agora. Tente de novo em alguns minutos."
 UNEXPECTED = "Erro inesperado ao gerar. Tente de novo; se persistir, avise o professor."
 
 
@@ -303,7 +304,13 @@ class StudioService:
         try:
             self._make(artifact)
         except AIUnavailableError as exc:
-            self._fail(artifact, str(exc))
+            # The provider's own message can carry its URL, a request id or a
+            # slice of the reply: it goes to the log, never onto the artifact
+            # the reader (and the notebook's other members) can see (D-247).
+            logger.warning(
+                "Geração do Estúdio: IA indisponível (artefato %s): %s", artifact_id, exc
+            )
+            self._fail(artifact, AI_FAILED)
         except ValidationError as exc:
             self._fail(artifact, str(exc))
         except Exception:  # noqa: BLE001 - a job has no caller to raise to

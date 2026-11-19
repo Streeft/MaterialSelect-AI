@@ -14388,6 +14388,49 @@ durante o arrastar de uma árvore muito longa; avisar o usuário, na tela, de qu
 
 **Numeração.** D-244, Sessão 201 (conferidas em `origin/main`). Toca `apps/api` **sem migração**: depois do merge, **Deploy da API**. Sem seed.
 
+
+---
+
+## D-247 — Pendências do TODO, parte 5: escrita em lote no importador e na duplicação, falha conhecida no Cérebro, Estúdio sem detalhe do provedor, teto nos provedores Claude, 429 de embeddings claro, entrada sem caracteres de controle, partida sem `import pint`
+
+**Contexto.** Resíduos mecânicos e medíveis deixados pelas D-101, D-177, D-200, D-223, D-224, D-228 e D-237, todos em `apps/api`.
+
+**Decisão.**
+- **Escrita em lote (D-223).** O importador lê o catálogo de propriedades **uma vez por requisição** (`_property_map`) e a fonte que o arquivo cita
+  **uma vez por arquivo** (a primeira linha a cria se for nova; as outras a reaproveitam), no lugar de uma leitura por célula na validação e na
+  efetivação. `duplicate_material` grava as curvas, depois as séries e depois os pontos em **três** `flush` (antes, um por curva e por série).
+  Testes contam consultas e `flush` e comparam 2 linhas com 12, 1 curva com 4: o número não cresce.
+- **Sessões (D-223).** `SessionRepository.purge_expired` apaga toda sessão já vencida, no login (que já escreve na tabela). Uma linha vencida não
+  loga ninguém, seja qual for a chave, então é seguro; as de token cru que ninguém reusou nunca passam de `SESSION_TTL_HOURS` e saem aqui. Nenhuma sessão viva é tocada.
+- **Cérebro (D-101).** Um **ponteiro** LFS cujo `oid` já falhou (`FALHOU`, mesmo `checksum`) naquele caminho vira a ação `KNOWN_FAILURE`:
+  não é baixado nem lido, a ingestão o relata como `falhou` com o motivo guardado e a frase "não foi baixado de novo (use --force)", e `lfs_plan`
+  o conta à parte (`known_failures`). Arquivo novo (outro `oid`) ou `--force` tentam de novo. Vale só para ponteiros: o que custa banda de
+  LFS é o download; um arquivo real que falhou continua sendo relido, e a linha do banco não muda.
+- **Estúdio (D-200).** `studio_service.run` não grava mais a mensagem do provedor de IA no artefato: ela vai ao log (`warning`) e o artefato
+  recebe `AI_FAILED` ("A IA não conseguiu responder agora. Tente de novo em alguns minutos."). Mensagens de validação (nossas) seguem como eram.
+- **IA (D-224, D-228).** `ClaudeAPIProvider` e `ClaudeCLIProvider` implementam `_complete_limited`: tempo da chamada, teto de saída e tentativas
+  de `CallLimits`. Na API, `max_tokens`, `timeout` por requisição e `with_options(max_retries=…)`; no CLI, o tempo, `CLAUDE_CODE_MAX_OUTPUT_TOKENS`
+  só no ambiente daquele processo e um limite de bytes lidos (retaguarda de uma versão que ignore a variável). O CLI faz uma execução só.
+  O **429 dos embeddings** diz em português quando tentar de novo (mesmo `wait_text` da cota do Google, que sabe "amanhã") e que a busca segue
+  só pela via léxica, em vez do texto só para o operador.
+- **Resíduos do D-177.** `app/domain/text_input.strip_controls` tira de `name`/`description` de material, registro próprio, síntese e estudo os
+  caracteres de controle (TAB, LF e CR ficam; um nome só de controles falha `min_length` em vez de ser gravado em branco). As três cópias da
+  regex XML (`studio.py`, `studio_pptx.py`, `cae/matml.py`) passam a `xml_text.xml_legal(texto, substituto="")`; a do slide e a do MatML ganham de
+  graça os *surrogates* soltos que as cópias não cobriam.
+- **`import pint` (D-237).** `units.pint_errors()` (com `lru_cache`) entrega `pint.errors` na primeira conversão; `expressions.py` importa
+  `UnitsContainer` dentro da função. A API pública de `app/calculations/units.py` não muda e nenhuma conta muda. RSS de partida
+  (`import app.main`, três medidas): **118,5 → 115,3 MB**; o `pint` entra na primeira requisição que converte uma unidade.
+
+**Alternativas recusadas.** Trocar a leitura por célula por um cache global de propriedades (ficaria velho entre requisições). Apagar sessões de
+token cru por idade, e não por vencimento (derrubaria quem volta no 10º dia). Tratar todo `FALHOU` como permanente, inclusive o de arquivo real
+(esconderia a falha transitória sem poupar banda). Esconder o detalhe do provedor também do log (o operador precisa dele). Criar um validador
+de texto por esquema (um só `strip_controls` serve aos quatro).
+
+**Fora desta decisão.** Aviso **na tela** de que a busca caiu para a léxica; cadeia de retentativas própria no CLI; sanear outros textos livres
+(notas já têm `clean_note`).
+
+**Numeração.** D-247, Sessão 204 (conferidas em `origin/main`, no #269 e no #270). Toca `apps/api` **sem migração**: depois do merge, **Deploy da API** (a checklist
+pós-deploy está no `TODO.md`). Sem seed.
 ## D-245 — Histórico de execuções do estudo salvo: versões guardadas no servidor e comparação entre duas
 
 **Contexto.** A D-210 deu à Seleção a comparação "execução anterior × atual", mas só dentro da sessão: fechada a página, a execução de

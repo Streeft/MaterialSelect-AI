@@ -36,6 +36,8 @@ from app.importers.template import TEMPLATE_EXAMPLE_NAME
 from app.models.enums import DataQuality, ImportStatus
 from app.models.import_job import ImportJob, ImportMappingTemplate
 from app.models.material import Material
+from app.models.property_definition import PropertyDefinition
+from app.models.source import Source
 from app.models.user import User
 from app.repositories.import_repository import ImportRepository
 from app.repositories.material_repository import MaterialRepository
@@ -86,6 +88,15 @@ class ImportService:
         # record and refuse a catalogue row nobody else can explain.
         self.materials = MaterialRepository(db)
         self.material_service = MaterialService(db)
+        # Read once per request and reused by every cell of the file (D-247):
+        # the property catalogue, and the one source a job can cite.
+        self._properties: dict[str, PropertyDefinition] | None = None
+        self._sources: dict[str, Source] = {}
+
+    def _property_map(self) -> dict[str, PropertyDefinition]:
+        if self._properties is None:
+            self._properties = {d.slug: d for d in self.materials.list_properties()}
+        return self._properties
 
     # --- upload -----------------------------------------------------------
 
@@ -369,7 +380,9 @@ class ImportService:
             assert value_in is not None
             try:
                 dry = value_in.model_copy(update={"source_label": None})
-                self.material_service._build_value_from_input(dry, is_demo=False)
+                self.material_service._build_value_from_input(
+                    dry, is_demo=False, properties=self._property_map()
+                )
             except (ValidationError, NotFoundError) as exc:
                 issues.append(RowIssue(message=str(exc)))
 
@@ -521,6 +534,13 @@ class ImportService:
         if not self.repo.claim_status(job.id, ImportStatus.VALIDADO, ImportStatus.IMPORTADO):
             raise ConflictError("Esta importação já foi efetivada ou está sendo efetivada.")
         imported = 0
+        # One read for the source the whole file cites; the first row creates it
+        # when it is new and the others reuse it (D-247).
+        self._sources = (
+            self.materials.get_sources_by_labels([mapping.source_label])
+            if mapping.source_label
+            else {}
+        )
         try:
             for report, row in zip(rows, table.rows, strict=True):
                 if report.status != "ok":
@@ -598,6 +618,8 @@ class ImportService:
                 source_license_url=mapping.source_license_url,
                 source_contains_third_party_data=mapping.source_contains_third_party_data,
                 source_reviewed_by_user_id=self.user.id if self.user else None,
+                properties=self._property_map(),
+                sources=self._sources,
             )
             value_row.material_id = material.id
             self.repo.add(value_row)
