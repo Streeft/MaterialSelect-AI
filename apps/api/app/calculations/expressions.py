@@ -37,10 +37,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 from functools import lru_cache
 
-from pint.errors import DimensionalityError, OffsetUnitCalculusError
-from pint.util import UnitsContainer
-
-from app.calculations.units import get_registry
+from app.calculations.units import get_registry, pint_errors
 
 _MAX_EXPRESSION_LENGTH = 500
 
@@ -465,7 +462,7 @@ def result_dimension(expression: str, canonical_units: dict[str, str]) -> str:
         raise
     except ZeroDivisionError as exc:
         raise ExpressionError("Divisão por zero na análise dimensional.") from exc
-    except (DimensionalityError, OffsetUnitCalculusError) as exc:
+    except (pint_errors().DimensionalityError, pint_errors().OffsetUnitCalculusError) as exc:
         raise ExpressionError("Expressão dimensionalmente inconsistente.") from exc
     except Exception as exc:  # pint raises assorted types on invalid powers
         raise ExpressionError(f"Análise dimensional falhou: {exc}") from exc
@@ -543,4 +540,6 @@ def _without_numerical_residue(dimensionality):
         return dimensionality
     if not cleaned:
         return "dimensionless"
+    from pint.util import UnitsContainer
+
     return UnitsContainer(cleaned)

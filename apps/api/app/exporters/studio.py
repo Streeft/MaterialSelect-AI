@@ -30,7 +30,6 @@ as it did before.
 from __future__ import annotations
 
 import io
-import re
 from html import escape
 
 # How a line of the audio script names who says it. The hosts are unnamed
@@ -40,6 +39,7 @@ from app.ai.studio import SPEAKER_LABEL
 from app.exporters.report import Report, Sheet
 from app.exporters.spreadsheet import to_csv, to_xlsx
 from app.exporters.studio_pptx import deck_to_pptx
+from app.exporters.xml_text import xml_legal
 from app.notebooks import infographic
 from app.notebooks.mindmap import wrap
 from app.notebooks.studio_content import cell_text
@@ -74,14 +74,6 @@ WITHHELD_TITLE = "Parte do que foi gerado foi omitida"
 #: source's licence asks for none.
 NO_URL_LABEL = "sem endereço externo"
 NO_ATTRIBUTION_LABEL = "sem atribuição registrada"
-
-#: Characters XML cannot carry. python-docx and openpyxl raise on them, an SVG
-#: holding one does not parse, and a lone surrogate cannot even be encoded as
-#: UTF-8 — so text read from outside becomes a space instead of breaking the
-#: export. The reader (``app.ai.studio``) already strips them from what a model
-#: writes; this is the second wall, for an address, an attribution, a title the
-#: student typed and anything stored before the reader did.
-_NOT_XML = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]")
 
 # python-docx is imported inside `_docx` (D-235): this module loads at boot.
 
@@ -142,8 +134,15 @@ def _script(body: dict) -> list[str]:
 
 
 def _xml(text: object) -> str:
-    """Any text, XML-legal."""
-    return _NOT_XML.sub(" ", str(text))
+    """Any text, XML-legal: what XML cannot carry becomes a space (D-247).
+
+    python-docx and openpyxl raise on those characters, an SVG holding one does
+    not parse, and a lone surrogate cannot even be encoded as UTF-8. The reader
+    (``app.ai.studio``) already strips them from what a model writes; this is
+    the second wall, for an address, an attribution, a title the student typed
+    and anything stored before the reader did.
+    """
+    return xml_legal(str(text), " ")
 
 
 def _plain(text: str | None) -> str | None:

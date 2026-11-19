@@ -29,6 +29,29 @@ def test_booting_the_app_does_not_build_the_registry() -> None:
     assert result.returncode == 0, result.stderr
 
 
+def test_booting_the_app_does_not_import_pint_either() -> None:
+    """D-247: ``import pint`` (~14 MB resident) waits for the first unit too, and a
+    wrong dimension is still caught and reported as a ``UnitError``."""
+    code = (
+        "import sys\n"
+        "import app.main\n"
+        "assert 'pint' not in sys.modules, 'pint imported at boot'\n"
+        "import app.calculations.units as u\n"
+        "assert 'pint' not in sys.modules\n"
+        "try:\n"
+        "    u.to_canonical(1.0, 'GPa', 'K')\n"
+        "except u.UnitError:\n"
+        "    pass\n"
+        "else:\n"
+        "    raise SystemExit('dimension mismatch not reported')\n"
+        "assert 'pint' in sys.modules\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code], cwd=API_ROOT, capture_output=True, text=True, timeout=120
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def test_concurrent_first_uses_share_one_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(units, "_registry", None)
     seen: list[object] = []

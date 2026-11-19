@@ -91,3 +91,55 @@ class TestPlanCli:
         assert exc.value.code == 1
         out = capsys.readouterr().out
         assert out.strip() == ("[lfs] ERRO: --file nº 2: Arquivo não encontrado em KNOWLEDGE_DIR.")
+
+
+class TestKnownFailures:
+    """D-247: a pointer whose bytes already failed here is not downloaded again."""
+
+    def _failed_pointer(self, db_session, root: Path) -> Path:
+        scanned = _write(root, "digitalizado.pdf", ["", ""])
+        (outcome,) = KnowledgeService(db_session).ingest().outcomes
+        assert outcome.action == "falhou"
+        _to_pointer(scanned)
+        return scanned
+
+    def test_plan_does_not_fetch_it_and_says_so(
+        self, db_session, root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        self._failed_pointer(db_session, root)
+        capsys.readouterr()
+
+        assert _run(tmp_path) == ([], [])
+        out = capsys.readouterr().out
+        assert "1 ponteiro(s) já falharam com estes mesmos bytes" in out
+        assert "digitalizado" not in out
+
+    def test_ingest_reports_it_failed_without_reading_it(
+        self, db_session, root: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app.tests.test_knowledge_ingest import _refuse_reading
+
+        self._failed_pointer(db_session, root)
+        _refuse_reading(monkeypatch)
+
+        (outcome,) = KnowledgeService(db_session).ingest().outcomes
+
+        assert outcome.action == "falhou"
+        assert "não foi baixado de novo" in (outcome.detail or "")
+
+    def test_force_fetches_it_again(self, db_session, root: Path, tmp_path: Path) -> None:
+        scanned = self._failed_pointer(db_session, root)
+
+        paths, _ = _run(tmp_path, "--force")
+
+        assert paths == [scanned.name]
+
+    def test_a_new_version_of_the_file_is_fetched(
+        self, db_session, root: Path, tmp_path: Path
+    ) -> None:
+        scanned = self._failed_pointer(db_session, root)
+        scanned.write_bytes(_pointer_for(_pdf_bytes(["Agora tem texto."])))
+
+        paths, _ = _run(tmp_path)
+
+        assert paths == [scanned.name]

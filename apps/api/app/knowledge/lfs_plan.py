@@ -65,6 +65,11 @@ def format_plan(plan: LfsPlan) -> list[str]:
         f"{plan.unchanged} já indexado(s) com os mesmos bytes, {plan.copies} cópia(s) de "
         f"outro caminho, {plan.removed} na lista de remoção — nenhum desses é baixado."
     ]
+    if plan.known_failures:
+        lines.append(
+            f"{PREFIX} {plan.known_failures} ponteiro(s) já falharam com estes mesmos bytes e "
+            "não são baixados de novo (--force tenta outra vez)."
+        )
     if plan.malformed:
         lines.append(
             f"::warning::{PREFIX} {plan.malformed} ponteiro(s) sem `oid sha256:` legível: "

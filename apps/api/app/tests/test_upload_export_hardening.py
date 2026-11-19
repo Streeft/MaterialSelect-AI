@@ -312,13 +312,18 @@ def test_control_char_in_study_name_exports_laudo_docx(client: TestClient) -> No
 
 
 def test_shared_material_with_control_char_does_not_break_catalogue_xlsx(
-    client: TestClient,
+    client: TestClient, db_session
 ) -> None:
+    from app.models.material import Material
+
     listing = client.get("/api/materials").json()
     items = listing["items"] if isinstance(listing, dict) else listing
     material_id = items[0]["id"]
-    patched = client.patch(f"/api/materials/{material_id}", json={"name": _DIRTY})
-    assert patched.status_code == 200, patched.text
+    # Old data: write the dirty name straight to the database, bypassing the
+    # schema (which now strips controls on the way in).
+    material = db_session.get(Material, material_id)
+    material.name = _DIRTY
+    db_session.flush()
     response = _lenient(client).get("/api/exports/catalogo.xlsx")
     assert response.status_code == 200, response.text[:200]
     workbook = load_workbook(io.BytesIO(response.content))
@@ -328,3 +333,13 @@ def test_shared_material_with_control_char_does_not_break_catalogue_xlsx(
     assert "Aço1020" in values
     # The stored name is untouched: the strip is on the way out.
     assert client.get(f"/api/materials/{material_id}").json()["name"] == _DIRTY
+
+
+def test_patch_material_name_stores_clean_name(client: TestClient) -> None:
+    listing = client.get("/api/materials").json()
+    items = listing["items"] if isinstance(listing, dict) else listing
+    material_id = items[0]["id"]
+    patched = client.patch(f"/api/materials/{material_id}", json={"name": _DIRTY})
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["name"] == "Aço1020"
+    assert client.get(f"/api/materials/{material_id}").json()["name"] == "Aço1020"

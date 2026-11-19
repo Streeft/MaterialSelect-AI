@@ -23,10 +23,16 @@ import subprocess  # noqa: S404 - fixed argv, no shell, nothing untrusted in it
 import tempfile
 from pathlib import Path
 
-from app.ai.model_base import ModelProviderBase, parse_json_object
+from app.ai.model_base import CallLimits, ModelProviderBase, parse_json_object
 from app.ai.provider import AIProvider, AIUnavailableError
 from app.config import Settings
 from app.config import settings as default_settings
+
+#: Generous characters per token for the size backstop: a JSON answer over this
+#: many characters per allowed token is not one the ceiling let through.
+_CHARS_PER_TOKEN_CAP = 8
+#: The CLI's JSON envelope (usage, ids, cost) travels around the answer itself.
+_ENVELOPE_ALLOWANCE = 8192
 
 
 class ClaudeCLIProvider(ModelProviderBase):
@@ -45,7 +51,34 @@ class ClaudeCLIProvider(ModelProviderBase):
     # --- transport --------------------------------------------------------
 
     def _complete(self, system: str, user: str, schema: dict) -> dict:
+        return self._run(system, user, schema, self.settings.ai_timeout_seconds)
+
+    def _complete_limited(self, system: str, user: str, schema: dict, limits: CallLimits) -> dict:
+        """One run under the short budget of the plan, the suggestions and the
+        probe (D-247): their timeout, the CLI's output-token ceiling set for this
+        process only, and a cap on the bytes read back. A single run, never a
+        retry: the CLI already retries inside itself."""
+        return self._run(
+            system,
+            user,
+            schema,
+            limits.timeout_seconds,
+            max_output_tokens=limits.max_output_tokens,
+        )
+
+    def _run(
+        self,
+        system: str,
+        user: str,
+        schema: dict,
+        timeout: float,
+        *,
+        max_output_tokens: int | None = None,
+    ) -> dict:
         command = self._command(system, schema)
+        env = os.environ.copy()
+        if max_output_tokens is not None:
+            env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] = str(max_output_tokens)
         try:
             completed = subprocess.run(  # noqa: S603 - see the module docstring
                 command,
@@ -54,15 +87,15 @@ class ClaudeCLIProvider(ModelProviderBase):
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=self.settings.ai_timeout_seconds,
+                timeout=timeout,
                 cwd=tempfile.gettempdir(),
                 shell=False,
                 check=False,
-                env=os.environ.copy(),
+                env=env,
             )
         except subprocess.TimeoutExpired as exc:
             raise AIUnavailableError(
-                f"O Claude Code não respondeu em {self.settings.ai_timeout_seconds:g}s. "
+                f"O Claude Code não respondeu em {timeout:g}s. "
                 "Aumente AI_TIMEOUT_SECONDS ou use AI_PROVIDER=mock."
             ) from exc
         except OSError as exc:
@@ -74,6 +107,17 @@ class ClaudeCLIProvider(ModelProviderBase):
             raise AIUnavailableError(
                 f"O Claude Code terminou com código {completed.returncode}: "
                 f"{_first_line(completed.stderr) or 'sem mensagem de erro'}."
+            )
+        if (
+            max_output_tokens is not None
+            and len(completed.stdout)
+            > max_output_tokens * _CHARS_PER_TOKEN_CAP + _ENVELOPE_ALLOWANCE
+        ):
+            # The ceiling above is the CLI's to honour; this is the backstop for a
+            # version that does not, so a short call can never hand back a report.
+            raise AIUnavailableError(
+                "O Claude Code respondeu além do teto desta chamada "
+                f"({max_output_tokens} tokens); a resposta foi descartada."
             )
         return _read_payload(completed.stdout)
 

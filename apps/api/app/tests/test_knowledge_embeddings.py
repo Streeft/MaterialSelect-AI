@@ -343,7 +343,7 @@ class TestHttpError:
             (401, "O servidor de embeddings recusou a credencial (401). Defina AI_API_KEY"),
             (403, "O servidor de embeddings recusou a credencial (403)."),
             (404, "Endpoint ou modelo de embeddings não encontrado (404)."),
-            (429, "Limite de requisições atingido ao gerar embeddings (429). Reduza"),
+            (429, "O limite de requisições do serviço de embeddings foi atingido (429)"),
             (503, "O servidor de embeddings respondeu com erro 503. motivo"),
         ],
     )
@@ -427,6 +427,15 @@ class TestHttpError:
         assert str(error) == "O servidor de embeddings respondeu com erro 502. Bad Gateway"
         assert error.retry_after is None
         assert error.daily is False
+
+    def test_a_429_says_when_to_try_again_and_what_the_search_does(self) -> None:
+        # D-247: clear PT-BR for the person, not only a note for the operator.
+        message = str(_raised(_http_error(429, {}, headers={"Retry-After": "12"})))
+        assert "tente de novo em 12 s" in message
+        assert "só a via léxica" in message
+        daily = _gemini_429("Quota exceeded per day.", _retry_info("37s"))
+        assert "amanhã" in str(_raised(_http_error(429, daily)))
+        assert "alguns minutos" in str(_raised(_http_error(429, {"error": {"message": "x"}})))
 
     def test_no_hint_means_no_retry_after(self) -> None:
         error = _raised(_http_error(429, {"error": {"message": "slow down"}}))
