@@ -36,6 +36,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.catalog.release_counts import record_release_counts
 from app.domain.data_quality import (
     NormalizedValue,
     build_scalar_value,
@@ -279,6 +280,9 @@ def seed_demo_releases(db: Session) -> dict[str, int]:
                 )
                 values_created += 1
             records_created += 1
+        # D-250: the fictitious release's counts, as an import would keep them;
+        # counted again on every run, so a rerun never leaves a stale number.
+        record_release_counts(db, dataset)
 
     db.flush()
     return {

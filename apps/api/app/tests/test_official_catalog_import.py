@@ -258,6 +258,11 @@ def test_bundle_validation_and_full_import(tmp_path: Path, db_session: Session) 
         .all()
     )
     assert len(refs) == 3
+    # D-250: the import keeps what the release brought, in its own transaction.
+    assert dataset.counts is not None
+    assert dataset.counts.origin == "import"
+    assert dataset.counts.materials == 1
+    assert dataset.counts.processes == 1
     assert (
         db_session.execute(
             select(CatalogSupplementalValue).where(

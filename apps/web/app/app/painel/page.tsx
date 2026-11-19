@@ -7,6 +7,7 @@ import {
   dashboardExportUrl,
   getDashboardComposition,
   getDashboardCorrelation,
+  getDashboardCorrelationByClass,
   getDashboardDistribution,
   getDashboardOverview,
   getDashboardProcesses,
@@ -32,6 +33,7 @@ import {
   dashboardSearch,
   mapHref,
   readDashboardState,
+  toggleSubclass,
   type DashboardViewState,
 } from "@/lib/dashboardState";
 import { formatPercent } from "@/lib/format";
@@ -47,6 +49,8 @@ import { PropertyStatsTiles } from "@/components/dashboard/PropertyStatsTiles";
 import { TopRanking } from "@/components/dashboard/TopRanking";
 import { CorrelationMatrix } from "@/components/dashboard/CorrelationMatrix";
 import { CorrelationPicker } from "@/components/dashboard/CorrelationPicker";
+import { CorrelationByClass } from "@/components/dashboard/CorrelationByClass";
+import { ReleaseHistoryChart } from "@/components/dashboard/ReleaseHistoryChart";
 import { ProcessPanels } from "@/components/dashboard/ProcessPanels";
 import { SourceQualityChart } from "@/components/dashboard/SourceQualityChart";
 import { ActivityPanel } from "@/components/dashboard/ActivityPanel";
@@ -150,6 +154,7 @@ function DashboardContent() {
     return [...names].sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [subclassOptions.data]);
 
+  const chosenSubclasses = filters.subclasses ?? [];
   const active = activeFilterCount(filters);
   const section: DashboardSection = tab;
 
@@ -191,14 +196,15 @@ function DashboardContent() {
               options: (classes.data ?? []).map((c) => ({ value: c.slug, label: c.name })),
             },
             {
+              // D-250: several subclasses at once, read as "any of them".
               id: "subclasse",
               label: d.filters.subclasse,
               pinned: true,
-              value: filters.subclasse ?? null,
+              multiple: true,
+              value: null,
+              values: chosenSubclasses,
               options: [
-                ...(filters.subclasse && !subclasses.includes(filters.subclasse)
-                  ? [filters.subclasse]
-                  : []),
+                ...chosenSubclasses.filter((name) => !subclasses.includes(name)),
                 ...subclasses,
               ].map((name) => ({ value: name, label: name })),
             },
@@ -221,8 +227,9 @@ function DashboardContent() {
             },
           ]}
           onChange={(id, value) => {
-            if (id === "classe") setFilters({ classe: value, subclasse: null });
-            else if (id === "subclasse") setFilters({ subclasse: value });
+            if (id === "classe") setFilters({ classe: value, subclasses: [] });
+            else if (id === "subclasse")
+              setFilters({ subclasses: value === null ? [] : toggleSubclass(chosenSubclasses, value) });
             else if (id === "nivel") setFilters({ nivel: (value ? Number(value) : 3) as 1 | 2 | 3 });
             else if (id === "demo") setFilters({ demo: (value ?? "todos") as DashboardFilters["demo"] });
           }}
@@ -327,6 +334,11 @@ function CatalogueTab({
             node: <ClassCoverageChart classes={data.by_class} catalogue={(slug) => catalogueHref(slug)} />,
           },
           { id: "lacunas", name: d.blocks.lacunas, node: <GapsList gaps={data.gaps} /> },
+          {
+            id: "versoes",
+            name: d.blocks.versoes,
+            node: <ReleaseHistoryChart filters={state.filters} />,
+          },
         ]}
       />
     );
@@ -390,6 +402,12 @@ function PropertiesTab({
   const correlation = useQuery({
     queryKey: ["dashboard-correlation", chosen, filters],
     queryFn: () => getDashboardCorrelation(chosen, filters),
+    placeholderData: (previous) => previous,
+  });
+  // D-250: the same properties (or the six best covered), one matrix per class.
+  const byClass = useQuery({
+    queryKey: ["dashboard-correlation-by-class", chosen, filters],
+    queryFn: () => getDashboardCorrelationByClass(chosen, filters),
     placeholderData: (previous) => previous,
   });
 
@@ -457,6 +475,15 @@ function PropertiesTab({
         />
       ) : null}
       {correlation.data ? <CorrelationMatrix data={correlation.data} /> : null}
+
+      {byClass.isLoading ? <ChartSkeleton label={d.correlationByClass.loading} /> : null}
+      {byClass.isError ? (
+        <ErrorState
+          title={d.correlationByClass.error} error={byClass.error}
+          onRetry={() => void byClass.refetch()}
+        />
+      ) : null}
+      {byClass.data ? <CorrelationByClass data={byClass.data} /> : null}
     </>
   );
 }

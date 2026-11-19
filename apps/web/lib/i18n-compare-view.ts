@@ -49,14 +49,23 @@ export const compareViewText = {
     classics: "Pares clássicos",
     classicsHint: "Achados no catálogo pelo nome; só aparece o par que o catálogo tem.",
     comparePair: (a: string, b: string) => `Comparar ${a} com ${b}`,
-    // D-232: o atalho "top do último estudo" — o estudo salvo mais recente, executado de novo.
-    lastStudy: "Do seu último estudo",
-    lastStudyHint: (n: number) =>
-      `Executa de novo o estudo salvo mais recente e leva os ${n} primeiros candidatos, na ordem do resultado.`,
+    // D-250: o atalho "último estudo executado" lê a última execução guardada
+    // no histórico (D-245) — nada é executado de novo, os postos são os dela.
+    lastStudy: "Do seu último estudo executado",
+    lastStudyHint: (n: number, when: string) =>
+      `Os ${n} primeiros candidatos da execução guardada em ${when}, na ordem do resultado.`,
     compareStudyTop: (name: string) => `Comparar o top do estudo ${name}`,
-    studyRunning: "Executando o estudo…",
+    lastStudyLoading: "Procurando a sua última execução guardada…",
+    lastStudyGone: (n: number) =>
+      n === 1
+        ? "1 candidato daquela execução não está mais no catálogo e ficou de fora."
+        : `${n.toLocaleString("pt-BR")} candidatos daquela execução não estão mais no catálogo e ficaram de fora.`,
     studyTooFew: (name: string) =>
-      `O estudo ${name} não deixou 2 candidatos para comparar. Abra-o na Seleção para afrouxar um limite.`,
+      `A última execução do estudo ${name} não deixou 2 candidatos para comparar. Abra-o na Seleção para afrouxar um limite.`,
+    noRunTitle: "Nenhuma execução guardada ainda",
+    noRunBody:
+      "Na Seleção, abra um estudo salvo em “Meus estudos”, execute-o e use “Guardar no histórico”. A execução guardada mais recente aparece aqui, com os primeiros candidatos prontos para comparar.",
+    openSelection: "Abrir a Seleção",
   },
   // D-221: one bar for what is compared, instead of two step cards.
   bar: {

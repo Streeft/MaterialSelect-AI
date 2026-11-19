@@ -115,8 +115,9 @@ class DashboardRepository:
         class_ids = self.filtered_class_ids()
         if class_ids is not None:
             conditions.append(Material.class_id.in_(class_ids or {-1}))
-        if self.filters.subclass:
-            conditions.append(Material.subclass == self.filters.subclass)
+        if self.filters.subclasses:
+            # D-250: several subclasses are a union — any of them passes.
+            conditions.append(Material.subclass.in_(self.filters.subclasses))
         if self.filters.demo == "demo":
             conditions.append(Material.is_demo.is_(True))
         elif self.filters.demo == "reais":

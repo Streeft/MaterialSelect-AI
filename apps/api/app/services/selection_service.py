@@ -52,7 +52,7 @@ from app.domain.ranking import (
     rank_promethee,
     rank_topsis,
 )
-from app.domain.run_diff import RunEntry, diff_runs
+from app.domain.run_diff import RunEntry, diff_runs, ranked_first
 from app.domain.slug import slugify
 from app.domain.study_templates import INDEX_CRITERION_KEY, STUDY_TEMPLATES, StudyTemplate
 from app.domain.taxonomy import lineages
@@ -102,6 +102,7 @@ from app.schemas.selection import (
     IndexRequest,
     IndexResultOut,
     IndexValueOut,
+    LatestRunOut,
     PerformanceIndexOut,
     PreviewCandidateOut,
     RankedMaterialOut,
@@ -2914,6 +2915,30 @@ class SelectionService:
         self.repo.add(run)
         self.repo.commit()
         return SavedRunCreatedOut(run=self._run_to_out(run), result=result)
+
+    def latest_run(self, top: int) -> LatestRunOut | None:
+        """The last kept run of a material study, its first ``top`` candidates (D-250).
+
+        ``None`` when the project has kept none. The ranks are the stored ones
+        (:func:`ranked_first`); only records still in the catalogue for this
+        reader are handed on, and the rest are counted in ``gone``.
+        """
+        run = self.repo.latest_run(self.project_id, "material")
+        if run is None:
+            return None
+        entries = [SavedRunEntryOut(**e) for e in run.entries or []]
+        present = self.repo.present_material_ids({e.record_id for e in entries})
+        chosen = ranked_first(
+            [RunEntry(e.record_id, e.name, e.rank) for e in entries], present, top
+        )
+        by_id = {e.record_id: e for e in entries}
+        return LatestRunOut(
+            study_id=run.study_id,
+            study_name=run.study.name,
+            run=self._run_to_out(run),
+            top=[by_id[e.record_id] for e in chosen],
+            gone=sum(1 for e in entries if e.record_id not in present),
+        )
 
     def list_runs(self, study_id: int) -> list[SavedRunOut]:
         study = self._owned_study(study_id)

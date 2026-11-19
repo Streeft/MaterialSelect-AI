@@ -18,6 +18,7 @@ from app.catalog.promotion import (
     plan,
     promote,
 )
+from app.catalog.release_counts import record_release_counts
 from app.domain.composition import (
     CompositionError,
     NormalizedComposition,
@@ -1671,6 +1672,9 @@ class OfficialCatalogImporter:
         # in the same transaction, so the first request does not pay for it.
         # ``None`` (not comparable, not storable) leaves the API computing it.
         stored_diff = CatalogReleaseService(self.db).materialize_previous(self.dataset.slug)
+        # D-250: keep what this release brought, for the panel's history. Same
+        # transaction: a failed import leaves no count behind.
+        record_release_counts(self.db, self.dataset)
 
         run.status = "COMMITTED"
         run.counts = dict(self.counts)

@@ -15,9 +15,11 @@ import type {
   DashboardActivity,
   DashboardComposition,
   DashboardCorrelation,
+  DashboardCorrelationByClass,
   DashboardOverview,
   DashboardProcesses,
   DashboardPropertyStats,
+  DashboardReleaseHistory,
   DashboardSources,
   DashboardTop,
   PropertyDistribution,
@@ -171,7 +173,7 @@ const distributions: Record<string, PropertyDistribution> = {
   },
 };
 
-const filtersOut = { class_slug: null, subclass: null, level: 3, demo: "todos" as const, materials: 5 };
+const filtersOut = { class_slug: null, subclasses: [], level: 3, demo: "todos" as const, materials: 5 };
 
 const composition: DashboardComposition = {
   filters: filtersOut,
@@ -291,6 +293,86 @@ const correlation: DashboardCorrelation = {
   ],
 };
 
+// D-250: one panel per class; "Cerâmicas" is too small for any ρ.
+const byClass: DashboardCorrelationByClass = {
+  filters: filtersOut,
+  method: "spearman",
+  min_pairs: 5,
+  properties: correlation.properties,
+  panels: [
+    {
+      class_slug: "metais",
+      class_name: "Metais",
+      materials: 6,
+      counts: { densidade: 6, modulo_young: 6 },
+      cells: [
+        { x: "densidade", y: "densidade", rho: 1, pairs: 6 },
+        { x: "densidade", y: "modulo_young", rho: 0.6, pairs: 6 },
+        { x: "modulo_young", y: "densidade", rho: 0.6, pairs: 6 },
+        { x: "modulo_young", y: "modulo_young", rho: 1, pairs: 6 },
+      ],
+    },
+    {
+      class_slug: "ceramicas",
+      class_name: "Cerâmicas",
+      materials: 1,
+      counts: { densidade: 1, modulo_young: 0 },
+      cells: [
+        { x: "densidade", y: "densidade", rho: null, pairs: 1 },
+        { x: "densidade", y: "modulo_young", rho: null, pairs: 0 },
+        { x: "modulo_young", y: "densidade", rho: null, pairs: 0 },
+        { x: "modulo_young", y: "modulo_young", rho: null, pairs: 0 },
+      ],
+    },
+  ],
+  omitted_classes: 1,
+};
+
+// D-250: two releases of one lineage; the second's change is against the first.
+const releaseCounts = (materials: number, filled: number, missing: number) => ({
+  materials,
+  classes: 3,
+  properties: 2,
+  values_filled: filled,
+  values_declared_missing: missing,
+  processes: 0,
+});
+const releases: DashboardReleaseHistory = {
+  demo: "todos",
+  points: [
+    {
+      slug: "r1",
+      name: "Catálogo demo",
+      release: "Demo R1",
+      lineage: "demo",
+      is_demo: true,
+      is_active: true,
+      imported_at: "2026-11-01T10:00:00Z",
+      counted_at: "2026-11-01T10:00:00Z",
+      origin: "import",
+      counts: releaseCounts(5, 7, 1),
+      filled_share_pct: 87.5,
+      previous_slug: null,
+      change: null,
+    },
+    {
+      slug: "r2",
+      name: "Catálogo demo",
+      release: "Demo R2",
+      lineage: "demo",
+      is_demo: true,
+      is_active: true,
+      imported_at: "2026-11-10T10:00:00Z",
+      counted_at: "2026-11-10T10:00:00Z",
+      origin: "import",
+      counts: releaseCounts(5, 10, 0),
+      filled_share_pct: 100,
+      previous_slug: "r1",
+      change: { ...releaseCounts(0, 3, -1), classes: 0, properties: 2 },
+    },
+  ],
+};
+
 const activity: DashboardActivity = {
   studies: 3,
   charts: 1,
@@ -326,6 +408,8 @@ const getDashboardPropertyStats = vi.fn((slug: string) =>
   Promise.resolve(slug === "densidade" ? emptyStats : stats),
 );
 const getDashboardActivity = vi.fn(() => Promise.resolve(activity));
+const getDashboardComposition = vi.fn(() => Promise.resolve(composition));
+const getDashboardReleases = vi.fn((_filters?: unknown) => Promise.resolve(releases));
 
 const suggest = vi.hoisted(() => ({ fn: vi.fn() }));
 
@@ -338,12 +422,14 @@ vi.mock("@/lib/api", () => ({
   deleteSavedView: () => Promise.resolve(),
   getDashboardOverview: (filters: unknown) => getDashboardOverview(filters),
   getDashboardDistribution: (slug: string, filters: unknown) => getDashboardDistribution(slug, filters),
-  getDashboardComposition: () => Promise.resolve(composition),
+  getDashboardComposition: () => getDashboardComposition(),
   getDashboardProcesses: () => Promise.resolve(processes),
   getDashboardSources: () => Promise.resolve(sources),
   getDashboardPropertyStats: (slug: string) => getDashboardPropertyStats(slug),
   getDashboardTop: () => Promise.resolve(top),
   getDashboardCorrelation: () => Promise.resolve(correlation),
+  getDashboardCorrelationByClass: () => Promise.resolve(byClass),
+  getDashboardReleases: (filters: unknown) => getDashboardReleases(filters),
   getDashboardActivity: () => getDashboardActivity(),
   listClasses: () =>
     Promise.resolve([
@@ -555,6 +641,71 @@ describe("painel", () => {
     expect(await screen.findByShadowRole("button", { name: "Aços" })).toBeInTheDocument();
   });
 
+  it("filters by several subclasses at once, in the URL and in the request (D-250)", async () => {
+    const twoSubclasses: DashboardComposition = {
+      ...composition,
+      cells: [
+        ...composition.cells,
+        { key: "s:metais:Ligas de alumínio", depth: 1, class_slug: "metais", class_name: "Metais", subclass: "Ligas de alumínio", count: 1, share_pct: 33.3, x0: 0, y0: 0, x1: 50, y1: 90 },
+      ],
+    };
+    getDashboardComposition.mockResolvedValue(twoSubclasses);
+    await renderDashboard("classe=metais");
+    await screen.findByText(d.composition.title);
+    const chip = () => screen.getByShadowRole("button", { name: new RegExp(`^${d.filters.subclasse}: `) });
+    await userEvent.click(chip());
+    await userEvent.click(await screen.findByShadowRole("button", { name: "Aços" }));
+    // The panel stays open: a second subclass is one more click.
+    await userEvent.click(await screen.findByShadowRole("button", { name: "Ligas de alumínio" }));
+    await waitFor(() => expect(nav.search.getAll("subclasse")).toEqual(["Aços", "Ligas de alumínio"]));
+    await waitFor(() =>
+      expect(getDashboardOverview).toHaveBeenCalledWith(
+        expect.objectContaining({ subclasses: ["Aços", "Ligas de alumínio"] }),
+      ),
+    );
+    expect(chip()).toHaveTextContent(ptBR.ds.filterChipMany(d.filters.subclasse, "Aços", 1));
+    // A second click on a chosen subclass takes it out again.
+    await userEvent.click(await screen.findByShadowRole("button", { name: "Aços" }));
+    await waitFor(() => expect(nav.search.getAll("subclasse")).toEqual(["Ligas de alumínio"]));
+    getDashboardComposition.mockResolvedValue(composition);
+  });
+
+  it("opens a link with two subclasses as it was, and the chip names them (D-250)", async () => {
+    await renderDashboard("subclasse=A%C3%A7os&subclasse=Laminado");
+    await waitFor(() =>
+      expect(getDashboardOverview).toHaveBeenCalledWith(
+        expect.objectContaining({ subclasses: ["Aços", "Laminado"] }),
+      ),
+    );
+    expect(
+      screen.getByShadowRole("button", { name: new RegExp(`^${d.filters.subclasse}: `) }),
+    ).toHaveTextContent(ptBR.ds.filterChipMany(d.filters.subclasse, "Aços", 1));
+  });
+
+  it("draws the catalogue release by release, with the change since the previous (D-250)", async () => {
+    await renderDashboard();
+    const card = (await screen.findByShadowRole("heading", { name: d.releases.title })).closest(
+      ".msds-chart-card",
+    ) as HTMLElement;
+    await userEvent.click(within(card).getByShadowRole("button", { name: ptBR.chart.showTable }));
+    const table = screen.getByShadowRole("table", { name: d.releases.figure });
+    expect(within(table).getByText("Demo R1")).toBeInTheDocument();
+    expect(within(table).getByText(d.releases.first)).toBeInTheDocument();
+    expect(within(table).getByText(d.releases.change(0, 3))).toBeInTheDocument();
+    expect(within(table).getByText("87,5%")).toBeInTheDocument();
+  });
+
+  it("says so when no release was imported yet, instead of an empty axis (D-250)", async () => {
+    getDashboardReleases.mockResolvedValueOnce({ demo: "todos", points: [] });
+    await renderDashboard();
+    expect(await screen.findByText(d.releases.empty)).toBeInTheDocument();
+  });
+
+  it("asks the history with the demo filter only (D-250)", async () => {
+    await renderDashboard("demo=reais&classe=metais");
+    await waitFor(() => expect(getDashboardReleases).toHaveBeenLastCalledWith({ demo: "reais" }));
+  });
+
   it("lets the reader hide an overview block and keeps the layout in the account (D-209)", async () => {
     await renderDashboard();
     await screen.findByText(d.composition.title);
@@ -610,6 +761,20 @@ describe("painel", () => {
       name: d.correlation.cellAria("Módulo de Young", "Densidade", d.correlation.noRho, d.correlation.pairs(2)),
     });
     expect(cell).toBeInTheDocument();
+  });
+
+  it("puts one matrix per class side by side, a small class without ρ (D-250)", async () => {
+    await renderProperties();
+    expect(await screen.findByShadowRole("heading", { name: d.correlationByClass.title })).toBeInTheDocument();
+    expect(screen.getByText(d.correlationByClass.panelTitle("Metais", 6))).toBeInTheDocument();
+    expect(screen.getByText(d.correlationByClass.panelTitle("Cerâmicas", 1))).toBeInTheDocument();
+    const region = screen.getByShadowRole("region", { name: d.correlationByClass.region });
+    expect(
+      within(region).getByShadowRole("link", {
+        name: d.correlation.cellAria("Módulo de Young", "Densidade", d.correlation.noRho, d.correlation.pairs(0)),
+      }),
+    ).toBeInTheDocument();
+    expect(within(region).getByText(d.correlationByClass.omitted(1))).toBeInTheDocument();
   });
 
   it("shows only the reader's own activity and AI use", async () => {

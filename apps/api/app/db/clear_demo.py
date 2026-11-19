@@ -38,6 +38,7 @@ from app.models.catalog import (
     CatalogDatasetValue,
     CatalogImportRun,
     CatalogRecordRef,
+    CatalogReleaseCount,
     CatalogSupplementalValue,
 )
 from app.models.equivalence import EquivalenceGroup, EquivalenceMember
@@ -220,6 +221,7 @@ def clear_demo_catalog_releases(db: Session) -> int:
         CatalogSupplementalValue,
         CatalogDatasetValue,
         CatalogImportRun,
+        CatalogReleaseCount,  # D-250: the counts of a fictitious release
     ):
         db.execute(delete(model).where(model.dataset_id.in_(demo_ids)))
     db.execute(delete(CatalogDataset).where(CatalogDataset.id.in_(demo_ids)))

@@ -43,7 +43,7 @@ class TestFilters:
         assert data["materials"] == 2
         assert data["filters"] == {
             "class_slug": "metais",
-            "subclass": None,
+            "subclasses": [],
             "level": 3,
             "demo": "todos",
             "materials": 2,

@@ -137,3 +137,22 @@ def diff_runs(before: list[RunEntry], after: list[RunEntry]) -> RunDiff:
         winners_after=winners_after,
         winner_changed=winners_before != winners_after,
     )
+
+
+def ranked_first(entries: list[RunEntry], present: set[int], limit: int) -> list[RunEntry]:
+    """The first ``limit`` entries of a kept run, in the order it ranked them (D-250).
+
+    Ranked entries by rank; then the unranked (a study with no objective, or a
+    candidate the ranking excluded for missing data) in the order the run kept
+    them — nothing is scored or reordered beyond that. An entry whose record is
+    no longer in ``present`` (deleted, deactivated, or no longer visible to the
+    reader) is skipped rather than handed to a comparison that cannot read it.
+    """
+    if limit < 1:
+        raise ValidationError("O atalho leva ao menos um candidato.")
+    ranked = sorted(
+        (e for e in entries if e.rank is not None),
+        key=lambda e: (e.rank, e.record_id),  # type: ignore[arg-type, return-value]
+    )
+    unranked = [e for e in entries if e.rank is None]
+    return [e for e in ranked + unranked if e.record_id in present][:limit]

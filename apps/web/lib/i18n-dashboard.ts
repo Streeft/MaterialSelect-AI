@@ -46,7 +46,42 @@ export const dashboardText = {
     qualidade: "Qualidade dos valores",
     classes: "Cobertura por classe",
     lacunas: "Lacunas",
+    // D-250: o histórico do catálogo, uma coluna por versão.
+    versoes: "Catálogo por versão",
     reset: "Restaurar a ordem padrão",
+  },
+
+  // D-250: o que cada versão (release) do catálogo trouxe, guardado na importação.
+  releases: {
+    title: "O catálogo, versão a versão",
+    hint: "Quantos valores com número e quantas ausências declaradas cada versão importada trouxe, na ordem em que entraram. As contagens são da versão inteira, guardadas quando ela foi importada: só o filtro de demonstração vale aqui.",
+    figure: "Valores por versão do catálogo",
+    loading: "Lendo o histórico das versões…",
+    error: "Não foi possível ler o histórico das versões.",
+    empty: "Nenhuma versão do catálogo foi importada ainda.",
+    emptyHint:
+      "Cada importação de uma versão do catálogo oficial (ou das versões de demonstração) guarda aqui o que trouxe; com duas ou mais, a evolução aparece.",
+    filled: "Valores com número",
+    missing: "Ausências declaradas",
+    columnRelease: "Versão",
+    columnImported: "Importada em",
+    columnMaterials: "Materiais",
+    columnClasses: "Classes",
+    columnProperties: "Propriedades",
+    columnFilled: "Com número",
+    columnMissing: "Ausentes",
+    columnProcesses: "Processos",
+    columnShare: "Com número (%)",
+    columnChange: "Desde a anterior",
+    noShare: "sem valores",
+    first: "primeira da linha",
+    demo: "demonstração",
+    backfill: "contada depois",
+    change: (materials: number, filled: number) => {
+      const signed = (n: number) => (n > 0 ? `+${n.toLocaleString("pt-BR")}` : n < 0 ? `−${Math.abs(n).toLocaleString("pt-BR")}` : "0");
+      return `${signed(materials)} materiais, ${signed(filled)} valores`;
+    },
+    barAria: (release: string, what: string, n: number) => `${release}: ${what}, ${n.toLocaleString("pt-BR")}`,
   },
 
   actions: {
@@ -163,6 +198,22 @@ export const dashboardText = {
     },
     cellAria: (a: string, b: string, value: string, pairs: string) => `${a} × ${b}: ρ ${value}, ${pairs}`,
     empty: "Escolha ao menos duas propriedades.",
+  },
+
+  // D-250: a mesma matriz, uma por classe, lado a lado.
+  correlationByClass: {
+    title: "Correlação por classe",
+    hint: (minPairs: number) =>
+      `A mesma matriz dentro de cada classe, lado a lado. Sem escolha acima, as seis propriedades mais preenchidas do nível; com escolha, as mesmas da matriz acima. Uma classe pequena fica sem ρ onde não tem ${minPairs} pares — não é correlação zero, é falta de dado.`,
+    figure: (className: string) => `Matriz de correlação de Spearman — ${className}`,
+    panelTitle: (className: string, materials: number) =>
+      `${className} (${materials === 1 ? "1 material" : `${materials.toLocaleString("pt-BR")} materiais`})`,
+    loading: "Calculando a correlação por classe…",
+    error: "Não foi possível calcular a correlação por classe.",
+    empty: "Nenhuma classe passa pelos filtros.",
+    omitted: (n: number) =>
+      n === 1 ? "Mais 1 classe ficou de fora; filtre por classe para vê-la." : `Mais ${n.toLocaleString("pt-BR")} classes ficaram de fora; filtre por classe para vê-las.`,
+    region: "Correlação por classe, uma matriz por classe",
   },
 
   processes: {

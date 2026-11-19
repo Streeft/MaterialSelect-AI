@@ -25,6 +25,14 @@ export interface FilterField {
   options: readonly FilterOption[];
   /** The chosen value, or `null` when the field does not filter. */
   value: string | null;
+  /**
+   * D-250: a field that takes several options at once ("Subclasse: A + 2").
+   * Its choice is `values`; a click on an option toggles it, reported as
+   * `onChange(id, option)` (the screen adds or removes it), and "Qualquer" or
+   * the chip's ✕ report `onChange(id, null)` — clear them all.
+   */
+  multiple?: boolean;
+  values?: readonly string[];
   /** Always on the bar, even unset ("Classe: Qualquer"). Others wait in "+ Filtro". */
   pinned?: boolean;
 }
@@ -58,10 +66,10 @@ export function FilterBar({
   // the value is chosen: one panel at a time, never a menu inside a menu.
   const [added, setAdded] = useState<string[]>([]);
   const onBar = (field: FilterField) =>
-    field.pinned || field.value !== null || added.includes(field.id);
+    field.pinned || isSet(field) || added.includes(field.id);
   const visible = fields.filter(onBar);
   const waiting = fields.filter((field) => !onBar(field));
-  const active = fields.some((field) => field.value !== null);
+  const active = fields.some(isSet);
 
   return (
     <div role="group" aria-label={label} className={cn("flex flex-wrap items-center gap-2", className)}>
@@ -130,6 +138,30 @@ export function FilterBar({
   );
 }
 
+function isSet(field: FilterField): boolean {
+  return field.multiple ? (field.values?.length ?? 0) > 0 : field.value !== null;
+}
+
+/** The chip's words: "Campo: Qualquer", "Campo: valor" or "Campo: valor + 2". */
+function chipText(field: FilterField): { text: string; on: boolean } {
+  if (field.multiple) {
+    const chosen = (field.values ?? []).map(
+      (value) => field.options.find((option) => option.value === value)?.label ?? value,
+    );
+    const [first] = chosen;
+    if (first === undefined) return { text: t.filterChip(field.label, t.anyValue), on: false };
+    return {
+      text:
+        chosen.length === 1
+          ? t.filterChip(field.label, first)
+          : t.filterChipMany(field.label, first, chosen.length - 1),
+      on: true,
+    };
+  }
+  const chosen = field.options.find((option) => option.value === field.value);
+  return { text: t.filterChip(field.label, chosen?.label ?? t.anyValue), on: Boolean(chosen) };
+}
+
 function FilterChip({
   field,
   onChange,
@@ -140,8 +172,7 @@ function FilterChip({
   /** Takes an unpinned field off the bar; a pinned one only goes back to "Qualquer". */
   onRemove?: () => void;
 }) {
-  const chosen = field.options.find((option) => option.value === field.value);
-  const text = t.filterChip(field.label, chosen?.label ?? t.anyValue);
+  const { text, on: chosen } = chipText(field);
   return (
     <span className="inline-flex items-center">
       <Popover
@@ -160,7 +191,8 @@ function FilterChip({
             field={field}
             onPick={(value) => {
               onChange(value);
-              close();
+              // A multiple field stays open to pick more; "Qualquer" closes it.
+              if (!field.multiple || value === null) close();
             }}
           />
         )}
@@ -193,8 +225,15 @@ function OptionList({
   ];
   return (
     <ul className="flex flex-col" aria-label={field.label}>
+      {field.multiple ? (
+        <li className="px-3 pb-1 text-caption text-ink-muted">{t.manyHint}</li>
+      ) : null}
       {options.map((option) => {
-        const selected = option.value === field.value;
+        const selected = field.multiple
+          ? option.value === null
+            ? (field.values?.length ?? 0) === 0
+            : (field.values ?? []).includes(option.value)
+          : option.value === field.value;
         return (
           <li key={option.value ?? "__any"}>
             <button

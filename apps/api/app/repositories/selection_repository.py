@@ -415,6 +415,28 @@ class SelectionRepository:
         )
         return self.db.execute(stmt).scalars().one_or_none()
 
+    def latest_run(self, project_id: int, universe: str) -> SelectionRun | None:
+        """The most recently kept run of any study of the project (D-250)."""
+        stmt = (
+            select(SelectionRun)
+            .join(SelectionStudy, SelectionRun.study_id == SelectionStudy.id)
+            .where(SelectionStudy.project_id == project_id, SelectionRun.universe == universe)
+            .order_by(SelectionRun.created_at.desc(), SelectionRun.id.desc())
+            .limit(1)
+        )
+        return self.db.execute(stmt).scalars().first()
+
+    def present_material_ids(self, ids: set[int]) -> set[int]:
+        """Which of ``ids`` are active materials this reader may still see."""
+        if not ids:
+            return set()
+        stmt = select(Material.id).where(
+            Material.id.in_(ids),
+            Material.is_active.is_(True),
+            visible_materials(self.viewer_id),
+        )
+        return {int(i) for i in self.db.execute(stmt).scalars()}
+
     def count_runs(self, study_id: int) -> int:
         stmt = select(func.count(SelectionRun.id)).where(SelectionRun.study_id == study_id)
         return int(self.db.execute(stmt).scalar_one())

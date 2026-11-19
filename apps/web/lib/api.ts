@@ -8,6 +8,7 @@ import type {
   FunnelPreviewRequest,
   RunDiff,
   RunDiffRequest,
+  LatestRun,
   SavedRun,
   SavedRunCreated,
   StudyTemplate,
@@ -47,10 +48,12 @@ import type {
   DashboardActivity,
   DashboardComposition,
   DashboardCorrelation,
+  DashboardCorrelationByClass,
   DashboardFilters,
   DashboardOverview,
   DashboardProcesses,
   DashboardPropertyStats,
+  DashboardReleaseHistory,
   DashboardSection,
   DashboardSources,
   DashboardTop,
@@ -1111,6 +1114,11 @@ export function deleteStudy(id: number): Promise<void> {
   return request<void>(`/api/selection/studies/${id}`, { method: "DELETE" });
 }
 
+/** D-250: the last kept run of a material study (`null` when none was kept). */
+export function getLatestSelectionRun(n = 5): Promise<LatestRun | null> {
+  return request<LatestRun | null>(`/api/selection/runs/latest?n=${n}`);
+}
+
 export function runStudy(id: number): Promise<RunResult> {
   return request<RunResult>(`/api/selection/studies/${id}/run`, {
     method: "POST",
@@ -1225,7 +1233,8 @@ export function dashboardQuery(
 ): string {
   const params = new URLSearchParams();
   if (filters.classe) params.set("classe", filters.classe);
-  if (filters.subclasse) params.set("subclasse", filters.subclasse);
+  // D-250: one `subclasse` per subclass; the API reads the repeated key as a list.
+  for (const name of filters.subclasses ?? []) params.append("subclasse", name);
   if (filters.nivel && filters.nivel !== 3) params.set("nivel", String(filters.nivel));
   if (filters.demo && filters.demo !== "todos") params.set("demo", filters.demo);
   for (const [key, value] of Object.entries(extra)) {
@@ -1287,6 +1296,25 @@ export function getDashboardCorrelation(
     `/api/dashboard/correlation${dashboardQuery(filters, {
       propriedades: propertySlugs && propertySlugs.length > 0 ? propertySlugs.join(",") : null,
     })}`,
+  );
+}
+
+/** D-250: one Spearman matrix per material class, the same properties in each. */
+export function getDashboardCorrelationByClass(
+  propertySlugs: string[] | null,
+  filters: DashboardFilters = {},
+): Promise<DashboardCorrelationByClass> {
+  return request<DashboardCorrelationByClass>(
+    `/api/dashboard/correlation/by-class${dashboardQuery(filters, {
+      propriedades: propertySlugs && propertySlugs.length > 0 ? propertySlugs.join(",") : null,
+    })}`,
+  );
+}
+
+/** D-250: what each catalogue release brought; only the demo filter applies. */
+export function getDashboardReleases(filters: DashboardFilters = {}): Promise<DashboardReleaseHistory> {
+  return request<DashboardReleaseHistory>(
+    `/api/dashboard/releases${dashboardQuery({ demo: filters.demo })}`,
   );
 }
 

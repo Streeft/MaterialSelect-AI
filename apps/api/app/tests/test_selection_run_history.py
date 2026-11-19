@@ -128,3 +128,76 @@ def test_label_is_bounded(client):
     study_id = _study(client)
     resp = client.post(f"/api/selection/studies/{study_id}/runs", json={"label": "x" * 121})
     assert resp.status_code == 422
+
+
+# --- O último estudo executado, para o Comparar (D-250) ------------------------
+
+
+def test_no_kept_run_is_null(client):
+    _study(client)  # a saved study is not an executed one
+    resp = client.get("/api/selection/runs/latest")
+    assert resp.status_code == 200
+    assert resp.json() is None
+
+
+def test_latest_is_the_last_kept_run_its_top_in_rank_order(client):
+    a = _study(client)
+    b = client.post("/api/selection/studies", json={**STUDY, "name": "Viga leve"}).json()["id"]
+    _keep(client, b, "antiga")
+    kept = _keep(client, a, "nova")
+
+    body = client.get("/api/selection/runs/latest", params={"n": 2}).json()
+    assert body["study_id"] == a
+    assert body["study_name"] == STUDY["name"]
+    assert body["run"]["id"] == kept["run"]["id"]
+    ranked = sorted(
+        (c for c in kept["result"]["candidates"] if c["rank"] is not None),
+        key=lambda c: c["rank"],
+    )
+    assert [e["record_id"] for e in body["top"]] == [c["record_id"] for c in ranked[:2]]
+    assert [e["rank"] for e in body["top"]] == [1, 2]
+    assert body["gone"] == 0
+
+
+def test_a_record_gone_from_the_catalogue_is_skipped_and_counted(client, db_session):
+    study_id = _study(client)
+    kept = _keep(client, study_id)
+    first = min(
+        (c for c in kept["result"]["candidates"] if c["rank"] is not None),
+        key=lambda c: c["rank"],
+    )
+    material = db_session.get(Material, first["record_id"])
+    material.is_active = False
+    db_session.flush()
+
+    body = client.get("/api/selection/runs/latest").json()
+    assert first["record_id"] not in [e["record_id"] for e in body["top"]]
+    assert body["gone"] == 1
+    # The stored ranks are kept as they were: nothing is re-ranked.
+    assert body["top"][0]["rank"] == 2
+
+
+def test_a_process_run_is_not_offered_to_the_material_comparator(client):
+    resp = client.post("/api/selection/studies", json={"name": "Processos", "universe": "process"})
+    assert resp.status_code == 201, resp.text
+    _keep(client, resp.json()["id"])
+    assert client.get("/api/selection/runs/latest").json() is None
+
+
+def test_another_persons_run_is_not_mine(client, login_as, other_user):
+    _keep(client, _study(client))
+    with login_as(other_user):
+        assert client.get("/api/selection/runs/latest").json() is None
+
+
+def test_ranked_first_is_pure():
+    from app.domain.run_diff import RunEntry, ranked_first
+
+    entries = [
+        RunEntry(4, "d", 3),
+        RunEntry(3, "c", 1),
+        RunEntry(1, "a", None),
+        RunEntry(2, "b", 2),
+    ]
+    assert [e.record_id for e in ranked_first(entries, {1, 2, 3, 4}, 5)] == [3, 2, 4, 1]
+    assert [e.record_id for e in ranked_first(entries, {1, 2, 4}, 2)] == [2, 4]

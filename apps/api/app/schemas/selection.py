@@ -860,6 +860,21 @@ class SavedRunDetailOut(SavedRunOut):
     study: dict = Field(default_factory=dict)
 
 
+class LatestRunOut(BaseModel):
+    """The most recently kept run of a material study, for the Comparar (D-250).
+
+    ``top`` are its first candidates as the run ranked them, only those still
+    in the catalogue for this reader; ``gone`` counts the run's candidates that
+    no longer are. Nothing here is re-run: the ranks are the stored ones.
+    """
+
+    study_id: int
+    study_name: str
+    run: SavedRunOut
+    top: list[SavedRunEntryOut]
+    gone: int = Field(ge=0)
+
+
 class SavedRunCreatedOut(BaseModel):
     run: SavedRunOut
     result: RunResultOut

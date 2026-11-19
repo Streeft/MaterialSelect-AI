@@ -25,22 +25,21 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping
+from dataclasses import asdict
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from app.calculations.correlation_matrix import correlation_cells
 from app.calculations.expression_render import friendly_label, symbol_latex
 from app.calculations.expressions import ExpressionError, safe_variable, variables_in
 from app.calculations.performance import evaluate_index
 from app.calculations.statistics import (
     MIN_PAIRS,
-    average_ranks,
     five_number_summary,
     histogram,
     mean,
-    pearson,
     share,
-    spearman,
 )
 from app.calculations.treemap import Rect, squarify
 from app.config import settings as app_settings
@@ -49,10 +48,12 @@ from app.domain.dashboard_filters import DashboardFilters
 from app.domain.depth_profile import property_min_level
 from app.domain.display_units import reading_for
 from app.domain.errors import NotFoundError, ValidationError
+from app.domain.release_history import ReleaseEntry, ReleaseTally, build_history
 from app.exporters.report import REPRODUCIBILITY_NOTICE, Report, Sheet
 from app.models.enums import BetterDirection, DataQuality
 from app.models.property_definition import PropertyDefinition
 from app.repositories.dashboard_repository import DashboardRepository
+from app.repositories.release_count_repository import ReleaseCountRepository
 from app.schemas.dashboard import (
     ActivityOut,
     AIDayOut,
@@ -62,7 +63,9 @@ from app.schemas.dashboard import (
     BoxOut,
     ClassCoverageOut,
     CompositionOut,
+    CorrelationByClassOut,
     CorrelationCellOut,
+    CorrelationClassPanelOut,
     CorrelationOut,
     CorrelationPropertyOut,
     Coverage,
@@ -79,6 +82,9 @@ from app.schemas.dashboard import (
     PropertyStatsOut,
     QualitySliceOut,
     RankedMaterialOut,
+    ReleaseCountsOut,
+    ReleaseHistoryOut,
+    ReleasePointOut,
     SourceQualityOut,
     SourcesOut,
     TopOut,
@@ -104,6 +110,12 @@ TOP_MAX = 50
 #: readable grid; the client may ask for every property explicitly.
 CORRELATION_DEFAULT = 12
 CORRELATION_MAX = 60
+
+#: D-250: the per-class small multiples read fewer properties by default — six
+#: columns make a matrix legible at a third of a card's width — and draw at
+#: most twelve classes, the largest first.
+CORRELATION_BY_CLASS_DEFAULT = 6
+CLASS_PANELS_MAX = 12
 
 #: How far back "Minha atividade" looks.
 ACTIVITY_MONTHS = 12
@@ -161,7 +173,7 @@ class DashboardService:
             materials, _ = self.repo.count_materials()
         return FiltersOut(
             class_slug=self.filters.class_slug,
-            subclass=self.filters.subclass,
+            subclasses=list(self.filters.subclasses),
             level=int(self.filters.level),
             demo=self.filters.demo,
             materials=materials,
@@ -612,15 +624,11 @@ class DashboardService:
             items=items,
         )
 
-    def correlation(self, property_slugs: list[str] | None = None) -> CorrelationOut:
-        """Spearman's ρ for every pair of properties, pairwise-complete.
-
-        One query for the whole value matrix; each pair then uses only the
-        materials carrying both (pairwise deletion — dropping every material
-        with any gap would leave almost nothing on a sparse catalogue). A pair
-        with fewer than ``MIN_PAIRS`` materials gets ``rho = None``.
-        """
-        visible = self._properties()
+    def _correlation_properties(
+        self, property_slugs: list[str] | None, default: int
+    ) -> list[PropertyDefinition]:
+        """The properties a matrix reads: the ones named, or the ``default``
+        best-covered of the level (Nível 1 first), sorted by name."""
         if property_slugs:
             wanted = list(dict.fromkeys(property_slugs))
             if len(wanted) > CORRELATION_MAX:
@@ -629,73 +637,166 @@ class DashboardService:
             unknown = [s for s in wanted if s not in by_slug]
             if unknown:
                 raise NotFoundError(f"Propriedade não encontrada: {', '.join(unknown)}")
-            chosen = [by_slug[s] for s in wanted]
-        else:
-            counts = self.repo.value_counts_by_property()
-            # The textbook quantities first (the Nível 1 ones), then the best
-            # covered: a default matrix of exotic columns would read as noise.
-            chosen = sorted(
-                visible,
-                key=lambda p: (
-                    int(property_min_level(p.slug)),
-                    -counts.get(p.slug, (0, 0))[0],
-                    p.name,
-                ),
-            )[:CORRELATION_DEFAULT]
-            chosen.sort(key=lambda p: p.name)
+            return [by_slug[s] for s in wanted]
+        counts = self.repo.value_counts_by_property()
+        # The textbook quantities first (the Nível 1 ones), then the best
+        # covered: a default matrix of exotic columns would read as noise.
+        chosen = sorted(
+            self._properties(),
+            key=lambda p: (
+                int(property_min_level(p.slug)),
+                -counts.get(p.slug, (0, 0))[0],
+                p.name,
+            ),
+        )[:default]
+        chosen.sort(key=lambda p: p.name)
+        return chosen
 
+    @staticmethod
+    def _cells_out(
+        columns: dict[str, dict[int, float]], slugs: list[str]
+    ) -> list[CorrelationCellOut]:
+        return [
+            CorrelationCellOut(x=c.x, y=c.y, rho=c.rho, pairs=c.pairs)
+            for c in correlation_cells(columns, slugs)
+        ]
+
+    @staticmethod
+    def _property_out(p: PropertyDefinition, count: int) -> CorrelationPropertyOut:
+        return CorrelationPropertyOut(
+            slug=p.slug,
+            name=p.name,
+            symbol_latex=symbol_latex(p.symbol) if p.symbol else None,
+            count=count,
+        )
+
+    def correlation(self, property_slugs: list[str] | None = None) -> CorrelationOut:
+        """Spearman's ρ for every pair of properties, pairwise-complete.
+
+        One query for the whole value matrix; each pair then uses only the
+        materials carrying both (pairwise deletion — dropping every material
+        with any gap would leave almost nothing on a sparse catalogue). A pair
+        with fewer than ``MIN_PAIRS`` materials gets ``rho = None``.
+        """
+        chosen = self._correlation_properties(property_slugs, CORRELATION_DEFAULT)
         ids = {p.id: p.slug for p in chosen}
         columns: dict[str, dict[int, float]] = {p.slug: {} for p in chosen}
         for m, pid, v in self.repo.numeric_values(set(ids)):
             columns[ids[pid]][m] = v
 
-        rank_cache: dict[str, list[float]] = {}
-
-        def ranks(slug: str) -> list[float]:
-            if slug not in rank_cache:
-                ordered = sorted(columns[slug])
-                rank_cache[slug] = average_ranks([columns[slug][m] for m in ordered])
-            return rank_cache[slug]
-
         # Plain strings in the loop: an ORM attribute read per value would cost
         # more than the statistics themselves (~900 k reads at 48 columns).
         slugs = [p.slug for p in chosen]
-        cells: list[CorrelationCellOut] = []
-        for i, x in enumerate(slugs):
-            cx = columns[x]
-            for y in slugs[i:]:
-                cy = columns[y]
-                if x == y:
-                    n = len(cx)
-                    rho = 1.0 if n >= MIN_PAIRS else None
-                else:
-                    common = cx.keys() & cy.keys()
-                    n = len(common)
-                    if n == len(cx) == len(cy) and n >= MIN_PAIRS:
-                        # Both columns complete on the same materials: the
-                        # ranks computed once per column are the pair's ranks.
-                        rho = pearson(ranks(x), ranks(y))
-                    else:
-                        ordered = sorted(common)
-                        rho = spearman([cx[m] for m in ordered], [cy[m] for m in ordered])
-                rho = None if rho is None else round(rho, 4)
-                cells.append(CorrelationCellOut(x=x, y=y, rho=rho, pairs=n))
-                if x != y:
-                    cells.append(CorrelationCellOut(x=y, y=x, rho=rho, pairs=n))
-
         return CorrelationOut(
             filters=self._filters_out(),
             min_pairs=MIN_PAIRS,
-            properties=[
-                CorrelationPropertyOut(
-                    slug=p.slug,
-                    name=p.name,
-                    symbol_latex=symbol_latex(p.symbol) if p.symbol else None,
-                    count=len(columns[p.slug]),
+            properties=[self._property_out(p, len(columns[p.slug])) for p in chosen],
+            cells=self._cells_out(columns, slugs),
+        )
+
+    def correlation_by_class(
+        self, property_slugs: list[str] | None = None
+    ) -> CorrelationByClassOut:
+        """The same matrix, one per material class — small multiples (D-250).
+
+        One query for the values, one for the materials' classes; each class
+        then gets the pairwise-complete Spearman matrix of its own materials,
+        by the same :func:`correlation_cells` as the whole-catalogue matrix.
+        A class with fewer than ``MIN_PAIRS`` materials carrying a pair shows
+        ``rho = None`` there — a small class is honest about it, never 0.
+
+        The classes are the materials' own (as in the distribution's boxes),
+        largest first, at most :data:`CLASS_PANELS_MAX`; the rest are counted
+        in ``omitted_classes`` rather than silently dropped.
+        """
+        chosen = self._correlation_properties(property_slugs, CORRELATION_BY_CLASS_DEFAULT)
+        ids = {p.id: p.slug for p in chosen}
+        class_of: dict[int, tuple[str, str]] = {}
+        sizes: dict[str, int] = defaultdict(int)
+        names: dict[str, str] = {}
+        for material_id, _name, class_slug, class_name, _sub, _demo in self.repo.scoped_materials():
+            class_of[material_id] = (class_slug, class_name)
+            sizes[class_slug] += 1
+            names[class_slug] = class_name
+
+        by_class: dict[str, dict[str, dict[int, float]]] = {
+            slug: {p.slug: {} for p in chosen} for slug in sizes
+        }
+        totals: dict[str, int] = {p.slug: 0 for p in chosen}
+        for m, pid, v in self.repo.numeric_values(set(ids)):
+            owner = class_of.get(m)
+            if owner is None:
+                continue
+            by_class[owner[0]][ids[pid]][m] = v
+            totals[ids[pid]] += 1
+
+        order = sorted(sizes, key=lambda slug: (-sizes[slug], names[slug], slug))
+        slugs = [p.slug for p in chosen]
+        panels = [
+            CorrelationClassPanelOut(
+                class_slug=slug,
+                class_name=names[slug],
+                materials=sizes[slug],
+                counts={s: len(by_class[slug][s]) for s in slugs},
+                cells=self._cells_out(by_class[slug], slugs),
+            )
+            for slug in order[:CLASS_PANELS_MAX]
+        ]
+        return CorrelationByClassOut(
+            filters=self._filters_out(len(class_of)),
+            min_pairs=MIN_PAIRS,
+            properties=[self._property_out(p, totals[p.slug]) for p in chosen],
+            panels=panels,
+            omitted_classes=max(0, len(order) - CLASS_PANELS_MAX),
+        )
+
+    def releases(self) -> ReleaseHistoryOut:
+        """The catalogue's history: what each release brought, in import order (D-250).
+
+        Read from the counts each import kept (``catalog_release_count``), so a
+        release shows what it *was*, not what curation made of it since. Only
+        the demonstration filter applies — the counts are of whole releases.
+        The change to the previous release of the same lineage comes from
+        :func:`build_history`; a first release has none, never a change from 0.
+        """
+        demo = {"demo": True, "reais": False}.get(self.filters.demo)
+        rows = ReleaseCountRepository(self.db).history(demo)
+        entries = [
+            ReleaseEntry(
+                key=dataset.slug,
+                lineage=dataset.lineage,
+                tally=ReleaseTally(
+                    materials=counts.materials,
+                    classes=counts.classes,
+                    properties=counts.properties,
+                    values_filled=counts.values_filled,
+                    values_declared_missing=counts.values_declared_missing,
+                    processes=counts.processes,
+                ),
+            )
+            for dataset, counts in rows
+        ]
+        points = build_history(entries)
+        return ReleaseHistoryOut(
+            demo=self.filters.demo,
+            points=[
+                ReleasePointOut(
+                    slug=dataset.slug,
+                    name=dataset.name,
+                    release=dataset.release,
+                    lineage=dataset.lineage,
+                    is_demo=dataset.is_demo,
+                    is_active=dataset.is_active,
+                    imported_at=dataset.created_at,
+                    counted_at=counts.counted_at,
+                    origin=counts.origin,  # type: ignore[arg-type]
+                    counts=ReleaseCountsOut(**asdict(point.tally)),
+                    filled_share_pct=point.filled_share_pct,
+                    previous_slug=point.previous_key,
+                    change=ReleaseCountsOut(**asdict(point.change)) if point.change else None,
                 )
-                for p in chosen
+                for (dataset, counts), point in zip(rows, points, strict=True)
             ],
-            cells=cells,
         )
 
     def activity(self, user_id: int) -> ActivityOut:
@@ -767,8 +868,9 @@ class DashboardService:
         absent statistic is written as words, never as an empty cell or 0.
         """
         f = self.filters
+        subclasses = " | ".join(f.subclasses) or "todas"
         subtitle = (
-            f"Filtros: classe={f.class_slug or 'todas'}; subclasse={f.subclass or 'todas'}; "
+            f"Filtros: classe={f.class_slug or 'todas'}; subclasse={subclasses}; "
             f"nível={int(f.level)}; demonstração={f.demo}"
         )
         sheets: list[Sheet] = []

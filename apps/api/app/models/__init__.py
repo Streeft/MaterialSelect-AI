@@ -15,6 +15,7 @@ from app.models.catalog import (
     CatalogDatasetValue,
     CatalogImportRun,
     CatalogRecordRef,
+    CatalogReleaseCount,
     CatalogReleaseDiff,
     CatalogSupplementalValue,
 )
@@ -104,6 +105,7 @@ __all__ = [
     "CatalogDatasetValue",
     "CatalogImportRun",
     "CatalogRecordRef",
+    "CatalogReleaseCount",
     "CatalogReleaseDiff",
     "CatalogSupplementalValue",
     "ConstraintGroup",

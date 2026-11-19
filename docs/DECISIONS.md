@@ -14642,3 +14642,59 @@ título diz quantas linhas). Pré-carregar o laudo em chunks por candidato (a co
 
 **Numeração.** D-249, Sessão 206 (conferidas em `origin/main` e nas branches abertas). **Migração `13dda33de502`** (aditiva, tabela nova).
 **Toca `apps/api`: Deploy da API** depois do merge; sem seed novo.
+
+## D-250 — Pendências do TODO, parte 8: histórico do catálogo por versão, várias subclasses e correlação por classe no Painel; "último estudo executado" no Comparar
+
+**Contexto.** Quatro pendências escritas no `TODO.md` pela D-193 (Painel, "próximos passos") e pela D-232 (fluxos entre telas): o Painel não
+tinha série para desenhar a evolução do catálogo, filtrava uma subclasse só e mostrava uma matriz de correlação do catálogo inteiro; o atalho do
+Comparar reexecutava o estudo **salvo** mais recente porque o servidor não registrava execuções — o que a D-245 passou a fazer.
+
+**Decisão — Histórico do catálogo por versão (revê o "sem série temporal" da D-193).**
+- Tabela nova **`catalog_release_count`** (migração `e62aba5c6884`, aditiva): uma linha por release (`dataset_id` único, `ON DELETE CASCADE`)
+  com seis contagens — materiais e processos para os quais as linhas de identidade da release apontam, classes distintas desses materiais,
+  propriedades com número, **valores com número** e **ausências declaradas** (nunca somados num "valores": princípio 3) — mais `origin` e
+  `counted_at`. CHECKs: contagens ≥ 0 e `origin IN ('import', 'backfill')`.
+- É **registro, não cache**: escrita na transação da importação oficial (`record_release_counts`, depois da promoção, D-114) e pelo seed das
+  releases fictícias (recontada a cada execução, para um rerun nunca deixar número velho); nunca recalculada quando a curadoria edita uma linha
+  depois, e por isso fora da lista que a invalidação da D-123 observa. Material inativo conta: a release que foi substituída também o trouxe.
+- A migração **preenche** as releases que já existem, a partir das linhas que deixaram (`origin = 'backfill'`), com subconsultas correlacionadas
+  à mão (`correlate`): aninhada dois níveis, a correlação automática contaria os materiais de todas as releases. `test_migration_release_counts`
+  confere a conta à mão e que `ReleaseCountRepository.measure` (o que a importação usa) lê as mesmas linhas do mesmo jeito.
+- `GET /api/dashboard/releases`: os pontos em ordem de importação; `app/domain/release_history.build_history` (pura) dá a parcela com número
+  (`share`, `null` sem linha de valor — nunca 0 %) e a **variação desde a anterior da mesma linha** (D-108); a primeira de uma linha, ou uma
+  release sem linha, não tem variação (nunca "+5 desde zero"). **Só o filtro de demonstração vale**: as contagens são da release inteira; classe,
+  subclasse e nível não as estreitam, e o cartão diz isso.
+- Tela: bloco **"Catálogo por versão"** na Visão geral (`ReleaseHistoryChart`), colunas empilhadas no `HorizontalBars` vertical dentro do
+  `ChartFrame` (valores com número em `--success`, ausências em `--quality-ausente`, a parcela no fim da coluna), tabela com as seis contagens,
+  a parcela e "Desde a anterior"; sem release, estado vazio que explica de onde a série vem.
+
+**Decisão — Várias subclasses no filtro.**
+- `subclasse` pode repetir (`?subclasse=A&subclasse=B`) na URL do Painel e na API, lida como **qualquer uma** (`Material.subclass IN (…)`, um só
+  predicado em `DashboardRepository.scope()`); a ordem e as repetições não mudam a resposta. `normalize_subclasses` tira brancos e repetidas e
+  recusa mais de 20 ou nome com mais de 200 caracteres (400). `FiltersOut.subclass` virou **`subclasses: list[str]`**; o CSV escreve
+  `subclasse=A | B`.
+- `FilterBar` ganhou campo de **várias escolhas** (`multiple`, `values`): cada opção alterna e o painel continua aberto; "Qualquer" e o ✕ limpam
+  tudo; o chip diz "Subclasse: A + 2". As outras telas que usam a barra não mudaram.
+
+**Decisão — Correlação por classe (pequenos múltiplos).** `GET /api/dashboard/correlation/by-class`: a mesma matriz de Spearman, por pares
+completos, uma por classe dos materiais (como as caixas da distribuição), maiores primeiro, até **12** (as demais contadas em `omitted_classes`,
+nunca caladas). O cálculo saiu do serviço para **`app/calculations/correlation_matrix.py`** (puro), que a matriz do catálogo e a por classe usam:
+cada par ordenado pelo id do material antes dos postos (o resultado não depende da ordem das linhas) e ρ arredondado a 4 casas. Sem escolha, as
+**seis** propriedades mais preenchidas do nível (a do catálogo segue com 12); com escolha, as mesmas da matriz de cima. Classe pequena fica sem ρ
+onde não tem 5 pares — hachurado, "dados insuficientes", nunca 0. Tela: `CorrelationByClass` na aba Propriedades, uma `CorrelationMatrix` por
+classe (o componente ganhou título, figura e nome do arquivo por instância) em grade de 1 a 3 colunas.
+
+**Decisão — "Último estudo executado" no Comparar (fecha a pendência da D-232).** `GET /api/selection/runs/latest?n=5` devolve a **última
+execução guardada** (D-245) de um estudo de materiais do projeto e os seus N primeiros na ordem dela (`ranked_first`, pura: por posto, depois os
+sem posto na ordem guardada), só os que ainda estão no catálogo para quem lê (os outros contados em `gone`); `null` sem execução guardada. Nada é
+executado de novo. O atalho (`LastRunShelf`) leva esses ids ao comparador; sem execução, um estado vazio didático explica como guardar uma
+("Meus estudos" › Executar › "Guardar no histórico") e leva à Seleção; com menos de dois candidatos, diz isso em vez de comparar um só.
+
+**Alternativas recusadas.** Calcular o histórico na hora a partir das linhas de cada release (a curadoria mudaria o passado). Guardar as
+contagens por classe em cada release para o filtro de classe valer no histórico (sem pedido; fica escrito no `TODO.md`). Subclasses separadas por
+vírgula num parâmetro só (uma subclasse pode ter vírgula no nome). Uma matriz grande com classe como dimensão a mais (ilegível; os pequenos
+múltiplos põem a mesma célula no mesmo lugar). Manter o atalho antigo como recuo quando não há execução guardada (reexecutar em silêncio é o que
+a pendência pedia para deixar de fazer).
+
+**Numeração.** D-250, Sessão 207 (conferidas em `origin/main` e nas branches abertas). **Migração `e62aba5c6884`** (aditiva, tabela nova, com
+preenchimento das releases existentes). **Toca `apps/api`: Deploy da API** depois do merge; sem seed novo em produção.
