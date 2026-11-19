@@ -6,11 +6,8 @@ from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, BeforeValidator, Field, field_validator
-<<<<<<< HEAD
 
 from app.domain.text_input import strip_controls
-=======
->>>>>>> origin/main
 
 OperatorLiteral = Literal[
     "gt",
