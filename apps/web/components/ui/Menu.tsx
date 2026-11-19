@@ -106,7 +106,7 @@ export function MenuButton({
   useEffect(() => {
     if (!open) return;
     const first = menuRef.current?.querySelector<HTMLElement>(
-      '[role="menuitem"]:not([aria-disabled="true"])',
+      '[role="menuitem"]:not([aria-disabled="true"]), [role="menuitemradio"]:not([aria-disabled="true"])',
     );
     first?.focus();
   }, [open]);
@@ -132,7 +132,7 @@ export function MenuButton({
   function onMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const items = Array.from(
       menuRef.current?.querySelectorAll<HTMLElement>(
-        '[role="menuitem"]:not([aria-disabled="true"])',
+        '[role="menuitem"]:not([aria-disabled="true"]), [role="menuitemradio"]:not([aria-disabled="true"])',
       ) ?? [],
     );
     const index = items.indexOf(document.activeElement as HTMLElement);
@@ -251,6 +251,7 @@ export function MenuItem({
   title,
   disabled = false,
   hint,
+  selected,
   children,
 }: {
   onSelect?: () => void;
@@ -262,6 +263,13 @@ export function MenuItem({
   disabled?: boolean;
   /** A second, quieter line: what the entry produces. */
   hint?: ReactNode;
+  /**
+   * D-252: the entry is one of a set of choices and this one is the current
+   * choice (M3 vertical menu, selected state). It becomes a `menuitemradio`
+   * with `aria-checked`, drawn on tertiary-container. Leave it undefined for
+   * an action, which stays a plain `menuitem`.
+   */
+  selected?: boolean;
   children: ReactNode;
 }) {
   const menu = useContext(MenuContext);
@@ -291,7 +299,8 @@ export function MenuItem({
   return (
     <button
       type="button"
-      role="menuitem"
+      role={selected === undefined ? "menuitem" : "menuitemradio"}
+      aria-checked={selected === undefined ? undefined : selected}
       tabIndex={-1}
       title={title}
       disabled={disabled}

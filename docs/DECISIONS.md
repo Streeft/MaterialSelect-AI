@@ -14770,3 +14770,39 @@ migração e sem seed.** Toca `apps/api`: **Deploy da API** depois do merge; dep
 `sessionStorage` entre testes.
 
 **Numeração.** D-251, Sessão 208 (conferidas em `origin/main` e nas branches abertas).
+
+## D-252 — O que faltava do M3: tipografia enfatizada, menu vertical e lista segmentada
+
+**Contexto.** Pedido do autor em 19/11/2026: analisar o `m3.material.io` por completo e adaptar o que falta no design system.
+Lidos os índices de *Components* (38), *Foundations* e *Styles* com o Chromium, a seção "M3 Expressive update" de cada
+componente e, para os números, os tokens do Compose (`androidx-main`). O inventário está em
+[`21-material3-referencia.md`](21-material3-referencia.md) ("Inventário do site contra o app"). Quase tudo já estava adotado
+(D-133 a D-137, D-181 a D-186, D-196, D-206, D-248); faltavam três coisas que o M3 Expressive trouxe por último.
+
+**Decisão.**
+- **Tipografia enfatizada.** Os 15 estilos `text-m3-*-emphasized`: mesmo tamanho, linha e espaçamento do de base, peso 500
+  (display, headline, *title-large*, body) ou 700 (*title-medium/small*, label), conforme `TypeScaleTokens.kt`. O M3 os indica
+  para o que está escolhido: a **aba ativa** (*title-small*) e o **assento escolhido do grupo conectado** (*label-large*) passam de
+  500 para 700. Para que a troca de peso não empurre os vizinhos, o rótulo de texto reserva a largura da forma em negrito
+  (`.m3-emph-label`: uma cópia invisível na mesma coluna de grade, fora da árvore de acessibilidade). Medido no Chromium: a aba
+  vizinha fica no mesmo x ao trocar a seleção, e o nome acessível não duplica.
+- **Menu vertical** (atualização de novembro de 2025). `.msds-menu` em `surface-container-low`, raio 16, 4 px de enchimento e
+  2 px entre itens; item com raio 4, as pontas com 12, e hover/foco que mudam o item para 12 (a forma que responde da D-248).
+  `MenuItem` ganha `selected`: o item vira `menuitemradio` com `aria-checked`, em `tertiary-container`, peso enfatizado de
+  *body-large*. Hoje nenhum menu do app é de escolha (são de ações), então o estado aparece na vitrine e fica pronto para o
+  primeiro que for.
+- **Lista segmentada** (atualização de dezembro de 2025). `.m3-list-segmented`: cada item é um segmento com 2 px de vão, raio 4
+  e as pontas da lista em 16; hover/foco em 12; escolhido (`aria-current`) em `secondary-container`. O fundo quente da página faz
+  o papel do `surface-container` do M3, então o segmento é `surface-container-lowest`. Aplicada na visão Lista de Processos.
+- Medido: os pares `tertiary-container`/`on-tertiary-container` e `secondary-container`/`on-secondary-container` passam de 4,5:1
+  em todas as 34 combinações de paleta e tema (pior: 4,53:1).
+- Vitrine: `/app/estilo` tem a seção "M3 Expressive: tipografia enfatizada, menu vertical e lista segmentada".
+
+**Alternativas recusadas.** Trocar o peso sem reservar a largura (a fileira de abas pularia a cada clique). O estilo de cor
+*vibrant* do menu (contêiner inteiro em `tertiary-container`; a cor fica para marcar a escolha). Altura de 44 dp no item de menu
+(o app mantém a altura compacta, como fez com a tipografia). A onda (*wavy*) nos indicadores de progresso, opcional no M3, fica no
+TODO. Não adotados de propósito, com o motivo no doc 21: *badges* de contagem (nada a contar na barra), *scroll fields* (só no
+Compose), seletor de data do M3 no lugar do `<input type="date">` nativo, biblioteca de 35 formas, RTL.
+
+**Numeração.** D-252, Sessão 209 (conferidas em `origin/main`). Só frontend: sem migração, sem deploy da API.
+

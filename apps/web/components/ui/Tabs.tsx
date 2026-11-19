@@ -126,7 +126,15 @@ export function Tabs<T extends string>({
               onClick={() => onChange(item.id)}
               onKeyDown={(event) => handleKeyDown(event, index)}
             >
-              {item.label}
+              {/* D-252: a text label reserves the width of its emphasized
+                  (bold) form, so selecting a tab never shifts the others. */}
+              {typeof item.label === "string" ? (
+                <span className="m3-emph-label" data-text={item.label}>
+                  {item.label}
+                </span>
+              ) : (
+                item.label
+              )}
               {item.meta ? <span className="ml-1.5 text-2xs text-ink-subtle">{item.meta}</span> : null}
             </button>
           );

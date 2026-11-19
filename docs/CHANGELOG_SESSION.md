@@ -120,6 +120,17 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 209 — 19/11/26 — O que faltava do M3: tipografia enfatizada, menu vertical e lista segmentada (D-252)
+
+**O que mudou.** Análise completa do `m3.material.io` (índices de Components, Foundations e Styles, e a seção "M3 Expressive
+update" de cada componente) com o inventário no doc 21. Frontend: os 15 `text-m3-*-emphasized` (Tailwind e `cn`), aba ativa e
+assento escolhido do grupo conectado no peso enfatizado com a largura reservada (`.m3-emph-label`); `.msds-menu` como menu vertical
+e `MenuItem selected` (`menuitemradio`); `.m3-list-segmented`, usada na visão Lista de Processos; seção nova em `/app/estilo`
+(`M3ExpressiveSpecimens`). Testes novos: vitest `M3ExpressiveSpecimens`, e `m3Tokens`/`overlays` atualizados (os 30 papéis e o
+menu vertical). Só frontend: sem migração e sem deploy da API.
+
+---
+
 ## Sessão 208 — 19/11/26 — Pendências do TODO, parte 9: Eco com até quatro alternativas, Custo × Lote por processo, proposta do assistente que fica e se edita, escala ordinal à mão, posição dos trechos antigos (D-251)
 
 **O que mudou.** *Eco:* "Adicionar outra alternativa" (C e D), cada uma contra A, com a cascata `C − A` do servidor e o menor total entre todas só

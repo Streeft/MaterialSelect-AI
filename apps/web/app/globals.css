@@ -1862,6 +1862,41 @@ div[data-surface="rail"] .msds-rail-item {
   background-color: rgb(var(--m3-primary)); color: rgb(var(--m3-on-primary));
 }
 
+/* D-252: the emphasized type styles of M3 Expressive, on selection. A tab label
+   is title-small and a connected-group seat is label-large: baseline weight 500,
+   emphasized 700 (TypeScaleTokens, androidx). Size, line height and tracking do
+   not change. `.m3-emph-label` keeps the width of the bold form (an invisible
+   copy in the same grid column), so the selected item never pushes its
+   neighbours; `visibility: hidden` keeps the copy out of the accessibility tree. */
+.msds-tab, .msds-segmented-item { font-weight: 500; }
+.msds-tab[data-active="true"], .msds-segmented-item[data-active="true"] { font-weight: 700; }
+.m3-emph-label { display: inline-grid; }
+.m3-emph-label::after {
+  content: attr(data-text); font-weight: 700; visibility: hidden; height: 0; overflow: hidden;
+  pointer-events: none; user-select: none;
+}
+
+/* D-252: the M3 Expressive segmented list (ListTokens, androidx-main). Each item
+   is its own segment on surface, 2 px apart (SegmentedGap), at CornerExtraSmall
+   (4) with the list's outer corners at CornerLarge (16). Hover and focus morph
+   the item to CornerMedium (12) under the 8 % state layer; a selected item is
+   secondary-container at CornerLarge. The page shows through the gaps, so a
+   segmented list sits on the page or a well, never inside a bordered card.
+   M3 puts surface segments on a surface-container; here the warm page (D-90)
+   plays the container, so the segment is surface-container-lowest (white),
+   which keeps the same light-on-darker relation in both themes. */
+.m3-list-segmented { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.m3-list-segmented > * {
+  background: rgb(var(--m3-surface-container-lowest)); border-radius: var(--shape-extra-small); overflow: hidden;
+  transition: border-radius var(--motion-spatial-fast-dur) var(--motion-spatial-fast);
+}
+.m3-list-segmented > :first-child { border-top-left-radius: var(--shape-large); border-top-right-radius: var(--shape-large); }
+.m3-list-segmented > :last-child { border-bottom-left-radius: var(--shape-large); border-bottom-right-radius: var(--shape-large); }
+.m3-list-segmented > :hover, .m3-list-segmented > :focus-within { border-radius: var(--shape-medium); }
+.m3-list-segmented > [aria-current="true"], .m3-list-segmented > [data-selected="true"] {
+  background: rgb(var(--m3-secondary-container)); color: rgb(var(--m3-on-secondary-container)); border-radius: var(--shape-large);
+}
+
 /* On the dark rail (D-37) the group keeps the rail's own tokens; only the shape
    morph comes from the connected group. More specific than the rules above. */
 [data-surface="rail"] .msds-segmented .msds-segmented-item { background-color: transparent; color: rgb(var(--rail-ink-muted)); }

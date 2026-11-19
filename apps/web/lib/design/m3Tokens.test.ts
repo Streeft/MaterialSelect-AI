@@ -107,9 +107,20 @@ describe("M3 foundations (D-133)", () => {
     expect(Object.keys(colors)).toEqual(M3_ROLES);
   });
 
-  it("Tailwind exposes the 15 type roles", () => {
-    const sizes = Object.keys(config.theme!.extend!.fontSize as object).filter((k) => k.startsWith("m3-"));
-    expect(sizes).toHaveLength(15);
+  it("Tailwind exposes the 15 type roles, each with its emphasized twin (D-252)", () => {
+    const fontSize = config.theme!.extend!.fontSize as Record<string, [string, { fontWeight: string; lineHeight: string }]>;
+    const sizes = Object.keys(fontSize).filter((k) => k.startsWith("m3-"));
+    const baseline = sizes.filter((k) => !k.endsWith("-emphasized"));
+    expect(baseline).toHaveLength(15);
+    for (const role of baseline) {
+      const emphasized = fontSize[`${role}-emphasized`];
+      expect(emphasized, role).toBeDefined();
+      // Same size and line height; only the weight moves, and only up.
+      expect(emphasized![0]).toBe(fontSize[role]![0]);
+      expect(emphasized![1].lineHeight).toBe(fontSize[role]![1].lineHeight);
+      expect(Number(emphasized![1].fontWeight)).toBeGreaterThan(Number(fontSize[role]![1].fontWeight));
+    }
+    expect(cn("text-m3-title-small", "text-m3-title-small-emphasized")).toBe("text-m3-title-small-emphasized");
   });
 
   it("cn lets a later M3 utility override an earlier one of the same group", () => {
