@@ -752,3 +752,12 @@ export const IconWorkbench = (p: IconProps) => (
     <path d="M8 9.5V6h4.5v3.5" />
   </Svg>
 );
+
+/** Projetos (D-257): parts put together — a top on two legs. */
+export const IconAssembly = (p: IconProps) => (
+  <Svg {...p} gesture="hop">
+    <rect x="3.5" y="6" width="17" height="4" rx="1" />
+    <path d="M6.5 10v9M17.5 10v9" />
+    <path d="M6.5 15h11" />
+  </Svg>
+);

@@ -4737,3 +4737,82 @@ export interface ExpressionDescription {
   errors: ExpressionIssue[];
   tree: ExpressionTree | null;
 }
+
+// --- Projects with parts (D-257). In the API an "assembly": `Project` is the reader's container. ---
+
+/** What a part is for. A fixing (a nail) is a part like any other, with a material and a mass. */
+export type PartRole = "estrutural" | "fixacao" | "acabamento" | "outro";
+
+/** A number or the reason there is none: never both, never neither. */
+export interface AssemblyFigure {
+  value: number | null;
+  reason: string | null;
+  /** Data quality of the catalogued value used; absent for the declared mass. */
+  quality: string | null;
+}
+
+/** The sum over every part, or its refusal with the parts that block it. */
+export interface AssemblyTotal {
+  /** Set only when every part has the datum. */
+  value: number | null;
+  /** Sum of the parts that have the datum. */
+  known_sum: number;
+  known_parts: number;
+  missing_parts: string[];
+  /** In words where the unit system has none ("kg de CO₂"). */
+  unit: string;
+}
+
+export interface AssemblyPart {
+  id: number;
+  position: number;
+  name: string;
+  role: PartRole;
+  quantity: number;
+  /** Kilograms per part, as declared; `null` is "not informed". */
+  unit_mass: number | null;
+  material: { id: number; name: string; class_name: string } | null;
+  /** A material was chosen and can no longer be read. */
+  material_unavailable: boolean;
+  study: { id: number; name: string } | null;
+  notes: string | null;
+  mass: AssemblyFigure;
+  material_cost: AssemblyFigure;
+  embodied_energy: AssemblyFigure;
+  carbon: AssemblyFigure;
+}
+
+export type AssemblyQuantity = "mass" | "material_cost" | "embodied_energy" | "carbon";
+
+export interface AssemblyBrief {
+  id: number;
+  name: string;
+  description: string | null;
+  part_count: number;
+  /** Parts with a material chosen. */
+  chosen_count: number;
+  updated_at: string;
+}
+
+export interface Assembly extends AssemblyBrief {
+  created_at: string;
+  parts: AssemblyPart[];
+  totals: Record<AssemblyQuantity, AssemblyTotal>;
+  /** What the sums cover, in the server's words. */
+  scope_note: string;
+  /** Why a cost carries no currency symbol (D-65), in the server's words. */
+  monetary_unit_note: string;
+}
+
+export interface AssemblyPartInput {
+  name: string;
+  role?: PartRole;
+  quantity?: number;
+  unit_mass?: number | null;
+  material_id?: number | null;
+  study_id?: number | null;
+  notes?: string | null;
+}
+
+/** Only the fields sent are changed; a nullable field sent as `null` is cleared. */
+export type AssemblyPartPatch = Partial<AssemblyPartInput> & { position?: number };

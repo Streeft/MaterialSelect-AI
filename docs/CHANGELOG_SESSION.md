@@ -120,6 +120,26 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 214 — 19/11/26 — Projeto com peças: `assembly` no backend, somas da fase de material e as telas de Projetos (D-257)
+
+**O que mudou.** *Backend:* `Assembly` e `AssemblyPart` (migração `bcea4470c5b0`), `app/calculations/assembly.py` (massa, custo do material, energia
+incorporada e CO₂ por peça; total recusado quando falta dado, com a soma parcial nomeada), `AssemblyService` e `/api/assemblies` (lista, criar, ler,
+renomear, excluir; peças com `POST/PATCH/DELETE` que devolvem o projeto inteiro com as somas refeitas). *Frontend:* `/app/projetos` e
+`/app/projetos/[id]` (`ProjectWorkspace`), "Projetos" no trilho (grupo Estudar), tipos em `shared-types`, ícone `IconAssembly`.
+
+**Por quê.** Camada 2 do rumo da Oficina (D-256): uma mesa é tampo, pernas e pregos, e cada peça é a sua seleção.
+
+**Como foi conferido.** Backend: `ruff`, `black --check`, `pytest` inteiro (6571 coletados em 262 arquivos; os 21 que falharam na primeira rodada
+eram `test_page_text.py` sem o `trafilatura` no ambiente local, e passam com a dependência instalada), `alembic upgrade head`, `downgrade -1`,
+`upgrade head` e `alembic check` num banco limpo. Frontend: `typecheck`, `lint` (0 erros), `vitest run` (2776 em 248 arquivos). No Chromium, com a
+API real e o catálogo demo: `e2e/projetos.spec.ts` cria o projeto, dá alumínio e 10 kg ao tampo, lê 2.100 MJ e 125 kg de CO₂ vindos do servidor, vê
+o total recusado ao acrescentar uma peça vazia, passa no axe, cabe em 375 px, desfaz a remoção de uma peça e exclui o projeto.
+
+**Ficou de fora, com motivo.** Ambiente na conta e propriedades-chave no envelope (PR próprio). Levar o projeto para o Eco e o Custo, reordenar
+arrastando, esquema em blocos, ensaio e "Solucionado".
+
+---
+
 ## Sessão 213 — 19/11/26 — Ambiente "Oficina", camada 1: escolha em Aparência, texturas, objetos no trilho e o Catálogo como arquivo de gavetas (D-256)
 
 **O que mudou.** Aparência ganhou "Ambiente": Engenharia (padrão) ou Oficina, guardado no aparelho e vestido antes da primeira pintura

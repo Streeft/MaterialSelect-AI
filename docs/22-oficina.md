@@ -53,25 +53,22 @@ Oficina é a mesma narrativa com cenário; nenhum número muda de lugar de cálc
 | # | Camada | Estado |
 |---|---|---|
 | 1 | Ambiente em Aparência, texturas, ícones-objeto, arquivo de gavetas, tabela como caderno de registro | **feito (D-256)** |
-| 2 | **Projeto com peças**: backend + tela "Projeto" | a fazer |
+| 2 | **Projeto com peças**: backend + telas de Projetos | **feito (D-257)** |
 | 3 | **Bandeja**: materiais, fixações e ferramentas guardados no estudo, na conta | a fazer |
 | 4 | **Bancada**: arrastar da bandeja para mapa, calculadora e comparador | a fazer |
 | 5 | **Ensaio** por peça e **"Solucionado"**; laudo do projeto | a fazer |
 | 6 | Tabelas leves de verdade: até 5 colunas, resto no detalhe da linha (resultados da Seleção) | a fazer |
 
-### Camada 2 — esboço do projeto com peças
+### Camada 2 — projeto com peças (feita, D-257)
 
-- Já existe `Project` (`apps/api/app/models/project.py`), dono dos `SelectionStudy`
-  (`project_id`). Hoje é só a pasta de um usuário.
-- Um estudo passa a poder ser **peça**: `part_name` ("tampo"), `part_role` (estrutural, fixação,
-  acabamento), `quantity` e `chosen_material_id` (nulo até escolher: ausência explícita).
-- A **montagem** é serviço do backend que soma massa, custo e Eco por peça com as calculadoras
-  que já existem, e devolve "falta dado" por peça em vez de zero. Nenhuma soma no cliente.
-- Migração Alembic, rotas de peças e de montagem, `shared-types`, testes de soma, ausência e
-  quantidade. Pede **Deploy da API**.
-- Entram junto, porque já mexem no backend: o **ambiente guardado na conta**
-  (`user_appearance` ganha a coluna) e as **propriedades-chave no envelope** (a busca passa a
-  mandá-las, com qualidade e unidade).
+- Na tela é **"Projeto"**; no código é `Assembly` (`apps/api/app/models/assembly.py`), porque `Project` é o contêiner do usuário.
+- A **peça** guarda nome, papel (estrutural, fixação, acabamento, outro), quantidade, massa de cada uma (kg), o material escolhido e o estudo
+  que o decide. Os três últimos são nulos até existirem.
+- A **soma** é só da fase de material (massa, custo do material, energia incorporada, CO₂ da produção), calculada no backend a cada leitura
+  (`app/calculations/assembly.py`). Ausência vem com o motivo; total com peça faltando é recusado, com a soma parcial nomeada.
+- API em `/api/assemblies`; telas em `/app/projetos` e `/app/projetos/[id]` (`components/projects/ProjectWorkspace.tsx`).
+- **Não entrou**, e vai em PR próprio: ambiente guardado na conta e propriedades-chave no envelope. Também ficam para depois: levar o projeto
+  ao Eco Audit e ao Custo, reordenar arrastando, o esquema em blocos.
 
 ## Onde está cada coisa (camada 1)
 

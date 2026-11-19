@@ -8,6 +8,7 @@ Importing this package registers every model on the shared declarative
 # was computed from is written (D-123). Imported here, after every model, so no
 # session can write a catalogue row without them.
 import app.db.release_diff_invalidation  # noqa: E402, F401, I001
+from app.models.assembly import Assembly, AssemblyPart
 from app.models.audit import AuditEvent
 from app.models.battery_chemistry import BatteryChemistry
 from app.models.catalog import (
@@ -89,6 +90,8 @@ from app.models.user import User, UserSession
 from app.models.user_appearance import UserAppearance
 
 __all__ = [
+    "Assembly",
+    "AssemblyPart",
     "AIUsage",
     "Notebook",
     "NotebookChunk",

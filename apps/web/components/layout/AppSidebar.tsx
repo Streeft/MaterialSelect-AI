@@ -34,6 +34,7 @@ import {
   IconBattery,
   IconBlend,
   IconArticle,
+  IconAssembly,
   IconBook,
   IconChevronDown,
   IconClock,
@@ -99,6 +100,8 @@ export const GROUPS: NavGroup[] = [
     label: t.groupStudy,
     items: [
       { href: "/app/selecao", label: t.selection, icon: IconFilter },
+      // D-257: a project is several selections, one per part; it sits right after them.
+      { href: "/app/projetos", label: t.projects, icon: IconAssembly },
       { href: "/app/mapas", label: t.maps, icon: IconScatter },
       { href: "/app/comparar", label: t.compare, icon: IconCompare },
       // D-92: os cadernos ficam em "Estudar" — são onde se estuda com as

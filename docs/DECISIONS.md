@@ -15096,3 +15096,54 @@ o ambiente na conta já (migração num PR de frontend). Uma biblioteca de arras
 `background-image`; por isso o contraste do ambiente é medido no token, pelo teste do item 3.
 
 **Numeração.** D-256, Sessão 213 (conferidas em `origin/main` e nas branches abertas).
+
+## D-257 — Projeto com peças: a camada 2 da Oficina (`assembly`, soma só da fase de material, total recusado quando falta dado)
+
+**Contexto.** Decisão do autor na D-256: o projeto com peças é central. Uma mesa é o tampo, as pernas e os pregos; cada peça é a sua própria
+seleção, e o app só sabia decidir uma função por vez. Pedido de 19/11/2026: "pode começar a camada 2, o projeto com peças". Rumo em
+[`22-oficina.md`](22-oficina.md).
+
+**Decisão.**
+
+1. **Na tela é "Projeto"; no código é `Assembly`.** `Project` já é outra coisa: o contêiner único que isola o trabalho de um usuário
+   (`app/models/project.py`). Um `Assembly` mora dentro dele, ao lado dos estudos, e é escopado do mesmo jeito (o de outro leitor é 404, nunca 403,
+   D-42). Nome único por conta, sem distinguir caixa. Tabelas `assembly` e `assembly_part`, migração `bcea4470c5b0`.
+2. **A peça guarda o que o leitor declarou, e dois vínculos opcionais.** Nome, papel (`estrutural`, `fixacao`, `acabamento`, `outro`), quantidade,
+   **massa de cada uma em kg** (como o componente do Eco Audit, D-121), o **material escolhido** e o **estudo de seleção** que o decide. Massa,
+   material e estudo são nulos até existirem: "ainda não escolhido" é o estado normal de uma peça em projeto, guardado como ausência (princípio 3) e
+   reversível (`PATCH` com `null` limpa). O estudo tem de ser do próprio leitor e devolver materiais; o material tem de ser visível para ele.
+3. **Nada calculado é guardado.** Massa, custo, energia e CO₂ de cada peça são respondidos em toda leitura, do catálogo como está
+   (`app/calculations/assembly.py`, puro e determinístico), de modo que um valor corrigido no catálogo corrige todo projeto que usa o material.
+4. **A soma cobre só a fase de material, e diz isso.** Por peça: massa na peça pronta (`massa × quantidade`) e, sobre ela, o custo do material
+   (`custo_massa`), a energia incorporada (`energia_incorporada`) e o CO₂ da produção primária (`pegada_co2`), com a **qualidade do dado** do valor
+   usado. O módulo não conhece o processo, então não conhece refugo, ferramental, transporte, uso nem fim de vida: isso é do Custo e do Eco Audit
+   (D-65, D-121), que pedem um processo por peça. A resposta carrega a frase (`scope_note`) e a nota de que custo não tem moeda declarada
+   (`monetary_unit_note`, a mesma do estimador), e a tela as imprime.
+5. **Ausência tem motivo, e total incompleto é recusado.** Peça sem massa, sem material, com material que saiu do catálogo ou que não traz a
+   propriedade devolve `value: null` e o motivo em palavras ("Pinho não tem energia incorporada cadastrada."). Um total em que falta qualquer peça
+   vem `null` com a lista das peças que faltam: a peça que não deu para calcular pode ser a mais pesada. O que se oferece no lugar é a **soma
+   parcial, nomeada como parcial**, com quantas peças entraram. É a regra do Eco Audit para auditoria incompleta, aplicada à lista de peças. Um zero
+   cadastrado é valor, não ausência.
+6. **Toda escrita devolve o projeto inteiro.** `POST/PATCH/DELETE …/parts` respondem o `AssemblyOut` com as somas refeitas, então a tela nunca
+   mostra soma de antes da mudança nem refaz conta. Limites: 50 projetos por conta e 60 peças por projeto, recusados em palavras (409).
+7. **Telas.** `/app/projetos` (lista em `.m3-list-segmented` com o andamento "N de M peças com material", criar leva direto ao projeto) e
+   `/app/projetos/[id]` (`PageDoc`: nome editável, descrição, cada peça num cartão editado no lugar, somas num poço, e a "Soma do projeto").
+   Texto e número são rascunhos confirmados ao sair do campo; escolha (papel, material, estudo) vai na hora. Remover peça é imediato, para a soma
+   ficar certa na hora, e o "Desfazer" (D-130) **regrava a mesma peça** no mesmo lugar. Excluir o projeto pede confirmação. "Projetos" entra no
+   grupo Estudar do trilho, logo depois da Seleção.
+
+**O que ficou para depois, com motivo.** O ambiente guardado na conta e as propriedades-chave no envelope da gaveta, que a D-256 previa "junto da
+camada 2": são mudanças em outras rotas (aparência e busca do catálogo) e viram PR próprio, para este não misturar três assuntos. Levar as peças de
+um projeto para o Eco Audit e o Custo com um clique (as duas telas já aceitam componentes). Reordenar peças arrastando (a posição já existe no
+`PATCH`). O esquema em blocos do objeto. Ensaio por peça e "Solucionado" (camada 5).
+
+**Alternativas recusadas.** Reaproveitar `Project` como o projeto com peças (todo usuário tem exatamente um, e os estudos, gráficos e cadernos
+penduram nele). Fazer de cada peça um `SelectionStudy` com colunas a mais (uma fixação sem estudo é uma peça legítima, e um estudo serve a mais de
+uma peça). Guardar as somas na linha (envelhecem quando o catálogo muda). Total com as peças que há, sem recusa (um número que parece completo e não
+é). Rodar o Eco Audit inteiro por peça (exigiria processo, rota de fim de vida e cenário de uso para listar um prego). Somar no cliente.
+
+**Consequências.** Toca `apps/api` e **tem migração** (`bcea4470c5b0`, duas tabelas novas, nada alterado nas existentes). Depois do merge:
+**Deploy da API** (o `release_command` aplica a migração). Nenhum seed. 23 testes novos no backend (cálculo e API) e 15 no frontend, mais
+`e2e/projetos.spec.ts`.
+
+**Numeração.** D-257, Sessão 214 (conferidas em `origin/main` e nas branches abertas; a D-256/Sessão 213 está no PR #280, do qual esta branch parte).

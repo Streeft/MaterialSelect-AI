@@ -1,0 +1,242 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { AnnouncerProvider } from "@/components/ui/Announcer";
+import { ptBR } from "@/lib/i18n";
+import type { Assembly, AssemblyPart, AssemblyTotal } from "@/lib/types";
+import { findA11yViolations, describeViolations } from "@/lib/testing/axe";
+import { renderWithQuery } from "@/lib/testing/queryWrapper";
+import { ProjectWorkspace } from "./ProjectWorkspace";
+
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+const api = vi.hoisted(() => ({
+  getAssembly: vi.fn(),
+  updateAssembly: vi.fn(),
+  deleteAssembly: vi.fn(),
+  addAssemblyPart: vi.fn(),
+  updateAssemblyPart: vi.fn(),
+  deleteAssemblyPart: vi.fn(),
+}));
+vi.mock("@/lib/api", () => ({
+  ...api,
+  listMaterials: () =>
+    Promise.resolve([
+      { id: 7, name: "Pinho", class_name: "Naturais", class_slug: "naturais", subclass: "Madeira" },
+      { id: 9, name: "Aço 1020", class_name: "Metais", class_slug: "metais", subclass: null },
+    ]),
+  listStudies: () =>
+    Promise.resolve([
+      { id: 3, name: "Tampo leve", universe: "material" },
+      { id: 4, name: "Como fabricar", universe: "process" },
+    ]),
+}));
+
+const t = ptBR.projects;
+
+function total(over: Partial<AssemblyTotal>, unit: string): AssemblyTotal {
+  return { value: null, known_sum: 0, known_parts: 0, missing_parts: [], unit, ...over };
+}
+
+function part(over: Partial<AssemblyPart>): AssemblyPart {
+  return {
+    id: 1,
+    position: 0,
+    name: "Tampo",
+    role: "estrutural",
+    quantity: 1,
+    unit_mass: 12,
+    material: { id: 7, name: "Pinho", class_name: "Naturais" },
+    material_unavailable: false,
+    study: null,
+    notes: null,
+    mass: { value: 12, reason: null, quality: null },
+    material_cost: { value: 48, reason: null, quality: "IMPORTADO" },
+    embodied_energy: { value: 120.5, reason: null, quality: "MEDIDO" },
+    carbon: { value: null, reason: "Pinho não tem pegada de CO₂ cadastrada.", quality: null },
+    ...over,
+  };
+}
+
+function project(parts: AssemblyPart[], over: Partial<Assembly> = {}): Assembly {
+  return {
+    id: 5,
+    name: "Mesa de jantar",
+    description: null,
+    part_count: parts.length,
+    chosen_count: parts.filter((p) => p.material).length,
+    updated_at: "2026-11-19T12:00:00Z",
+    created_at: "2026-11-19T12:00:00Z",
+    parts,
+    totals: {
+      mass: total({ value: 12, known_sum: 12, known_parts: 1 }, "kg"),
+      material_cost: total({ value: 48, known_sum: 48, known_parts: 1 }, "unidade monetária não especificada"),
+      embodied_energy: total({ value: 120.5, known_sum: 120.5, known_parts: 1 }, "MJ"),
+      carbon: total({ missing_parts: ["Tampo"] }, "kg de CO₂"),
+    },
+    scope_note: "As somas cobrem só a fase de material.",
+    monetary_unit_note: "Os valores estão em unidade monetária não especificada.",
+    ...over,
+  };
+}
+
+function renderWorkspace() {
+  return renderWithQuery(
+    <AnnouncerProvider>
+      <ProjectWorkspace id={5} />
+    </AnnouncerProvider>,
+  );
+}
+
+afterEach(() => {
+  Object.values(api).forEach((fn) => fn.mockReset());
+  push.mockReset();
+});
+
+describe("ProjectWorkspace (D-257)", () => {
+  it("mostra as peças com os números do servidor, e a ausência com o motivo escrito", async () => {
+    api.getAssembly.mockResolvedValue(project([part({})]));
+    const { container } = renderWorkspace();
+
+    const card = await screen.findByRole("region", { name: t.partRegion("Tampo") });
+    // pt-BR numbers, with the unit the server named.
+    expect(within(card).getByText("12 kg")).toBeInTheDocument();
+    expect(within(card).getByText("120,5 MJ")).toBeInTheDocument();
+    // A cost is a bare number; why it has no currency is said once, in the server's words.
+    expect(within(card).getByText("48")).toBeInTheDocument();
+    expect(screen.getByText("Os valores estão em unidade monetária não especificada.")).toBeInTheDocument();
+    // Absence is the reason, never "0" or a dash.
+    expect(within(card).getByText("Pinho não tem pegada de CO₂ cadastrada.")).toBeInTheDocument();
+    expect(card).not.toHaveTextContent(/\b0 kg de CO₂/);
+    expect(screen.getByText(t.progress(1, 1))).toBeInTheDocument();
+    expect(screen.getByText("As somas cobrem só a fase de material.")).toBeInTheDocument();
+    expect(describeViolations(await findA11yViolations(container))).toBe("");
+  });
+
+  it("um total sem dado é recusado, com a soma parcial dita como parcial", async () => {
+    api.getAssembly.mockResolvedValue(
+      project([part({}), part({ id: 2, name: "Perna", unit_mass: null })], {
+        totals: {
+          mass: total({ known_sum: 12, known_parts: 1, missing_parts: ["Perna"] }, "kg"),
+          material_cost: total({ known_sum: 48, known_parts: 1, missing_parts: ["Perna"] }, "u.m."),
+          embodied_energy: total({ known_sum: 120.5, known_parts: 1, missing_parts: ["Perna"] }, "MJ"),
+          carbon: total({ missing_parts: ["Tampo", "Perna"] }, "kg de CO₂"),
+        },
+      }),
+    );
+    renderWorkspace();
+    await screen.findByRole("region", { name: t.partRegion("Perna") });
+    const totals = document.getElementById("soma") as HTMLElement;
+    // Mass, cost and energy each miss the leg; CO₂ misses both parts.
+    expect(within(totals).getAllByText(t.noTotal(1, "Perna"))).toHaveLength(3);
+    expect(within(totals).getByText(t.partialSum("12 kg", 1))).toBeInTheDocument();
+    expect(within(totals).getByText(t.noTotal(2, "Tampo, Perna"))).toBeInTheDocument();
+    expect(within(totals).getByText(t.noPartial)).toBeInTheDocument();
+  });
+
+  it("a massa em branco vai como ausência, e o valor digitado vai como número", async () => {
+    api.getAssembly.mockResolvedValue(project([part({})]));
+    api.updateAssemblyPart.mockResolvedValue(project([part({ unit_mass: null })]));
+    const user = userEvent.setup();
+    renderWorkspace();
+    const card = await screen.findByRole("region", { name: t.partRegion("Tampo") });
+    const mass = within(card).getByRole("spinbutton", { name: new RegExp(t.unitMass) });
+
+    await user.clear(mass);
+    await user.tab();
+    await waitFor(() => expect(api.updateAssemblyPart).toHaveBeenCalledWith(5, 1, { unit_mass: null }));
+
+    const again = within(await screen.findByRole("region", { name: t.partRegion("Tampo") })).getByRole(
+      "spinbutton",
+      { name: new RegExp(t.unitMass) },
+    );
+    await user.type(again, "2.5");
+    await user.tab();
+    await waitFor(() => expect(api.updateAssemblyPart).toHaveBeenLastCalledWith(5, 1, { unit_mass: 2.5 }));
+  });
+
+  it("uma quantidade inválida volta ao valor salvo e nada é enviado", async () => {
+    api.getAssembly.mockResolvedValue(project([part({ quantity: 4 })]));
+    const user = userEvent.setup();
+    renderWorkspace();
+    const card = await screen.findByRole("region", { name: t.partRegion("Tampo") });
+    const quantity = within(card).getByRole("spinbutton", { name: t.quantity });
+    await user.clear(quantity);
+    await user.type(quantity, "0");
+    await user.tab();
+    expect(quantity).toHaveValue(4);
+    expect(api.updateAssemblyPart).not.toHaveBeenCalled();
+  });
+
+  it("só estudos de materiais podem decidir uma peça, e escolher um vai ao servidor", async () => {
+    api.getAssembly.mockResolvedValue(project([part({})]));
+    api.updateAssemblyPart.mockResolvedValue(project([part({ study: { id: 3, name: "Tampo leve" } })]));
+    const user = userEvent.setup();
+    renderWorkspace();
+    const card = await screen.findByRole("region", { name: t.partRegion("Tampo") });
+    const study = within(card).getByRole("combobox", { name: t.study });
+    await waitFor(() => expect(within(study).getByRole("option", { name: "Tampo leve" })).toBeInTheDocument());
+    expect(within(study).queryByRole("option", { name: "Como fabricar" })).not.toBeInTheDocument();
+
+    await user.selectOptions(study, "3");
+    await waitFor(() => expect(api.updateAssemblyPart).toHaveBeenCalledWith(5, 1, { study_id: 3 }));
+    expect(await screen.findByRole("link", { name: t.openStudy("Tampo leve") })).toHaveAttribute(
+      "href",
+      "/app/selecao?estudo=3",
+    );
+  });
+
+  it("acrescenta uma peça pelo formulário e anuncia", async () => {
+    api.getAssembly.mockResolvedValue(project([]));
+    api.addAssemblyPart.mockResolvedValue(project([part({ name: "Perna", material: null })]));
+    const user = userEvent.setup();
+    renderWorkspace();
+    expect(await screen.findByText(t.partsEmpty)).toBeInTheDocument();
+    expect(screen.getByText(t.totalsEmpty)).toBeInTheDocument();
+    const add = screen.getByRole("button", { name: t.addPart });
+    expect(add).toBeDisabled();
+
+    await user.type(screen.getByRole("textbox", { name: t.partName }), "Perna");
+    await user.selectOptions(screen.getByRole("combobox", { name: t.role }), "fixacao");
+    await user.click(add);
+    await waitFor(() => expect(api.addAssemblyPart).toHaveBeenCalledWith(5, { name: "Perna", role: "fixacao" }));
+    expect(await screen.findByRole("region", { name: t.partRegion("Perna") })).toBeInTheDocument();
+  });
+
+  it("um material que saiu do catálogo é dito em palavras", async () => {
+    api.getAssembly.mockResolvedValue(project([part({ material: null, material_unavailable: true })]));
+    renderWorkspace();
+    expect(await screen.findByText(t.materialGone)).toBeInTheDocument();
+  });
+
+  it("a recusa do servidor aparece na tela", async () => {
+    api.getAssembly.mockResolvedValue(project([part({})]));
+    api.updateAssemblyPart.mockRejectedValue(Object.assign(new Error("Limite de 60 peças"), { status: 409 }));
+    const user = userEvent.setup();
+    renderWorkspace();
+    const card = await screen.findByRole("region", { name: t.partRegion("Tampo") });
+    await user.selectOptions(within(card).getByRole("combobox", { name: t.role }), "acabamento");
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+
+  it("excluir pede confirmação e volta para a lista", async () => {
+    api.getAssembly.mockResolvedValue(project([part({})]));
+    api.deleteAssembly.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderWorkspace();
+    await screen.findByRole("region", { name: t.partRegion("Tampo") });
+    await user.click(screen.getByRole("button", { name: ptBR.ds.moreActions }));
+    await user.click(await screen.findByRole("menuitem", { name: t.delete }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(t.deleteBody)).toBeInTheDocument();
+    expect(api.deleteAssembly).not.toHaveBeenCalled();
+    await user.click(within(dialog).getByRole("button", { name: t.delete }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/app/projetos"));
+  });
+
+  it("um projeto que não é do leitor é dito como não encontrado", async () => {
+    api.getAssembly.mockRejectedValue(Object.assign(new Error("Projeto não encontrado: 5"), { status: 404 }));
+    renderWorkspace();
+    expect(await screen.findByText(t.notFound)).toBeInTheDocument();
+  });
+});

@@ -91,6 +91,8 @@ export function sectionMeta(id: SectionId): SectionMeta {
  */
 export const ROUTE_LABELS = [
   { route: "/app/glossario", label: "Glossário" },
+  // D-257: projects with parts, beside the studies; root colour, like the glossary.
+  { route: "/app/projetos", label: "Projetos" },
   // Creating, copying and editing a material belong to the catalogue.
   { route: "/app/materiais", label: "Catálogo" },
   { route: "/app/estilo", label: "Estilo" },
@@ -138,6 +140,7 @@ const SECTION_GROUP: Partial<Record<SectionId, string>> = {
 };
 
 const ROUTE_GROUP = [
+  { route: "/app/projetos", group: "Estudar" },
   { route: "/app/glossario", group: "Dados" },
   { route: "/app/materiais", group: "Dados" },
   { route: "/app/admin/fontes", group: "Administrar" },
