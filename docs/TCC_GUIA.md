@@ -324,6 +324,10 @@ confirmação. Os materiais sugeridos vêm do ranking determinístico do backend
 modelo. Ao escrever, diga isso como **mudança de método justificada**, não como
 exceção escondida, e mostre a origem de cada número na figura do cartão de proposta.
 
+No assistente, a proposta fica guardada na aba e um limite pode ser editado: o número que a pessoa digita passa a ser dela (**Você**) e a
+proposta guarda, em nota, de onde veio o número anterior ([D-251](DECISIONS.md)). Isso mantém a regra do método: a IA não aplica número sem
+confirmação, e a origem de cada número continua escrita.
+
 Como medir o que mudou (para a seção de resultados, sempre com data e commit):
 `apps/web/e2e/a11y.spec.ts` (axe por rota), `apps/web/e2e/mobile.spec.ts` (390 px,
 alvos de 44 px, sem rolagem lateral) e `apps/web/e2e/larguras.spec.ts` (quatro

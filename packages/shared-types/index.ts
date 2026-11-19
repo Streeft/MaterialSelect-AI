@@ -478,6 +478,35 @@ export interface OrdinalProperty {
   is_demo: boolean;
 }
 
+/** One level of a scale and what depends on it (D-251): what the curator must know to edit it. */
+export interface OrdinalScaleLevel {
+  id: number;
+  label: string;
+  rank: number;
+  /** Materials that hold exactly this level: it cannot be removed while any does. */
+  value_count: number;
+  /** Saved studies asking "at least this level": it cannot be renamed or removed. */
+  study_count: number;
+  /** Use scenarios of the project's table that ask for this label. */
+  scenario_count: number;
+}
+
+export interface OrdinalScale {
+  slug: string;
+  name: string;
+  description: string | null;
+  levels: OrdinalScaleLevel[];
+  scale_text: string;
+  is_demo: boolean;
+}
+
+/** The scale as the curator wants it, worst level first; a level without `id` is new. */
+export interface OrdinalScaleUpdate {
+  name?: string;
+  description?: string | null;
+  levels: { id?: number; label: string }[];
+}
+
 /** The level one material holds on one ordinal property — or a written absence. */
 export interface MaterialOrdinalValue {
   slug: string;
@@ -3004,6 +3033,21 @@ export interface CostCurvesRequest {
   batch_size: number;
   write_off_years?: number;
   load_factor?: number;
+  /** Fixes the process of some materials: their curve is that process's own (D-251). */
+  process_choices?: ProcessChoice[];
+}
+
+/** The process a reader picked for one compared material (D-251). */
+export interface ProcessChoice {
+  material_id: number;
+  process_id: number;
+}
+
+/** A process that can price a material: what the reader may choose (D-251). */
+export interface ProcessOption {
+  process_id: number;
+  process_slug: string;
+  process_name: string;
 }
 
 /** The cheapest way of making the part at one batch size (D-234). */
@@ -3026,6 +3070,10 @@ export interface MaterialCostCurve {
   points: MaterialCurvePoint[];
   current: MaterialCurvePoint | null;
   reason: string | null;
+  /** The process the curve was fixed to (D-251); `null` is the lower envelope. */
+  chosen_process_id: number | null;
+  /** Every process that could price the material, for the reader's choice. */
+  process_options: ProcessOption[];
 }
 
 export interface CostCurves {

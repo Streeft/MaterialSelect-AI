@@ -13,7 +13,7 @@ from app.db.base import get_db
 from app.dependencies import get_current_user, require_catalog_curator
 from app.domain import depth_profile as depth
 from app.models.user import User
-from app.schemas.ordinal import OrdinalPropertyOut
+from app.schemas.ordinal import OrdinalPropertyOut, OrdinalScaleIn, OrdinalScaleOut
 from app.schemas.property import (
     DepthLevelOut,
     DepthProfilesOut,
@@ -21,6 +21,7 @@ from app.schemas.property import (
     PropertyDefinitionOut,
     PropertyDefinitionPatch,
 )
+from app.services.ordinal_scale_service import OrdinalScaleService
 from app.services.ordinal_service import OrdinalService
 from app.services.property_service import PropertyService
 
@@ -56,6 +57,35 @@ def depth_profiles(user: User = Depends(get_current_user)) -> DepthProfilesOut:
         property_min_level={k: int(v) for k, v in depth.PROPERTY_MIN_LEVEL.items()},
         tool_min_level={k: int(v) for k, v in depth.TOOL_MIN_LEVEL.items()},
     )
+
+
+@router.get(
+    "/ordinais/{slug}/escala",
+    response_model=OrdinalScaleOut,
+    dependencies=[Depends(require_catalog_curator)],
+)
+def get_ordinal_scale(
+    slug: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> OrdinalScaleOut:
+    """The scale of an ordinal property with what depends on each level (D-251)."""
+    return OrdinalScaleService(db, user).get(slug)
+
+
+@router.put(
+    "/ordinais/{slug}/escala",
+    response_model=OrdinalScaleOut,
+    dependencies=[Depends(require_catalog_curator)],
+)
+def update_ordinal_scale(
+    slug: str,
+    payload: OrdinalScaleIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> OrdinalScaleOut:
+    """Reshape an ordinal scale by hand, audited, refusing what is in use (D-251)."""
+    return OrdinalScaleService(db, user).update(slug, payload)
 
 
 @router.post(

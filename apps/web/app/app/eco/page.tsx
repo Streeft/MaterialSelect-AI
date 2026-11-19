@@ -22,7 +22,7 @@ import {
 } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber } from "@/lib/format";
-import { ecoPhaseI18n } from "@/lib/i18n-extras";
+import { differenceFor, ecoPhaseI18n } from "@/lib/i18n-extras";
 import { useUrlState } from "@/lib/urlState";
 import { PhaseBars, type PhaseBarRow } from "@/components/eco/PhaseBars";
 import { PhaseWaterfall } from "@/components/eco/PhaseWaterfall";
@@ -65,8 +65,10 @@ import {
   PremisesSummary,
 } from "./EcoResults";
 import {
+  MAX_EXTRAS,
   aiParamPatch,
   blankComponent,
+  blankScenario,
   blankLeg,
   buildAuditBrief,
   buildComparisonBrief,
@@ -171,8 +173,12 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
 
   // What each component, leg and scenario resolves to once defaults are
   // applied, so the brief sent is exactly what the screen shows.
-  const sides = [brief.a, brief.b] as const;
-  const sideMaterials = [brief.a.material || firstMaterial, brief.b.material || secondMaterial];
+  const sides = [brief.a, brief.b, ...brief.extras];
+  const sideMaterials = [
+    brief.a.material || firstMaterial,
+    brief.b.material || secondMaterial,
+    ...brief.extras.map((extra) => extra.material || firstMaterial),
+  ];
   const individual = view === "individual";
   // One query per distinct material: two components (or A and B) of the same
   // material share it, and React Query rejects duplicate keys in one list.
@@ -214,8 +220,29 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
     setBrief((current) => ({
       legs: effectiveLegs(current, defaults).map((leg, i) => (i === index ? { ...leg, ...patch } : leg)),
     }));
-  const patchSide = (key: "a" | "b", patch: Partial<ScenarioDraft>) =>
-    setBrief((current) => ({ [key]: { ...current[key], ...patch } }));
+  const patchSide = (index: number, patch: Partial<ScenarioDraft>) =>
+    setBrief((current) =>
+      index === 0
+        ? { a: { ...current.a, ...patch } }
+        : index === 1
+          ? { b: { ...current.b, ...patch } }
+          : {
+              extras: current.extras.map((extra, i) =>
+                i === index - 2 ? { ...extra, ...patch } : extra,
+              ),
+            },
+    );
+  // D-251: alternatives C and D, each against A.
+  const addExtra = () =>
+    setBrief((current) =>
+      current.extras.length >= MAX_EXTRAS
+        ? {}
+        : { extras: [...current.extras, blankScenario(defaults)] },
+    );
+  const removeExtra = (index: number) =>
+    setBrief((current) => ({
+      extras: current.extras.filter((_, i) => i !== index),
+    }));
   const patchPremises = (patch: Partial<Premises>) => setBrief(patch);
 
   const blocked = individual
@@ -225,6 +252,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
         resolvedSides[1]!,
         { mode: selectedMode, distance: brief.distance },
         premises,
+        resolvedSides.slice(2),
       );
   const ready = blocked === null;
 
@@ -236,6 +264,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
       resolvedSides[1]!,
       { mode: selectedMode, distance: brief.distance },
       premises,
+      resolvedSides.slice(2),
     );
   const liveAudit = useLiveResult<EcoAuditRequest, EcoAuditResult>({
     key: "eco-ao-vivo",
@@ -364,23 +393,47 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
             </div>
           ) : (
             <div className="flex flex-col gap-6">
-              {(["a", "b"] as const).map((key, index) => (
+              {resolvedSides.map((_, index) => (
                 <StepCard
-                  key={key}
-                  title={key === "a" ? t.materialA : t.materialB}
+                  key={index}
+                  title={t.alternativeName(index + 1)}
+                  actions={
+                    index >= 2 ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeExtra(index - 2)}
+                        aria-label={t.removeAlternative(
+                          t.alternativeName(index + 1),
+                        )}
+                      >
+                        {ptBR.actions.remove}
+                      </Button>
+                    ) : undefined
+                  }
                   bodyClassName="flex flex-col gap-4"
                 >
                   <ScenarioFields
-                    name={key.toUpperCase()}
+                    name={"ABCD"[index] ?? ""}
                     draft={resolvedSides[index]!}
                     materialOptions={materialOptions}
                     processes={sideDetails[index]?.data?.processes ?? []}
                     processesLoaded={Boolean(sideDetails[index]?.isSuccess)}
                     routes={routeList}
-                    onChange={(patch) => patchSide(key, patch)}
+                    onChange={(patch) => patchSide(index, patch)}
                   />
                 </StepCard>
               ))}
+              {brief.extras.length < MAX_EXTRAS ? (
+                <div className="flex flex-col items-start gap-1">
+                  <Button variant="secondary" size="sm" onClick={addExtra}>
+                    {t.addAlternative}
+                  </Button>
+                  <span className="text-caption text-ink-muted">
+                    {t.addAlternativeHint}
+                  </span>
+                </div>
+              ) : null}
               <StepCard title={t.transportStep} bodyClassName="grid gap-4 sm:grid-cols-2">
                 <TransportModeSelect
                   modes={modeList}
@@ -500,6 +553,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                   </div>
 
                   <DifferenceWaterfalls result={compareResult} />
+                  <ExtraAlternatives result={compareResult} />
 
                   {(
                     [
@@ -522,6 +576,89 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
           )}
         </ResultPanel>
       </ParamsResultLayout>
+    </div>
+  );
+}
+
+/**
+ * D-251: alternatives C and D. The totals, each difference against A and its two
+ * cascades are the server's (`extras[]`); the lowest total over all alternatives is
+ * named only when every alternative has its total.
+ */
+function ExtraAlternatives({ result }: { result: EcoComparisonResult }) {
+  if (result.extras.length === 0) return null;
+  const names = (labels: string[] | null) =>
+    labels === null
+      ? null
+      : labels
+          .map((label) => t.alternativeName("ABCD".indexOf(label) + 1))
+          .join(", ");
+  const lowestEnergy = names(result.lowest_energy);
+  const lowestCarbon = names(result.lowest_carbon);
+  return (
+    <div className="flex flex-col gap-3" data-testid="eco-extras">
+      <span className="text-body font-medium text-ink">{t.extrasTitle}</span>
+      {lowestEnergy !== null || lowestCarbon !== null ? (
+        <div className="well flex flex-col gap-1 text-caption text-ink">
+          {lowestEnergy !== null ? (
+            <span>{t.lowestEnergy(lowestEnergy)}</span>
+          ) : null}
+          {lowestCarbon !== null ? (
+            <span>{t.lowestCarbon(lowestCarbon)}</span>
+          ) : null}
+        </div>
+      ) : null}
+      {result.extras.map((extra) => {
+        const energy = extra.audit;
+        const percent = (value: number | null) =>
+          value === null
+            ? t.extraNoDelta
+            : `${value > 0 ? "+" : ""}${formatNumber(value)}%`;
+        return (
+          <Disclosure
+            key={extra.label}
+            summary={t.extraAgainstA(
+              t.alternativeName("ABCD".indexOf(extra.label) + 1),
+              energy.material_name ?? "",
+            )}
+            defaultOpen
+          >
+            <div className="flex flex-col gap-4 pt-2">
+              <div className="well flex flex-col gap-1 text-caption tabular-nums">
+                <strong className="text-ink">{t.extraTotals}</strong>
+                <span>
+                  {ecoPhaseI18n.waterfall.quantityEnergy}:{" "}
+                  {energy.total_energy === null
+                    ? t.noTotal
+                    : `${formatNumber(energy.total_energy)} ${energy.energy_unit}`}{" "}
+                  ({percent(extra.delta_energy_percent)})
+                </span>
+                <span>
+                  {ecoPhaseI18n.waterfall.quantityCarbon}:{" "}
+                  {energy.total_carbon === null
+                    ? t.noTotal
+                    : `${formatNumber(energy.total_carbon)} ${energy.carbon_unit}`}{" "}
+                  ({percent(extra.delta_carbon_percent)})
+                </span>
+              </div>
+              <PhaseWaterfall
+                variant="difference"
+                alternative={extra.label}
+                waterfall={extra.energy_difference_waterfall}
+                title={differenceFor(extra.label).energyTitle}
+                exportName={`cascata-eco-diferenca-${extra.label.toLowerCase()}-energia`}
+              />
+              <PhaseWaterfall
+                variant="difference"
+                alternative={extra.label}
+                waterfall={extra.carbon_difference_waterfall}
+                title={differenceFor(extra.label).carbonTitle}
+                exportName={`cascata-eco-diferenca-${extra.label.toLowerCase()}-carbono`}
+              />
+            </div>
+          </Disclosure>
+        );
+      })}
     </div>
   );
 }

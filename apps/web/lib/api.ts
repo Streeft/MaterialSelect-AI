@@ -125,6 +125,8 @@ import type {
   ProcessDetail,
   ProcessMatrix,
   OrdinalProperty,
+  OrdinalScale,
+  OrdinalScaleUpdate,
   PropertyDefinition,
   PropertyDefinitionIn,
   PropertyDistribution,
@@ -165,6 +167,7 @@ import type {
   WeightsPreview,
   WeightsPreviewRequest,
 } from "./types";
+import { clearPlanMemory } from "./ai/planMemory";
 
 /**
  * Where the API lives, from the browser's point of view.
@@ -267,8 +270,10 @@ export function getCurrentUser(): Promise<CurrentUser> {
   return request<CurrentUser>(`/api/auth/me`);
 }
 
-export function logout(): Promise<void> {
-  return request<void>(`/api/auth/logout`, { method: "POST" });
+export async function logout(): Promise<void> {
+  await request<void>(`/api/auth/logout`, { method: "POST" });
+  // D-251: the proposal of the project assistant is this reader's, kept in the tab.
+  clearPlanMemory();
 }
 
 /** For a plain `<a href>` — a full-page redirect into Google, not a fetch. */
@@ -768,6 +773,19 @@ export function getMaterialOrdinals(materialId: number): Promise<MaterialOrdinal
 /** Ordinal material properties and their scales, worst level first (D-126). */
 export function listOrdinalProperties(): Promise<OrdinalProperty[]> {
   return request<OrdinalProperty[]>(`/api/properties/ordinais`, REVALIDATE);
+}
+
+/** The scale of an ordinal property with what depends on each level (curator, D-251). */
+export function getOrdinalScale(slug: string): Promise<OrdinalScale> {
+  return request<OrdinalScale>(`/api/properties/ordinais/${encodeURIComponent(slug)}/escala`);
+}
+
+/** Reshape an ordinal scale by hand; the server refuses what is in use and audits the rest (D-251). */
+export function updateOrdinalScale(slug: string, body: OrdinalScaleUpdate): Promise<OrdinalScale> {
+  return request<OrdinalScale>(`/api/properties/ordinais/${encodeURIComponent(slug)}/escala`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
 }
 
 export function createProperty(

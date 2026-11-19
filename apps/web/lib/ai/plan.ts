@@ -87,6 +87,75 @@ export function runRequestFor(
   };
 }
 
+/** The note an edited limit carries, so the plan keeps where the first number came from (D-251). */
+export const EDIT_NOTE_PREFIX = "Editado por você";
+
+/** The numbers a person typed over a limit of the proposal. */
+export interface LimitEdit {
+  value?: number;
+  value_min?: number;
+  value_max?: number;
+}
+
+/** Whether a limit has a number to edit: the order and the level have none. */
+export function isEditable(constraint: PlanConstraint): boolean {
+  return ["gt", "gte", "lt", "lte", "between"].includes(constraint.operator);
+}
+
+/**
+ * Whether `edit` fits the limit's operator: finite numbers, and for a range the
+ * lower end below the upper. Only the shape; the server still checks the property
+ * and the unit and ranks nothing here.
+ */
+export function isValidEdit(constraint: PlanConstraint, edit: LimitEdit): boolean {
+  if (constraint.operator === "between") {
+    const { value_min: low, value_max: high } = edit;
+    return (
+      low !== undefined && high !== undefined && Number.isFinite(low) && Number.isFinite(high) && low < high
+    );
+  }
+  return edit.value !== undefined && Number.isFinite(edit.value);
+}
+
+/**
+ * A new run of the whole plan with one limit's number typed over by the person
+ * (D-251, the revised principle 2 of D-224). The edited limit goes back as the
+ * person's own choice (`usuario`, confirmed by the act of typing it), and its
+ * `note` says what it was — the origin and the label of the number it replaced — so
+ * the proposal never forgets that the first number was a scenario's or the model's.
+ * The server checks it like any limit of the person's: the property exists and the
+ * unit converts.
+ */
+export function limitEditRequest(
+  plan: ProjectPlan,
+  componentKey: string,
+  index: number,
+  edit: LimitEdit,
+  originWords: string,
+): PlanRunRequest {
+  return {
+    components: plan.components.map((component) => {
+      const run = runRequestFor(component);
+      if (component.key !== componentKey) return run;
+      const before = component.constraints[index];
+      const constraints = (run.constraints ?? []).map((constraint, i) =>
+        i !== index || !before
+          ? constraint
+          : {
+              ...constraint,
+              value: edit.value ?? null,
+              value_min: edit.value_min ?? null,
+              value_max: edit.value_max ?? null,
+              origin: "usuario" as const,
+              confirmed: undefined,
+              note: `${EDIT_NOTE_PREFIX}: era “${before.label}” (${originWords}).`.slice(0, 300),
+            },
+      );
+      return { ...run, constraints };
+    }),
+  };
+}
+
 /** A new run of the whole plan with one suggestion confirmed or taken back. */
 export function confirmationRequest(
   plan: ProjectPlan,

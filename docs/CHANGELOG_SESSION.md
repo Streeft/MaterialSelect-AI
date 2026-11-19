@@ -120,6 +120,25 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 208 — 19/11/26 — Pendências do TODO, parte 9: Eco com até quatro alternativas, Custo × Lote por processo, proposta do assistente que fica e se edita, escala ordinal à mão, posição dos trechos antigos (D-251)
+
+**O que mudou.** *Eco:* "Adicionar outra alternativa" (C e D), cada uma contra A, com a cascata `C − A` do servidor e o menor total entre todas só
+quando nenhum total falta (`extra_materials`/`extras`, `lowest_*`). *Custo:* seletor "Processo de cada curva" por material comparado
+(`process_choices`, `chosen_process_id`, `process_options`); a curva do processo escolhido é a dele, e processo sem dado vira motivo escrito.
+*Assistente de projeto:* a proposta (e o texto que ela respondeu) fica em `sessionStorage` no Início e no painel da Seleção e some no logout;
+"Editar" num limite numérico o devolve como escolha do usuário com a nota "Editado por você: era …". *Admin › Propriedades:* seção "Propriedades
+ordinais" para editar a escala à mão (`GET|PUT /api/properties/ordinais/{slug}/escala`), com auditoria e recusa do nível em uso. *Fontes antigas:*
+`python -m app.knowledge.chunk_positions` (ações `cadernos_posicao_trechos_simular` e `cadernos_posicao_trechos` no workflow Administração do
+banco) grava `char_start`/`char_end` onde o corte refeito tem texto idêntico. "Comparar processos fora da matriz" já era do D-246 e não foi tocado.
+
+**Testes novos.** Backend: `test_eco_waterfall` (C e D contra A, ranking, sem extras igual a A × B, limite de dois, lacuna), `test_part_cost_api`
+(processo escolhido, lacuna escrita, validação), `test_ai_plan` (número editado e recusa de unidade), `test_ordinal_scale_edit` (inserir, renomear,
+trocar nomes, remover, estudo e cenário que travam, ordem, validação, auditoria, 403, 404), `test_chunk_positions_backfill` (volta exatamente às
+posições, simulação, idempotência, texto que não bate, um caderno). Frontend: casos em `eco.test` e `custo.test`, `PlanView.test` (editar,
+recusar edição vazia, sem editor para nível), `composer.test` e `AIAssistPanel.test` (a proposta volta sem pedir de novo), `planMemory.test`,
+`api.test` (logout esquece), `OrdinalScalesSection.test` (com axe). Sem migração; depois do merge: Deploy da API e, uma vez,
+`cadernos_posicao_trechos`.
+
 ## Sessão 207 — 19/11/26 — Pendências do TODO, parte 8: o catálogo por versão, várias subclasses e correlação por classe no Painel; "último estudo executado" no Comparar (D-250)
 
 **O que mudou.** *Painel:* bloco "Catálogo por versão" na Visão geral, uma coluna por release importada (valores com número e ausências

@@ -45,6 +45,7 @@ from app.schemas.part_cost import (
     CostTermsOut,
     MaterialCostCurveOut,
     MaterialCurvePointOut,
+    ProcessOptionOut,
     UncostedProcessOut,
 )
 
@@ -195,6 +196,7 @@ class PartCostService:
         be priced stays in the answer with its reason — the others are not
         sunk by it, and it is never drawn as a flat zero.
         """
+        choices = {choice.material_id: choice.process_id for choice in request.process_choices}
         curves: list[MaterialCostCurveOut] = []
         drawn: list[list[CostCurvePoint]] = []
         for material_id in dict.fromkeys(request.material_ids):
@@ -212,6 +214,40 @@ class PartCostService:
                 curves.append(MaterialCostCurveOut(material_id=material_id, reason=str(exc)))
                 continue
             sources = [item for item in result.costed if item.curve]
+            options = [
+                ProcessOptionOut(
+                    process_id=item.process_id,
+                    process_slug=item.process_slug,
+                    process_name=item.process_name,
+                )
+                for item in sorted(sources, key=lambda item: item.process_name)
+            ]
+            chosen_id = choices.get(material_id)
+            if chosen_id is not None:
+                # The reader fixed the process (D-251): the curve is that process's
+                # own — never the envelope, and never another process standing in
+                # for one that has no economic data.
+                picked = next((item for item in sources if item.process_id == chosen_id), None)
+                if picked is None:
+                    skipped = next(
+                        (item for item in result.uncosted if item.process_id == chosen_id), None
+                    )
+                    why = (
+                        f"{skipped.process_name}: {skipped.reason}"
+                        if skipped is not None
+                        else "O processo escolhido não fabrica este material."
+                    )
+                    curves.append(
+                        MaterialCostCurveOut(
+                            material_id=result.material_id,
+                            material_name=result.material_name,
+                            reason=why,
+                            chosen_process_id=chosen_id,
+                            process_options=options,
+                        )
+                    )
+                    continue
+                sources = [picked]
             envelope = cheapest_envelope(
                 [
                     [CostCurvePoint(batch_size=pt.batch_size, cost=pt.cost) for pt in item.curve]
@@ -244,6 +280,8 @@ class PartCostService:
                     material_name=result.material_name,
                     points=points,
                     current=next((p for p in points if p.batch_size == request.batch_size), None),
+                    chosen_process_id=chosen_id,
+                    process_options=options,
                 )
             )
         domain = None

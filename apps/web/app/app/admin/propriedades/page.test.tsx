@@ -21,6 +21,7 @@ vi.mock("@/lib/api", () => ({
   createProperty: (p: unknown) => createProperty(p),
   deleteProperty: (id: number) => deleteProperty(id),
   patchProperty: (id: number, patch: unknown) => patchProperty(id, patch),
+  listOrdinalProperties: () => Promise.resolve([]),
   listProperties: () =>
     Promise.resolve([
       { id: 1, name: "Densidade", slug: "densidade", category: "FISICA", canonical_unit: "kg/m**3", symbol: "ρ", value_count: 0 },

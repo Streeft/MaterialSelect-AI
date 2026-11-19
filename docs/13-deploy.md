@@ -390,6 +390,10 @@ Três detalhes que não são arbitrários:
   totais, apague os logs das duas execuções (a execução → ⋯ → *Delete all
   logs*); o passo a passo está em
   [`17-limpeza-historico-cerebro.md`](17-limpeza-historico-cerebro.md) §1.
+- **`cadernos_posicao_trechos_simular` e `cadernos_posicao_trechos` gravam a posição dos trechos de fontes de caderno anteriores ao D-233 (D-251)**:
+  rodam `python -m app.knowledge.chunk_positions` (sem e com `--apply`). Refazem o corte sobre o texto guardado e só aceitam a posição do trecho
+  de texto idêntico; o resto segue NULL e na busca por palavras. Idempotentes, saída só de contagens (o log é público). Rode a simulação, confira
+  a contagem e depois a gravação, uma vez, depois do Deploy da API.
 - **`conhecimento_indexar_links` indexa o `Links.md` da base de conhecimento (D-100)**:
   roda `python -m app.knowledge.ingest --no-embed --file=Links.md` apontado
   para a pasta `Cérebro` do repositório no runner do GitHub Actions contra a

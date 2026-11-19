@@ -8,7 +8,7 @@ import { encodeUrlJson } from "@/lib/urlState";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ptBR } from "@/lib/i18n";
-import { ecoPhaseI18n } from "@/lib/i18n-extras";
+import { differenceFor, ecoPhaseI18n } from "@/lib/i18n-extras";
 import { suggestText } from "@/lib/i18n-suggest";
 import { describeViolations, findA11yViolations } from "@/lib/testing/axe";
 import { installWideViewport } from "@/lib/testing/viewport";
@@ -841,6 +841,9 @@ const comparedFixture: EcoComparisonResult = {
   // The server's B − A steps (D-234), written by hand like the audits' waterfalls.
   energy_difference_waterfall: waterfall("energy", "MJ", [120, -40.5, 0, 300, -3]),
   carbon_difference_waterfall: waterfall("carbon", "kg de CO₂", [12, null, 0, 30, -0.3]),
+  extras: [],
+  lowest_energy: null,
+  lowest_carbon: null,
 };
 
 describe("Auditoria ambiental: cenários A e B (D-216)", () => {
@@ -916,6 +919,101 @@ describe("Auditoria ambiental: cenários A e B (D-216)", () => {
       transport_distance_km: 900,
     });
     expect(runEcoAudit).not.toHaveBeenCalled();
+  });
+
+  it("a terceira alternativa vai no pedido e a cascata C − A é a do servidor (D-251)", async () => {
+    const withC: EcoComparisonResult = {
+      ...compared,
+      extras: [
+        {
+          label: "C",
+          audit: {
+            ...result,
+            material_name: "Cobre Demo C",
+            total_energy: 1500,
+          },
+          delta_energy: -100,
+          delta_energy_percent: -6.25,
+          delta_carbon: null,
+          delta_carbon_percent: null,
+          energy_difference_waterfall: waterfall(
+            "energy",
+            "MJ",
+            [-10, -20, 0, -70, 0],
+          ),
+          carbon_difference_waterfall: waterfall("carbon", "kg de CO₂", [
+            1,
+            null,
+            0,
+            3,
+            0,
+          ]),
+        },
+      ],
+      lowest_energy: ["C"],
+      lowest_carbon: null,
+    };
+    compareEcoAudits.mockResolvedValue(withC);
+    setQuery(
+      `modo=compare&a=${encodeUrlJson(scenario("7", "3"))}&extras=${encodeUrlJson([scenario("7", "5")])}`,
+    );
+    render(wrap(<EcoPage />));
+    await screen.findByRole("heading", { name: t.alternativeName(3) });
+    await waitFor(() => expect(compareEcoAudits).toHaveBeenCalled());
+    expect(compareEcoAudits.mock.calls[0]![0]).toMatchObject({
+      extra_materials: [{ material_id: 7, process_id: 1, part_mass: 5 }],
+    });
+    // The cascade of C minus A, named in words, with the server's total bar.
+    const figure = await screen.findByRole("figure", {
+      name: differenceFor("C").figureLabel("energia"),
+    });
+    expect(
+      within(figure).getByRole("img", { name: /Total: -100 MJ/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(figure).getByRole("img", {
+        name: /Manufatura: diferença de -20 MJ \(C abaixo de A\)/,
+      }),
+    ).toBeInTheDocument();
+    // The lowest is named for energy; carbon has a gap, so it names nobody.
+    expect(screen.getByText(t.lowestEnergy("Material C"))).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Menor carbono entre todas/),
+    ).not.toBeInTheDocument();
+    // A difference the server could not compute is written, never zero.
+    expect(
+      screen.getByText(/sem diferença \(um dos totais/),
+    ).toBeInTheDocument();
+  });
+
+  it("adiciona e remove uma alternativa, e para na quarta", async () => {
+    setQuery(`modo=compare&a=${encodeUrlJson(scenario("7", "3"))}`);
+    const user = userEvent.setup();
+    render(wrap(<EcoPage />));
+    await screen.findByRole("heading", { name: t.materialA });
+    await user.click(screen.getByRole("button", { name: t.addAlternative }));
+    await screen.findByRole("heading", { name: t.alternativeName(3) });
+    await user.click(screen.getByRole("button", { name: t.addAlternative }));
+    await screen.findByRole("heading", { name: t.alternativeName(4) });
+    expect(
+      screen.queryByRole("button", { name: t.addAlternative }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", {
+        name: t.removeAlternative(t.alternativeName(3)),
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: t.alternativeName(4) }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole("heading", { name: t.alternativeName(3) }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: t.addAlternative }),
+    ).toBeInTheDocument();
   });
 
   it("escreve só o cenário editado na URL, sem tocar no outro", async () => {

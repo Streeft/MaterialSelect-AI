@@ -125,17 +125,24 @@ const curveB = [
   point(1000, 55.5, "usinagem", "Usinagem"),
   point(1000000, 50, "usinagem", "Usinagem"),
 ];
+const optionsA = [
+  { process_id: 1, process_slug: "fundicao-areia", process_name: "Fundição em areia" },
+  { process_id: 4, process_slug: "forjamento", process_name: "Forjamento" },
+];
+const optionsB = [{ process_id: 3, process_slug: "usinagem", process_name: "Usinagem" }];
 const curves: CostCurves = {
   batch_size: 1000,
   curves: [
-    { material_id: 7, material_name: "Liga Alumínio Demo A", points: curveA, current: curveA[2]!, reason: null },
-    { material_id: 8, material_name: "Aço Demo B", points: curveB, current: curveB[2]!, reason: null },
+    { material_id: 7, material_name: "Liga Alumínio Demo A", points: curveA, current: curveA[2]!, reason: null, chosen_process_id: null, process_options: optionsA },
+    { material_id: 8, material_name: "Aço Demo B", points: curveB, current: curveB[2]!, reason: null, chosen_process_id: null, process_options: optionsB },
     {
       material_id: 9,
       material_name: "Polímero Demo C",
       points: [],
       current: null,
       reason: "Nenhum processo tem os dados econômicos para estimar este material.",
+      chosen_process_id: null,
+      process_options: [],
     },
   ],
   domain: { x: [1, 1000000], y: [20, 15000], batch_sizes: [1, 100, 1000, 1000000] },
@@ -433,6 +440,51 @@ describe("Custo da peça", () => {
       screen.getByText(/Polímero Demo C: Nenhum processo tem os dados econômicos/),
     ).toBeInTheDocument();
     expect(within(figure).queryByRole("img", { name: /Polímero Demo C/ })).toBeNull();
+  });
+
+  it("escolher o processo de um material pede a curva dele e guarda a escolha na URL (D-251)", async () => {
+    setQuery("material=7&massa=2&comparar=8");
+    const user = userEvent.setup();
+    await open();
+    await screen.findByRole("figure", { name: /um material por curva/ });
+
+    const picker = await screen.findByRole("combobox", {
+      name: t.curveProcessLabel("Liga Alumínio Demo A"),
+    });
+    // The default is the envelope, said in words.
+    expect(within(picker).getByRole("option", { name: t.curveProcessCheapest })).toBeInTheDocument();
+    estimateCostCurves.mockClear();
+    await user.selectOptions(picker, "Forjamento");
+
+    await waitFor(() => expect(estimateCostCurves).toHaveBeenCalled());
+    expect(estimateCostCurves.mock.calls.at(-1)![0]).toMatchObject({
+      material_ids: [7, 8],
+      process_choices: [{ material_id: 7, process_id: 4 }],
+    });
+    expect(new URLSearchParams(window.location.search).get("processos")).toBe("7:4");
+    // The other material keeps the envelope: it has no choice of its own.
+    expect(
+      screen.getByRole("combobox", { name: t.curveProcessLabel("Aço Demo B") }),
+    ).toHaveValue("");
+
+    // Back to "mais barato em cada lote" drops the choice from the request and the address.
+    estimateCostCurves.mockClear();
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: t.curveProcessLabel("Liga Alumínio Demo A") }),
+      t.curveProcessCheapest,
+    );
+    await waitFor(() => expect(estimateCostCurves).toHaveBeenCalled());
+    expect(estimateCostCurves.mock.calls.at(-1)![0]).not.toHaveProperty("process_choices");
+    expect(new URLSearchParams(window.location.search).get("processos")).toBeNull();
+  });
+
+  it("abre a escolha de processo pelo endereço e ignora o que não é par de números", async () => {
+    setQuery("material=7&massa=2&comparar=8&processos=8:3,lixo,9");
+    await open();
+    await waitFor(() => expect(estimateCostCurves).toHaveBeenCalled());
+    expect(estimateCostCurves.mock.calls[0]![0]).toMatchObject({
+      process_choices: [{ material_id: 8, process_id: 3 }],
+    });
   });
 
   it("sem comparação não pede as curvas dos materiais", async () => {

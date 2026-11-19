@@ -14700,3 +14700,73 @@ a pendência pedia para deixar de fazer).
 
 **Numeração.** D-250, Sessão 207 (conferidas em `origin/main` e nas branches abertas). **Migração `e62aba5c6884`** (aditiva, tabela nova, com
 preenchimento das releases existentes). **Toca `apps/api`: Deploy da API** depois do merge; sem seed novo em produção.
+
+---
+
+## D-251 — Pendências do TODO, parte 9: Eco com até quatro alternativas, Custo × Lote por processo escolhido, proposta do assistente que fica e se edita, escala ordinal à mão e posição dos trechos antigos
+
+**Contexto.** Seis pendências abertas no `TODO.md`: a cascata da diferença da Eco só existia para A × B (D-234); a curva Custo × Lote por material era
+sempre a envoltória dos processos (D-234); a proposta do assistente de projeto sumia ao navegar e só se confirmava ou recusava (D-224); a escala
+de uma propriedade ordinal só era escrita por seed e bundle (ORD-c, D-126); e as fontes de caderno gravadas antes do D-233 ficaram sem
+`char_start`/`char_end`. A sétima, "comparar processos fora da matriz", **já estava feita** no D-246 e não foi tocada.
+
+**Decisão — Eco: mais de duas alternativas.** `EcoComparisonRequest.extra_materials` (até **2**: "C" e "D"; o pedido de A × B não muda).
+Cada uma é auditada como as outras (mesmo transporte e uso) e medida **contra A**: `EcoComparisonResultOut.extras[]` traz a auditoria, a diferença
+e o percentual dos dois totais e as duas cascatas `C − A`/`D − A` (`build_difference_waterfall` ganhou `label_a`/`label_b`, que só mudam as
+palavras do motivo escrito). Total ausente em A ou na alternativa dá `null`, nunca zero; a barra de total continua sendo os totais auditados
+subtraídos, não a soma dos degraus. `lowest_energy`/`lowest_carbon` nomeiam a(s) alternativa(s) de menor total (empate dentro de 1e-4) e ficam
+`null` com qualquer total ausente: um ranking sobre uma lacuna não é ranking. Na tela, "Adicionar outra alternativa" (até D, "Remover" em cada
+extra), guardadas na URL (`extras=`); o resultado ganha o bloco "Alternativas além de A e B" com a cascata de cada uma (`PhaseWaterfall` aceita
+`alternative` e usa `differenceFor(label)` nos textos).
+
+**Decisão — Custo × Lote por processo escolhido.** `CostCurvesRequest.process_choices` (`{material_id, process_id}`, no máximo um por material,
+só de material da comparação: 422 no resto). Material com escolha desenha **a curva própria do processo** (ferramental, taxa e capital dele);
+sem escolha, a envoltória de sempre. Escolha de processo que não faz o material ou não tem dado econômico vira motivo escrito sem curva — nunca
+a envoltória no lugar. A resposta traz por material `chosen_process_id` e `process_options` (os processos que o precificam), e a tela mostra um
+seletor por material ("Mais barato em cada lote" ou o processo), guardado em `processos=material:processo,…`. O quadro log-log comum continua
+do servidor.
+
+**Decisão — Assistente de projeto: a proposta fica e o limite se edita (revisão do princípio 2, D-224).**
+- *Ficar.* `lib/ai/planMemory.ts` guarda `{texto, proposta}` em `sessionStorage` (um espaço no Início, outro no painel da Seleção), lido com
+  `useSyncExternalStore` (o servidor não vê o armazenamento), com leitura validada e escrita protegida; some ao fechar a aba e no logout
+  (`logout()` chama `clearPlanMemory`). Um pedido novo a substitui; o texto de uma proposta guardada não dispara nova leitura. Não é cache do
+  servidor: a proposta **editada** só existe aqui.
+- *Editar.* Cada limite com número (`gt/gte/lt/lte/between`) tem "Editar": o número digitado volta em `POST /ai/plan/run` como escolha do
+  usuário (`origin: "usuario"`, confirmada pelo ato de digitar) e com **`note` "Editado por você: era “<rótulo>” (<origem anterior>)"**, de modo
+  que a proposta nunca esquece se o primeiro número era do texto, de um cenário ou do modelo. O servidor trata como qualquer limite do usuário:
+  confere a propriedade e a unidade, não o "bom valor". Nada novo no backend (o caminho "mude a origem para a sua escolha" já existia); o
+  princípio 2 fica como a D-224 o escreveu: a IA não aplica número sem confirmação, e o número que a pessoa digita é dela.
+
+**Decisão — ORD-c: a escala ordinal à mão.** `GET|PUT /api/properties/ordinais/{slug}/escala` (só o curador, `require_catalog_curator`) e a seção
+"Propriedades ordinais" em Admin › Propriedades. O `PUT` recebe a escala inteira, pior primeiro (2 a 12 níveis; nível com `id` existe, sem `id` é
+novo; nome e descrição só se enviados). **O que se recusa**, com o motivo e a contagem: remover nível que um material tem (apagaria dado; ausência
+registrada não conta como nível), remover ou renomear nível que um estudo salvo pede (`SelectionConstraint` `level_at_least`, pelo rótulo) ou que
+um cenário do projeto pede (a tabela é código), mudar a **ordem** dos níveis existentes enquanto qualquer nível da escala for pedido (“pelo menos
+Bom” passaria a querer dizer outra coisa); rótulo repetido (sem distinguir caixa), em branco, `id` repetido ou de outra escala (400), nome de
+outra propriedade ordinal (409). Inserir nível, renomear e remover nível sem uso e reordenar sem pedido são aceitos. As chaves únicas
+`(definição, posto)` e `(definição, rótulo)` são liberadas em duas passagens (posto + 10 000 e rótulo provisório) para que trocar dois nomes
+funcione. Cada mudança é **um** `AuditEvent` (`AuditEntityType.ORDINAL_PROPERTY`, sem migração: coluna `String(20)` sem `CHECK`) com `name`,
+`description` e `escala` antes e depois; sem mudança, nada é escrito. Nenhum valor de material é tocado.
+
+**Decisão — posição dos trechos de fontes antigas.** `python -m app.knowledge.chunk_positions` (simulação por padrão; `--apply` grava; `--notebook ID`).
+Os trechos não são fatias do `content` (o cortador desfaz hifenização e junta brancos), então a posição **não se acha procurando o texto**: o
+cortador roda de novo sobre o `content` guardado (páginas já unidas por linha em branco, a mesma sequência de parágrafos) e só se aceita a
+posição do trecho refeito de **texto idêntico** no mesmo `ordinal`. O que não bate fica NULL, contado, e o leitor segue procurando por palavras:
+nunca um palpite. Só `char_start`/`char_end` são escritos (texto, páginas, título, busca e vetores ficam como estavam). Idempotente: só olha o
+que está NULL. A saída são só contagens (o caderno é de quem o fez e o log do Actions é público). Ações **`cadernos_posicao_trechos_simular`** e
+**`cadernos_posicao_trechos`** no workflow **Administração do banco**.
+
+**Alternativas recusadas.** Diferença "contra a melhor" ou contra uma referência escolhida (a leitura contra A é a mesma de A × B e não muda
+quando se troca uma alternativa). Escolher o processo no pedido de Custo por slug (o id é o que a escolha desta tela guarda e o que a resposta
+devolve). Guardar a proposta no `localStorage` (sobreviveria a outra conta no mesmo navegador) ou no servidor (migração por uma conveniência).
+Editar um limite mantendo a origem "cenário" ou "sugestão da IA" com o número trocado (o rótulo diria que o número é de uma fonte que não o
+disse). Renomear nível e reescrever os estudos que o pedem (o estudo é de outra pessoa). Achar a posição procurando o texto do trecho no
+`content` (não é substring) ou refazendo o corte e gravando tudo (mudaria os trechos que as citações já apontam). Um botão "reprocessar" por
+fonte na interface (o legado é global e de uma execução só).
+
+**Consequências.** Contratos novos em `packages/shared-types` (Eco `extras`, Custo `process_choices`/`process_options`, escala ordinal). **Sem
+migração e sem seed.** Toca `apps/api`: **Deploy da API** depois do merge; depois dele, **Administração do banco**,
+`cadernos_posicao_trechos_simular` e, conferida a contagem, `cadernos_posicao_trechos` (uma vez; idempotente). `vitest.setup.ts` passa a limpar o
+`sessionStorage` entre testes.
+
+**Numeração.** D-251, Sessão 208 (conferidas em `origin/main` e nas branches abertas).

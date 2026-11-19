@@ -4,7 +4,14 @@ import { useState, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Alert, Badge, ConfirmDialog, Disclosure } from "@/components/ui";
 import { PlanComponentCard } from "@/components/ai/PlanComponentCard";
-import { confirmationRequest, withRerun } from "@/lib/ai/plan";
+import {
+  type LimitEdit,
+  confirmationRequest,
+  limitEditRequest,
+  originKind,
+  scenarioId,
+  withRerun,
+} from "@/lib/ai/plan";
 import { runPlan } from "@/lib/api";
 import { describeApiError } from "@/lib/errors";
 import { planText } from "@/lib/i18n-plan";
@@ -58,6 +65,26 @@ export function PlanView({
   const Heading = `h${headingLevel}` as "h2" | "h3";
   const SubHeading = `h${headingLevel + 1}` as "h3" | "h4";
   const partLevel = (headingLevel + 1) as 3 | 4;
+
+  /** A limit's number typed over by the person: the run keeps the words of where it came from. */
+  function editLimit(component: PlanComponent, index: number, edit: LimitEdit) {
+    const constraint = component.constraints[index];
+    if (!constraint) return;
+    const kind = originKind(constraint.origin);
+    const id = scenarioId(constraint.origin);
+    const was = t.editWas;
+    const words =
+      kind === "cenario"
+        ? id && scenarioNames[id]
+          ? was.scenario(scenarioNames[id])
+          : was.scenarioUnknown
+        : kind === "sugestao_ia"
+          ? was.suggestion
+          : kind === "indice"
+            ? was.index
+            : was.user;
+    rerun.mutate(limitEditRequest(plan, component.key, index, edit, words));
+  }
 
   function toggle(component: PlanComponent, index: number, confirmed: boolean) {
     const constraint = component.constraints[index];
@@ -147,6 +174,7 @@ export function PlanView({
                 busy={rerun.isPending}
                 headingLevel={partLevel}
                 onToggleSuggestion={(index, confirmed) => toggle(component, index, confirmed)}
+                onEditLimit={(index, edit) => editLimit(component, index, edit)}
                 actions={renderActions?.(component, rerun.isPending)}
               />
             </li>

@@ -541,6 +541,60 @@ class TestRunAgain:
         assert component["constraints"][0]["applied"] is True
         assert component["result"]["materials"]
 
+    def test_an_edited_limit_is_the_persons_own_number_and_keeps_where_it_came_from(
+        self, client: TestClient
+    ) -> None:
+        """D-251: a scenario's or the model's number the person typed over."""
+        note = "Editado por você: era “Módulo de Young ≥ 10 GPa” (faixa do cenário estrutural)."
+        edited = {
+            "property": "modulo_young",
+            "operator": "gte",
+            "value": 50,
+            "unit": "GPa",
+            "origin": "usuario",
+            "note": note,
+        }
+        response = client.post(
+            "/api/ai/plan/run", json={"components": [self._component_in([edited])]}
+        )
+        assert response.status_code == 200, response.text
+        component = response.json()["components"][0]
+        limit = component["constraints"][0]
+        # The typed number stands (not re-read from the table), as the person's choice,
+        # and the note says what it replaced. The run applied it.
+        assert (limit["value"], limit["unit"], limit["origin"]) == (50.0, "GPa", "usuario")
+        assert limit["applied"] is True and limit["note"] == note
+        assert component["result"]["materials"] is not None
+        # A stricter number can only narrow the funnel the table's own number gave.
+        table = client.post(
+            "/api/ai/plan/run",
+            json={
+                "components": [
+                    self._component_in(
+                        [{**edited, "value": 10, "origin": "cenario:estrutural", "note": ""}]
+                    )
+                ]
+            },
+        ).json()["components"][0]
+        assert component["result"]["final_count"] <= table["result"]["final_count"]
+
+    def test_an_edited_limit_with_a_unit_that_does_not_convert_is_refused_not_applied(
+        self, client: TestClient
+    ) -> None:
+        bad = {
+            "property": "modulo_young",
+            "operator": "gte",
+            "value": 50,
+            "unit": "kg",
+            "origin": "usuario",
+            "note": "Editado por você: era “x” (sugestão da IA).",
+        }
+        component = client.post(
+            "/api/ai/plan/run", json={"components": [self._component_in([bad])]}
+        ).json()["components"][0]
+        assert not [c for c in component["constraints"] if c["operator"] == "gte"]
+        assert component["rejected"], "the refusal is written, not silent"
+
     def test_run_again_spends_no_quota(
         self, client: TestClient, db_session: Session, test_user: User, monkeypatch
     ) -> None:

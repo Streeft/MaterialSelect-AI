@@ -32,6 +32,7 @@ vi.mock("@/lib/api", () => ({
   createProperty: vi.fn(),
   deleteProperty: vi.fn(),
   patchProperty: (id: number, patch: unknown) => patchProperty(id, patch),
+  listOrdinalProperties: () => Promise.resolve([]),
   listProperties: () => Promise.resolve([DENSIDADE]),
 }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/admin/propriedades" }));

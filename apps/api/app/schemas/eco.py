@@ -349,6 +349,8 @@ class EcoComparisonRequest(BaseModel):
 
     material_a: EcoMaterialInput
     material_b: EcoMaterialInput
+    #: Up to two more alternatives, "C" and "D" (D-251). Each is compared with A.
+    extra_materials: list[EcoMaterialInput] = Field(default_factory=list, max_length=2)
     transport_mode: str = Field(min_length=1, max_length=80)
     transport_distance_km: float = Field(default=0.0, ge=0.0, le=1.0e6)
     use: UseIn
@@ -361,6 +363,23 @@ class PhaseDeltaOut(BaseModel):
     label: str
     delta_energy: float | None = None
     delta_carbon: float | None = None
+
+
+class EcoExtraAlternativeOut(BaseModel):
+    """Alternative "C" or "D" of a comparison, measured against A (D-251).
+
+    Every difference is ``this - A``; ``None`` when either total could not be
+    computed (never a zero).
+    """
+
+    label: str
+    audit: EcoAuditResultOut
+    delta_energy: float | None = None
+    delta_energy_percent: float | None = None
+    delta_carbon: float | None = None
+    delta_carbon_percent: float | None = None
+    energy_difference_waterfall: WaterfallOut
+    carbon_difference_waterfall: WaterfallOut
 
 
 class EcoComparisonResultOut(BaseModel):
@@ -379,6 +398,13 @@ class EcoComparisonResultOut(BaseModel):
     #: total bar is the two audits' totals subtracted.
     energy_difference_waterfall: WaterfallOut
     carbon_difference_waterfall: WaterfallOut
+    #: Alternatives beyond B (D-251), each against A, in the order sent.
+    extras: list[EcoExtraAlternativeOut] = Field(default_factory=list)
+    #: Labels ("A", "B", "C", "D") of the lowest total among all alternatives, or
+    #: ``None`` when any alternative has no total (a ranking over a gap is not one).
+    #: Several labels when they tie.
+    lowest_energy: list[str] | None = None
+    lowest_carbon: list[str] | None = None
 
 
 class PartFootprintOut(BaseModel):

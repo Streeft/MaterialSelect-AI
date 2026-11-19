@@ -470,8 +470,13 @@ def build_difference_waterfall(
     unit: str,
     total_a: float | None,
     total_b: float | None,
+    label_a: str = "A",
+    label_b: str = "B",
 ) -> Waterfall:
     """The waterfall of B minus A, one step per phase (D-234).
+
+    ``label_a``/``label_b`` name the two sides in the written reasons and in the
+    step detail (D-251: a third or fourth alternative is "C" or "D" minus A).
 
     A step is that phase's ``b - a``: positive when B costs more in the phase,
     negative when it saves. The steps walk from 0 to the difference of the two
@@ -492,7 +497,7 @@ def build_difference_waterfall(
         if value_a is None or value_b is None:
             reasons = [
                 f"{side}: {getattr(phase, reason_attribute) or 'não calculada'}"
-                for side, phase, value in (("A", a, value_a), ("B", b, value_b))
+                for side, phase, value in ((label_a, a, value_a), (label_b, b, value_b))
                 if value is None
             ]
             reason = f"Sem diferença: a fase não foi calculada em todas as alternativas ({'; '.join(reasons)})."
@@ -505,7 +510,7 @@ def build_difference_waterfall(
                 label=a.label,
                 energy=fields.get("energy"),
                 carbon=fields.get("carbon"),
-                detail="B menos A",
+                detail=f"{label_b} menos {label_a}",
                 energy_reason=fields.get("energy_reason"),
                 carbon_reason=fields.get("carbon_reason"),
             )

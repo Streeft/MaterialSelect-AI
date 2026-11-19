@@ -8,6 +8,7 @@ import { planText } from "@/lib/i18n-plan";
 import { getAIStatus, planProject } from "@/lib/api";
 import { useCurrentUser } from "@/lib/auth";
 import { PLAN_MAX_CHARS, compareHref } from "@/lib/ai/plan";
+import { usePlanMemory } from "@/lib/ai/usePlanMemory";
 import { selectionHrefWithFunction } from "@/lib/selection/functionParam";
 import { PLAN_DRAFT_HREF, hasSelectionDraft, writePlanDraft } from "@/lib/selection/planDraft";
 import {
@@ -50,8 +51,12 @@ export function HomeComposer() {
   // A status that has not answered is "on": the plan call itself decides, and a
   // layer that is off answers 400 — then the box falls back, below.
   const aiOff = status.data?.enabled === false;
-  const [text, setText] = useState("");
-  const [plan, setPlan] = useState<ProjectPlan | null>(null);
+  // D-251: the proposal (and the text it answered) outlives a visit to another page.
+  // What the reader typed since wins over what was remembered.
+  const memory = usePlanMemory("inicio");
+  const [typed, setText] = useState<string | null>(null);
+  const text = typed ?? memory.saved?.text ?? "";
+  const plan: ProjectPlan | null = memory.saved?.plan ?? null;
   const [phase, setPhase] = useState(0);
   const [replacing, setReplacing] = useState<PlanComponent | null>(null);
   const [draftFailed, setDraftFailed] = useState(false);
@@ -63,11 +68,11 @@ export function HomeComposer() {
   const request = useMutation({
     mutationFn: (asked: string) => planProject({ text: asked, mode: "project" }),
     onMutate: () => {
-      setPlan(null);
+      memory.save(null);
       setPhase(0);
     },
-    onSuccess: (result) => {
-      setPlan(result);
+    onSuccess: (result, asked) => {
+      memory.save({ text: asked, plan: result });
       announce(`${p.proposalTitle}: ${p.componentCount(result.components.length)}`);
     },
   });
@@ -206,7 +211,7 @@ export function HomeComposer() {
         <div ref={proposalRef} tabIndex={-1} aria-label={p.proposalTitle} className="outline-none">
           <PlanView
             plan={plan}
-            onPlanChange={setPlan}
+            onPlanChange={(next) => memory.save({ text: memory.saved?.text ?? text, plan: next })}
             extra={
               <Button
                 size="sm"

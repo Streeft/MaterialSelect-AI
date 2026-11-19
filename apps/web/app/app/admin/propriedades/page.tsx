@@ -48,6 +48,7 @@ import { aiField, revealField } from "@/lib/ai/revealField";
 import { suggestText } from "@/lib/i18n-suggest";
 import { curadoriaText } from "@/lib/i18n-curadoria";
 import { EditPropertyDialog } from "@/components/admin/EditPropertyDialog";
+import { OrdinalScalesSection } from "@/components/admin/OrdinalScalesSection";
 import { IconPlus } from "@/components/ui/icons";
 
 /** The server's limits for what it is told (D-228): a longer text would be refused, not cut. */
@@ -428,6 +429,8 @@ export default function PropertiesAdminPage() {
         </TableScroll>
         </>
       )}
+
+      <OrdinalScalesSection />
     </div>
   );
 }

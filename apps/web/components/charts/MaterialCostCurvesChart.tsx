@@ -13,7 +13,7 @@ import { logTicks, makeScale, useChartWidth, useRovingFocus } from "./figureKit"
 const t = {
   title: "Curva Custo × Lote de cada material",
   description:
-    "Custo unitário do jeito mais barato de fazer a peça, para cada material comparado, conforme o tamanho do lote (escala log-log). Cada ponto da curva é o processo mais barato naquele lote; o lote atual está marcado em cada curva.",
+    "Custo unitário de fazer a peça, para cada material comparado, conforme o tamanho do lote (escala log-log). Cada ponto da curva é o processo mais barato naquele lote, salvo nos materiais em que você escolheu o processo: aí a curva é a dele. O lote atual está marcado em cada curva.",
   axisBatch: "Tamanho do lote (peças)",
   axisCost: "Custo unitário estimado (unidade monetária)",
   currentBatch: (n: number) => `Lote atual (${formatNumber(n)} un)`,
@@ -22,6 +22,7 @@ const t = {
   tipBatch: "Lote",
   tipCost: "Custo unitário",
   tipProcess: "Processo mais barato",
+  tipChosenProcess: "Processo escolhido",
   unavailable: (name: string, reason: string) => `${name}: ${reason}`,
   unavailableTitle: "Materiais sem curva",
   markerAria: (name: string, batch: string, cost: string, process: string) =>
@@ -326,12 +327,17 @@ export function MaterialCostCurvesChart({ curves }: { curves: CostCurves }) {
             if (!active) return null;
             const index = drawn.findIndex((curve) => curve.material_id === active.materialId);
             const seat = seats[index % seats.length];
+            const chosen = drawn[index]?.chosen_process_id != null;
             return {
               title: active.name,
               rows: [
                 { key: "batch", label: t.tipBatch, value: tipValue(active.batch, "un"), color: seat?.color, symbol: seat?.symbol },
                 { key: "cost", label: t.tipCost, value: tipValue(active.cost) },
-                { key: "process", label: t.tipProcess, value: active.process },
+                {
+                  key: "process",
+                  label: chosen ? t.tipChosenProcess : t.tipProcess,
+                  value: active.process,
+                },
               ],
             };
           })()}

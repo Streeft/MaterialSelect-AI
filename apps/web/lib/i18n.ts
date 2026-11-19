@@ -1232,6 +1232,12 @@ export const ptBR = {
     columnBestProcess: "Melhor processo",
     columnCompareTotal: "Custo total",
     compareNoProcess: "Sem processo com custo calculado",
+    // D-251: the process behind each compared material's curve.
+    curveProcessTitle: "Processo de cada curva",
+    curveProcessHint:
+      "Por padrão a curva é o jeito mais barato em cada lote. Escolha um processo para ver a curva dele, com o ferramental, a taxa e o capital dele.",
+    curveProcessCheapest: "Mais barato em cada lote",
+    curveProcessLabel: (name: string) => `Processo de ${name}`,
     compareFailed: "Não foi possível estimar",
     blocked: {
       material: "Escolha um material no passo 1.",
@@ -1374,6 +1380,18 @@ export const ptBR = {
     compareTitle: "Comparação lado a lado",
     materialA: "Material A",
     materialB: "Material B",
+    // D-251: alternatives beyond B, each measured against A.
+    alternativeName: (position: number) => `Material ${"ABCD"[position - 1] ?? position}`,
+    addAlternative: "Adicionar outra alternativa",
+    addAlternativeHint:
+      "Até quatro alternativas; a diferença de cada uma é sempre contra o material A.",
+    removeAlternative: (name: string) => `Remover ${name}`,
+    extrasTitle: "Alternativas além de A e B",
+    extraAgainstA: (name: string, material: string) => `${name} — ${material}, contra A`,
+    extraTotals: "Totais e diferença contra A",
+    extraNoDelta: "sem diferença (um dos totais não foi calculado)",
+    lowestEnergy: (names: string) => `Menor energia entre todas: ${names}`,
+    lowestCarbon: (names: string) => `Menor carbono entre todas: ${names}`,
     sharedPremises: "Premissas compartilhadas (transporte e uso)",
     deltaEnergy: "Diferença em energia",
     deltaCarbon: "Diferença em carbono",
