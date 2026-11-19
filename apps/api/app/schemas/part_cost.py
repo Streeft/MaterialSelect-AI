@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.calculations.part_cost import MONETARY_UNIT
 
@@ -97,14 +97,36 @@ class CostResultOut(BaseModel):
     domain: CostDomainOut | None = None
 
 
+class ProcessChoiceIn(BaseModel):
+    """The process a reader picked for one compared material (D-251)."""
+
+    material_id: int = Field(gt=0)
+    process_id: int = Field(gt=0)
+
+
 class CostCurvesRequest(BaseModel):
-    """The materials of a comparison, priced with one part, batch and premises."""
+    """The materials of a comparison, priced with one part, batch and premises.
+
+    ``process_choices`` fixes the process of some materials: their curve is that
+    process's own cost × batch curve (its own tooling, rate and capital), not the
+    cheapest of all. A material without a choice keeps the lower envelope.
+    """
 
     material_ids: list[int] = Field(min_length=1, max_length=5)
+    process_choices: list[ProcessChoiceIn] = Field(default_factory=list, max_length=5)
     part_mass: float = Field(gt=0, le=1e6)
     batch_size: float = Field(ge=1, le=1e9)
     write_off_years: float = Field(default=DEFAULT_WRITE_OFF_YEARS, gt=0, le=100)
     load_factor: float = Field(default=DEFAULT_LOAD_FACTOR, gt=0, le=1)
+
+    @model_validator(mode="after")
+    def _choices_name_compared_materials_once(self) -> CostCurvesRequest:
+        chosen = [choice.material_id for choice in self.process_choices]
+        if len(set(chosen)) != len(chosen):
+            raise ValueError("Escolha um só processo por material.")
+        if not set(chosen) <= set(self.material_ids):
+            raise ValueError("O processo escolhido é de um material que não está na comparação.")
+        return self
 
 
 class MaterialCurvePointOut(BaseModel):
@@ -112,6 +134,14 @@ class MaterialCurvePointOut(BaseModel):
 
     batch_size: float
     cost: float
+    process_id: int
+    process_slug: str
+    process_name: str
+
+
+class ProcessOptionOut(BaseModel):
+    """A process that can price the material: what the reader may choose (D-251)."""
+
     process_id: int
     process_slug: str
     process_name: str
@@ -131,6 +161,10 @@ class MaterialCostCurveOut(BaseModel):
     points: list[MaterialCurvePointOut] = Field(default_factory=list)
     current: MaterialCurvePointOut | None = None
     reason: str | None = None
+    #: The process the curve was fixed to (D-251); ``None`` is the lower envelope.
+    chosen_process_id: int | None = None
+    #: Every process that could price this material, for the reader's choice.
+    process_options: list[ProcessOptionOut] = Field(default_factory=list)
 
 
 class CostCurvesOut(BaseModel):

@@ -350,3 +350,58 @@ def test_a_repeated_material_is_drawn_once(client: TestClient, db_session: Sessi
     material_id = _aluminium_id(db_session)
     curves = _curves(client, [material_id, material_id]).json()["curves"]
     assert len(curves) == 1
+
+
+# --- the curve of the process the reader chose (D-251) ----------------------------
+
+
+def test_a_chosen_process_draws_its_own_curve_and_not_the_envelope(
+    client: TestClient, db_session: Session
+) -> None:
+    material_id = _aluminium_id(db_session)
+    costed = _estimate(client, material_id, batch_size=1000.0).json()["costed"]
+    assert len(costed) >= 2, "the seeded aluminium has several priced processes"
+    dearest = costed[-1]
+    body = _curves(
+        client,
+        [material_id],
+        process_choices=[{"material_id": material_id, "process_id": dearest["process_id"]}],
+    ).json()
+    curve = body["curves"][0]
+    assert curve["chosen_process_id"] == dearest["process_id"]
+    assert {p["process_id"] for p in curve["points"]} == {dearest["process_id"]}
+    # The marker is that process's own total (single estimate), not the cheapest one's.
+    assert curve["current"]["cost"] == pytest.approx(dearest["terms"]["total"])
+    assert curve["current"]["cost"] > costed[0]["terms"]["total"]
+    # Every priced process is on offer, sorted by name, whichever one is chosen.
+    options = [o["process_id"] for o in curve["process_options"]]
+    assert sorted(options) == sorted(item["process_id"] for item in costed)
+    # Without a choice the same material keeps the envelope, with the same options.
+    free = _curves(client, [material_id]).json()["curves"][0]
+    assert free["chosen_process_id"] is None
+    assert [o["process_id"] for o in free["process_options"]] == options
+    assert free["current"]["cost"] == pytest.approx(costed[0]["terms"]["total"])
+
+
+def test_a_chosen_process_without_data_is_a_written_gap_not_the_envelope(
+    client: TestClient, db_session: Session
+) -> None:
+    material_id = _aluminium_id(db_session)
+    body = _curves(
+        client,
+        [material_id],
+        process_choices=[{"material_id": material_id, "process_id": 999999}],
+    ).json()
+    curve = body["curves"][0]
+    assert curve["points"] == [] and curve["current"] is None
+    assert curve["reason"] and curve["chosen_process_id"] == 999999
+    assert curve["process_options"], "the reader still sees what could be chosen"
+    assert body["domain"] is None
+
+
+def test_the_process_choices_are_validated(client: TestClient, db_session: Session) -> None:
+    material_id = _aluminium_id(db_session)
+    outsider = {"material_id": material_id + 1000, "process_id": 1}
+    assert _curves(client, [material_id], process_choices=[outsider]).status_code == 422
+    twice = [{"material_id": material_id, "process_id": 1}] * 2
+    assert _curves(client, [material_id], process_choices=twice).status_code == 422

@@ -1232,6 +1232,12 @@ export const ptBR = {
     columnBestProcess: "Melhor processo",
     columnCompareTotal: "Custo total",
     compareNoProcess: "Sem processo com custo calculado",
+    // D-251: the process behind each compared material's curve.
+    curveProcessTitle: "Processo de cada curva",
+    curveProcessHint:
+      "Por padrão a curva é o jeito mais barato em cada lote. Escolha um processo para ver a curva dele, com o ferramental, a taxa e o capital dele.",
+    curveProcessCheapest: "Mais barato em cada lote",
+    curveProcessLabel: (name: string) => `Processo de ${name}`,
     compareFailed: "Não foi possível estimar",
     blocked: {
       material: "Escolha um material no passo 1.",

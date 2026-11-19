@@ -5,7 +5,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useLiveResult } from "@/lib/useLiveResult";
-import type { CostCurves, CostResult, DefaultsResult, SuggestAction } from "@/lib/types";
+import type {
+  CostCurves,
+  CostResult,
+  DefaultsResult,
+  ProcessChoice,
+  SuggestAction,
+} from "@/lib/types";
 import { estimateCostCurves, estimatePartCost, listMaterials } from "@/lib/api";
 import { ptBR } from "@/lib/i18n";
 import { formatNumber, formatTyped } from "@/lib/format";
@@ -22,6 +28,8 @@ import {
   CopyLinkItem,
   NumberInput,
   PageHeader,
+  Select,
+  SelectOption,
   SheetSkeleton,
   StepCard,
   TBody,
@@ -51,6 +59,22 @@ const MAX_COMPARED = 5;
 const idListCodec: UrlCodec<number[]> = {
   parse: (raw) => parseIdList(raw).slice(0, MAX_COMPARED - 1),
   serialize: (ids) => encodeIdList(ids),
+};
+
+/** The processes the reader fixed, as `7:12,9:3` (material:process, D-251). */
+const processChoicesCodec: UrlCodec<ProcessChoice[]> = {
+  parse: (raw) =>
+    raw
+      .split(",")
+      .map((pair) => /^(\d{1,9}):(\d{1,9})$/.exec(pair))
+      .flatMap((match) =>
+        match
+          ? [{ material_id: Number(match[1]), process_id: Number(match[2]) }]
+          : [],
+      )
+      .slice(0, MAX_COMPARED),
+  serialize: (choices) =>
+    choices.map((c) => `${c.material_id}:${c.process_id}`).join(","),
 };
 
 /** One extra material's estimate, or why it could not be made. */
@@ -86,6 +110,8 @@ function acceptsAiAction(action: SuggestAction): boolean {
 interface CostBrief {
   /** The materials compared with the first one (up to four). */
   others: number[];
+  /** Processes fixed for the curves of the comparison (D-251). */
+  processes: ProcessChoice[];
   material: string;
   mass: string;
   batch: string;
@@ -104,6 +130,11 @@ function costUrlSpec(defaults: DefaultsResult["custo"]): UrlSpec<CostBrief> {
   return {
     material: { param: "material", codec: textCodec, defaultValue: "" },
     others: { param: "comparar", codec: idListCodec, defaultValue: [] },
+    processes: {
+      param: "processos",
+      codec: processChoicesCodec,
+      defaultValue: [],
+    },
     mass: { param: "massa", codec: textCodec, defaultValue: "" },
     batch: { param: "lote", codec: textCodec, defaultValue: String(defaults.batch_size) },
     writeOff: {
@@ -218,6 +249,75 @@ function ComparedTable({ main, others }: { main: CostResult; others: ComparedEst
   );
 }
 
+/**
+ * D-251: the process behind each compared material's curve. "Mais barato em cada
+ * lote" keeps the envelope; picking one draws that process's own curve. The curve,
+ * its marker and the shared frame are the server's — this only writes the choice
+ * in the address and the figure follows.
+ */
+function CurveProcessPickers({
+  curves,
+  choices,
+  onChange,
+}: {
+  curves: CostCurves;
+  choices: ProcessChoice[];
+  onChange: (materialId: number, processId: number | null) => void;
+}) {
+  const pickable = curves.curves.filter(
+    (curve) => curve.process_options.length > 0,
+  );
+  if (pickable.length === 0) return null;
+  return (
+    <div
+      className="well flex flex-col gap-3"
+      data-testid="curve-process-pickers"
+    >
+      <div className="flex flex-col gap-1">
+        <span className="text-body font-medium text-ink">
+          {t.curveProcessTitle}
+        </span>
+        <span className="text-caption text-ink-muted">
+          {t.curveProcessHint}
+        </span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {pickable.map((curve) => {
+          const name = curve.material_name ?? `#${curve.material_id}`;
+          const chosen = choices.find(
+            (c) => c.material_id === curve.material_id,
+          )?.process_id;
+          return (
+            <Select
+              key={curve.material_id}
+              label={t.curveProcessLabel(name)}
+              value={chosen === undefined ? "" : String(chosen)}
+              hint={curve.reason ?? undefined}
+              onChange={(event) => {
+                const value = (event.target as HTMLSelectElement).value;
+                onChange(
+                  curve.material_id,
+                  value === "" ? null : Number(value),
+                );
+              }}
+            >
+              <SelectOption value="">{t.curveProcessCheapest}</SelectOption>
+              {curve.process_options.map((option) => (
+                <SelectOption
+                  key={option.process_id}
+                  value={String(option.process_id)}
+                >
+                  {option.process_name}
+                </SelectOption>
+              ))}
+            </Select>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function CustoPage() {
   return (
     <DefaultsGate label={t.title}>{(defaults) => <CustoScreen defaults={defaults.custo} />}</DefaultsGate>
@@ -230,6 +330,7 @@ interface CostBundleRequest {
   batch: number;
   writeOff: number;
   loadFactor: number;
+  choices: ProcessChoice[];
 }
 
 async function estimateBundle(request: CostBundleRequest) {
@@ -246,6 +347,9 @@ async function estimateBundle(request: CostBundleRequest) {
               batch_size: request.batch,
               write_off_years: request.writeOff,
               load_factor: request.loadFactor,
+              ...(request.choices.length > 0
+                ? { process_choices: request.choices }
+                : {}),
             }),
           )
           .catch(() => null)
@@ -281,7 +385,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
 
   const spec = useMemo(() => costUrlSpec(defaults), [defaults]);
   const [brief, setBrief] = useUrlState(spec);
-  const { material: materialId, others, mass, batch, writeOff, loadFactor } = brief;
+  const { material: materialId, others, processes, mass, batch, writeOff, loadFactor } = brief;
 
   // With no material in the URL, the first of the catalogue is a starting point
   // rather than an answer: the reader still has to supply the mass and the
@@ -309,6 +413,10 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
     return null;
   }, [selectedId, mass, batch, writeOff, loadFactor]);
   const ready = blockedReason === null;
+  const compareIds = [
+    Number(selectedId),
+    ...others.filter((id) => id !== Number(selectedId)),
+  ];
 
   // D-220: the estimates follow the brief — one per material, all with the same
   // part, batch and premises (D-216). The first is the answer the page is about;
@@ -321,7 +429,10 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
     key: "custo-ao-vivo",
     request: ready
       ? {
-          ids: [Number(selectedId), ...others.filter((id) => id !== Number(selectedId))],
+          ids: compareIds,
+          choices: processes.filter((choice) =>
+            compareIds.includes(choice.material_id),
+          ),
           mass: Number(mass),
           batch: Number(batch),
           writeOff: Number(writeOff),
@@ -546,7 +657,25 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
                 <CostCurveChart result={result} />
                 {compared.length > 0 ? <ComparedTable main={result} others={compared} /> : null}
                 {compared.length > 0 && materialCurves ? (
-                  <MaterialCostCurvesChart curves={materialCurves} />
+                  <>
+                    <MaterialCostCurvesChart curves={materialCurves} />
+                    <CurveProcessPickers
+                      curves={materialCurves}
+                      choices={processes}
+                      onChange={(choice, next) =>
+                        setBrief({
+                          processes: [
+                            ...processes.filter(
+                              (c) => c.material_id !== choice,
+                            ),
+                            ...(next === null
+                              ? []
+                              : [{ material_id: choice, process_id: next }]),
+                          ],
+                        })
+                      }
+                    />
+                  </>
                 ) : null}
                 {result.uncosted.length > 0 ? (
                   <div className="well flex flex-col gap-2">

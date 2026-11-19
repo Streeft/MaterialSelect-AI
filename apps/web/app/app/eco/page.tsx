@@ -46,11 +46,7 @@ import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { aiField, revealField } from "@/lib/ai/revealField";
 import { suggestText } from "@/lib/i18n-suggest";
 import { DefaultsGate } from "@/components/layout/DefaultsGate";
-import {
-  ParamsPanel,
-  ParamsResultLayout,
-  ResultPanel,
-} from "@/components/layout/ParamsResult";
+import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
 import {
   ComponentsTable,
   HowToFill,
@@ -92,9 +88,7 @@ const t = ptBR.eco;
 
 export default function EcoPage() {
   return (
-    <DefaultsGate label={t.title}>
-      {(defaults) => <EcoScreen defaults={defaults.eco} />}
-    </DefaultsGate>
+    <DefaultsGate label={t.title}>{(defaults) => <EcoScreen defaults={defaults.eco} />}</DefaultsGate>
   );
 }
 
@@ -130,13 +124,7 @@ function compareRows(
   });
 }
 
-function WaterfallPair({
-  result,
-  exportPrefix,
-}: {
-  result: EcoAuditResult;
-  exportPrefix: string;
-}) {
+function WaterfallPair({ result, exportPrefix }: { result: EcoAuditResult; exportPrefix: string }) {
   return (
     <div className="flex flex-col gap-4">
       <PhaseWaterfall
@@ -154,24 +142,16 @@ function WaterfallPair({
 }
 
 function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
-  const materials = useQuery({
-    queryKey: ["materials"],
-    queryFn: () => listMaterials(),
-  });
-  const modes = useQuery({
-    queryKey: ["transport-modes"],
-    queryFn: listTransportModes,
-  });
-  const routes = useQuery({
-    queryKey: ["eco-end-of-life-routes"],
-    queryFn: listEndOfLifeRoutes,
-  });
+  const materials = useQuery({ queryKey: ["materials"], queryFn: () => listMaterials() });
+  const modes = useQuery({ queryKey: ["transport-modes"], queryFn: listTransportModes });
+  const routes = useQuery({ queryKey: ["eco-end-of-life-routes"], queryFn: listEndOfLifeRoutes });
 
   // The whole question lives in the URL (D-216): product, scenarios A and B and
   // premises. A link reopens the same audit; a reload keeps what was typed.
   const spec = useMemo(() => ecoUrlSpec(defaults), [defaults]);
   const [brief, setBrief] = useUrlState(spec);
   const view = brief.view;
+
 
   const premises: Premises = {
     useModel: brief.useModel,
@@ -184,9 +164,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
   };
 
   const firstMaterial = String(materials.data?.[0]?.id ?? "");
-  const secondMaterial = String(
-    materials.data?.[1]?.id ?? materials.data?.[0]?.id ?? "",
-  );
+  const secondMaterial = String(materials.data?.[1]?.id ?? materials.data?.[0]?.id ?? "");
   const firstMode = modes.data?.[0]?.slug ?? "";
   const selectedMode = brief.mode || firstMode;
 
@@ -215,27 +193,19 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
     })),
   });
   const detailOf = (id: string) => detailQueries[distinct.indexOf(id)];
-  const componentDetails = components.map((c) =>
-    detailOf(c.material || firstMaterial),
-  );
+  const componentDetails = components.map((c) => detailOf(c.material || firstMaterial));
   const sideDetails = sideMaterials.map((id) => detailOf(id));
 
   const resolvedComponents: ComponentDraft[] = components.map((c, index) => ({
     ...c,
     material: c.material || firstMaterial,
-    process:
-      c.process ||
-      String(componentDetails[index]?.data?.processes[0]?.id ?? ""),
+    process: c.process || String(componentDetails[index]?.data?.processes[0]?.id ?? ""),
   }));
-  const resolvedLegs: LegDraft[] = legs.map((leg) => ({
-    ...leg,
-    mode: leg.mode || firstMode,
-  }));
+  const resolvedLegs: LegDraft[] = legs.map((leg) => ({ ...leg, mode: leg.mode || firstMode }));
   const resolvedSides: ScenarioDraft[] = sides.map((side, index) => ({
     ...side,
     material: sideMaterials[index] ?? "",
-    process:
-      side.process || String(sideDetails[index]?.data?.processes[0]?.id ?? ""),
+    process: side.process || String(sideDetails[index]?.data?.processes[0]?.id ?? ""),
   }));
 
   // Edits write the effective list, not only the patch: the seed (`?material=`)
@@ -248,9 +218,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
     }));
   const patchLeg = (index: number, patch: Partial<LegDraft>) =>
     setBrief((current) => ({
-      legs: effectiveLegs(current, defaults).map((leg, i) =>
-        i === index ? { ...leg, ...patch } : leg,
-      ),
+      legs: effectiveLegs(current, defaults).map((leg, i) => (i === index ? { ...leg, ...patch } : leg)),
     }));
   const patchSide = (index: number, patch: Partial<ScenarioDraft>) =>
     setBrief((current) =>
@@ -300,10 +268,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
     );
   const liveAudit = useLiveResult<EcoAuditRequest, EcoAuditResult>({
     key: "eco-ao-vivo",
-    request:
-      individual && ready
-        ? buildAuditBrief(resolvedComponents, resolvedLegs, premises)
-        : null,
+    request: individual && ready ? buildAuditBrief(resolvedComponents, resolvedLegs, premises) : null,
     fetcher: runEcoAudit,
   });
   const liveCompare = useLiveResult<EcoComparisonRequest, EcoComparisonResult>({
@@ -324,22 +289,16 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
       ? { request: buildAuditBrief(resolvedComponents, resolvedLegs, premises) }
       : { comparison: comparisonBrief() };
   const acceptsAiAction = (action: SuggestAction) =>
-    action.type !== "set_param" ||
-    aiParamPatch(brief, defaults, action.name, action.value) !== null;
+    action.type !== "set_param" || aiParamPatch(brief, defaults, action.name, action.value) !== null;
   function applyAiAction(action: SuggestAction) {
     if (action.type !== "set_param") return;
-    setBrief(
-      (current) =>
-        aiParamPatch(current, defaults, action.name, action.value) ?? {},
-    );
+    setBrief((current) => aiParamPatch(current, defaults, action.name, action.value) ?? {});
     revealField(action.name);
   }
 
   // D-220: rows of the product and of the legs, edited in place.
   const setComponents = (next: (list: ComponentDraft[]) => ComponentDraft[]) =>
-    setBrief((current) => ({
-      components: next(effectiveComponents(current, defaults)),
-    }));
+    setBrief((current) => ({ components: next(effectiveComponents(current, defaults)) }));
   const setLegs = (next: (list: LegDraft[]) => LegDraft[]) =>
     setBrief((current) => ({ legs: next(effectiveLegs(current, defaults)) }));
 
@@ -357,31 +316,16 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
   if (materials.isLoading || modes.isLoading || routes.isLoading)
     return <SheetSkeleton label={t.title} />;
   if (materials.isError)
-    return (
-      <ErrorState
-        error={materials.error}
-        onRetry={() => void materials.refetch()}
-      />
-    );
-  if (modes.isError)
-    return (
-      <ErrorState error={modes.error} onRetry={() => void modes.refetch()} />
-    );
-  if (routes.isError)
-    return (
-      <ErrorState error={routes.error} onRetry={() => void routes.refetch()} />
-    );
+    return <ErrorState error={materials.error} onRetry={() => void materials.refetch()} />;
+  if (modes.isError) return <ErrorState error={modes.error} onRetry={() => void modes.refetch()} />;
+  if (routes.isError) return <ErrorState error={routes.error} onRetry={() => void routes.refetch()} />;
 
   const routeList = routes.data ?? [];
   const modeList = modes.data ?? [];
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title={t.title}
-        description={t.subtitle}
-        overflow={<CopyLinkItem />}
-      />
+      <PageHeader title={t.title} description={t.subtitle} overflow={<CopyLinkItem />} />
 
       <div className="flex items-center">
         <ButtonGroup label={t.title}>
@@ -417,29 +361,17 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                 <ComponentsTable
                   components={resolvedComponents}
                   materialOptions={materialOptions}
-                  processesOf={(index) =>
-                    componentDetails[index]?.data?.processes ?? []
-                  }
-                  processesLoaded={(index) =>
-                    Boolean(componentDetails[index]?.isSuccess)
-                  }
+                  processesOf={(index) => componentDetails[index]?.data?.processes ?? []}
+                  processesLoaded={(index) => Boolean(componentDetails[index]?.isSuccess)}
                   routes={routeList}
                   onPatch={patchComponent}
-                  onAdd={() =>
-                    setComponents((list) => [...list, blankComponent(defaults)])
-                  }
+                  onAdd={() => setComponents((list) => [...list, blankComponent(defaults)])}
                   onDuplicate={(index) =>
                     setComponents((list) => [...list, { ...list[index]! }])
                   }
-                  onRemove={(index) =>
-                    setComponents((list) => list.filter((_, i) => i !== index))
-                  }
+                  onRemove={(index) => setComponents((list) => list.filter((_, i) => i !== index))}
                   onRestore={(draft, index) =>
-                    setComponents((list) => [
-                      ...list.slice(0, index),
-                      draft,
-                      ...list.slice(index),
-                    ])
+                    setComponents((list) => [...list.slice(0, index), draft, ...list.slice(index)])
                   }
                 />
                 <HowToFill />
@@ -451,18 +383,10 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                   modes={modeList}
                   onPatch={patchLeg}
                   onAdd={() => setLegs((list) => [...list, blankLeg("0")])}
-                  onDuplicate={(index) =>
-                    setLegs((list) => [...list, { ...list[index]! }])
-                  }
-                  onRemove={(index) =>
-                    setLegs((list) => list.filter((_, i) => i !== index))
-                  }
+                  onDuplicate={(index) => setLegs((list) => [...list, { ...list[index]! }])}
+                  onRemove={(index) => setLegs((list) => list.filter((_, i) => i !== index))}
                   onRestore={(draft, index) =>
-                    setLegs((list) => [
-                      ...list.slice(0, index),
-                      draft,
-                      ...list.slice(index),
-                    ])
+                    setLegs((list) => [...list.slice(0, index), draft, ...list.slice(index)])
                   }
                 />
               </StepCard>
@@ -510,10 +434,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                   </span>
                 </div>
               ) : null}
-              <StepCard
-                title={t.transportStep}
-                bodyClassName="grid gap-4 sm:grid-cols-2"
-              >
+              <StepCard title={t.transportStep} bodyClassName="grid gap-4 sm:grid-cols-2">
                 <TransportModeSelect
                   modes={modeList}
                   value={selectedMode}
@@ -526,9 +447,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                   min={0}
                   step="any"
                   {...aiField("transport_distance_km")}
-                  onChange={(event) =>
-                    setBrief({ distance: event.target.value })
-                  }
+                  onChange={(event) => setBrief({ distance: event.target.value })}
                 />
               </StepCard>
             </div>
@@ -538,46 +457,28 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
             title={individual ? t.useStep : t.sharedPremises}
             description={t.useHint}
           >
-            <PremisesPanel
-              defaults={defaults}
-              premises={premises}
-              onChange={patchPremises}
-            />
+            <PremisesPanel defaults={defaults} premises={premises} onChange={patchPremises} />
           </StepCard>
         </ParamsPanel>
 
         <ResultPanel busy={live.updating}>
           {individual ? (
-            <StepCard
-              title={t.resultStep}
-              actions={live.updating ? <Updating /> : undefined}
-            >
+            <StepCard title={t.resultStep} actions={live.updating ? <Updating /> : undefined}>
               <LiveError error={live.error} />
               {result ? (
                 <>
                   <EcoExportMenu brief={resultBrief} />
                   <div className="flex flex-col gap-3">
-                    <span className="text-body font-medium text-ink">
-                      {t.dominanceTitle}
-                    </span>
+                    <span className="text-body font-medium text-ink">{t.dominanceTitle}</span>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <Podium
-                        label={t.dominanceEnergy}
-                        dominance={result.energy_dominance}
-                      />
-                      <Podium
-                        label={t.dominanceCarbon}
-                        dominance={result.carbon_dominance}
-                      />
+                      <Podium label={t.dominanceEnergy} dominance={result.energy_dominance} />
+                      <Podium label={t.dominanceCarbon} dominance={result.carbon_dominance} />
                     </div>
                   </div>
 
                   <PhaseTable result={result} />
                   {resultBrief ? (
-                    <PremisesSummary
-                      use={resultBrief.use}
-                      transportKm={result.transport_distance_km}
-                    />
+                    <PremisesSummary use={resultBrief.use} transportKm={result.transport_distance_km} />
                   ) : null}
                   <WaterfallPair result={result} exportPrefix="cascata-eco" />
                   <ComponentTable result={result} />
@@ -590,25 +491,16 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                     </span>
                     <span>{result.recycling_credit_note}</span>
                     <span>
-                      {t.productSummary(
-                        result.components.length,
-                        result.transport_legs.length,
-                      )}
+                      {t.productSummary(result.components.length, result.transport_legs.length)}
                     </span>
                   </div>
                 </>
               ) : live.error ? null : (
-                <EmptyState
-                  title={t.resultIdleTitle}
-                  description={blocked?.reason ?? t.resultIdleHint}
-                />
+                <EmptyState title={t.resultIdleTitle} description={blocked?.reason ?? t.resultIdleHint} />
               )}
             </StepCard>
           ) : (
-            <StepCard
-              title={t.compareResultStep}
-              actions={live.updating ? <Updating /> : undefined}
-            >
+            <StepCard title={t.compareResultStep} actions={live.updating ? <Updating /> : undefined}>
               <LiveError error={live.error} />
               {compareResult ? (
                 <div className="flex flex-col gap-4">
@@ -622,9 +514,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                       savings={
                         compareResult.delta_energy_percent !== null &&
                         Math.abs(compareResult.delta_energy_percent) > 0.01
-                          ? t.savingsEnergy(
-                              Math.abs(compareResult.delta_energy_percent),
-                            )
+                          ? t.savingsEnergy(Math.abs(compareResult.delta_energy_percent))
                           : null
                       }
                     />
@@ -637,9 +527,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                       savings={
                         compareResult.delta_carbon_percent !== null &&
                         Math.abs(compareResult.delta_carbon_percent) > 0.01
-                          ? t.savingsCarbon(
-                              Math.abs(compareResult.delta_carbon_percent),
-                            )
+                          ? t.savingsCarbon(Math.abs(compareResult.delta_carbon_percent))
                           : null
                       }
                     />
@@ -648,10 +536,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                   <ComparisonTable result={compareResult} />
                   <PremisesSummary
                     use={(liveCompare.dataRequest ?? comparisonBrief()).use}
-                    transportKm={
-                      (liveCompare.dataRequest ?? comparisonBrief())
-                        .transport_distance_km
-                    }
+                    transportKm={(liveCompare.dataRequest ?? comparisonBrief()).transport_distance_km}
                   />
 
                   <div className="flex flex-col gap-4">
@@ -678,23 +563,14 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                   ).map(([name, side]) => (
                     <Disclosure
                       key={name}
-                      summary={ecoPhaseI18n.waterfall.scenarioSummary(
-                        name,
-                        side.material_name ?? "",
-                      )}
+                      summary={ecoPhaseI18n.waterfall.scenarioSummary(name, side.material_name ?? "")}
                     >
-                      <WaterfallPair
-                        result={side}
-                        exportPrefix={`cascata-eco-${name.toLowerCase()}`}
-                      />
+                      <WaterfallPair result={side} exportPrefix={`cascata-eco-${name.toLowerCase()}`} />
                     </Disclosure>
                   ))}
                 </div>
               ) : live.error ? null : (
-                <EmptyState
-                  title={t.resultIdleTitle}
-                  description={blocked?.reason ?? t.resultIdleHint}
-                />
+                <EmptyState title={t.resultIdleTitle} description={blocked?.reason ?? t.resultIdleHint} />
               )}
             </StepCard>
           )}
@@ -815,15 +691,11 @@ function DifferenceWaterfalls({ result }: { result: EcoComparisonResult }) {
 }
 
 function LiveError({ error }: { error: unknown }) {
-  return error ? (
-    <Alert tone="danger">{describeApiError(error, t.title)}</Alert>
-  ) : null;
+  return error ? <Alert tone="danger">{describeApiError(error, t.title)}</Alert> : null;
 }
 
 function Updating() {
-  return (
-    <span className="text-caption text-ink-muted">{ptBR.ui.updating}</span>
-  );
+  return <span className="text-caption text-ink-muted">{ptBR.ui.updating}</span>;
 }
 
 function Winner({
@@ -853,9 +725,7 @@ function Winner({
               : tie}
         </Badge>
       </div>
-      {savings ? (
-        <span className="text-caption text-ink-muted">{savings}</span>
-      ) : null}
+      {savings ? <span className="text-caption text-ink-muted">{savings}</span> : null}
     </div>
   );
 }

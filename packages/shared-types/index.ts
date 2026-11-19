@@ -3004,6 +3004,21 @@ export interface CostCurvesRequest {
   batch_size: number;
   write_off_years?: number;
   load_factor?: number;
+  /** Fixes the process of some materials: their curve is that process's own (D-251). */
+  process_choices?: ProcessChoice[];
+}
+
+/** The process a reader picked for one compared material (D-251). */
+export interface ProcessChoice {
+  material_id: number;
+  process_id: number;
+}
+
+/** A process that can price a material: what the reader may choose (D-251). */
+export interface ProcessOption {
+  process_id: number;
+  process_slug: string;
+  process_name: string;
 }
 
 /** The cheapest way of making the part at one batch size (D-234). */
@@ -3026,6 +3041,10 @@ export interface MaterialCostCurve {
   points: MaterialCurvePoint[];
   current: MaterialCurvePoint | null;
   reason: string | null;
+  /** The process the curve was fixed to (D-251); `null` is the lower envelope. */
+  chosen_process_id: number | null;
+  /** Every process that could price the material, for the reader's choice. */
+  process_options: ProcessOption[];
 }
 
 export interface CostCurves {
