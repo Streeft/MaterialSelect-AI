@@ -83,6 +83,7 @@ function BookmarkRow({
       <span className="flex min-w-0 flex-wrap items-center gap-2 break-words">
         {selection ? (
           <Checkbox
+            className="[&_label]:min-w-[var(--target-min)] [&_label]:justify-center"
             label={<span className="sr-only">{t.selectRow(name)}</span>}
             checked={selection.checked}
             onChange={selection.onToggle}

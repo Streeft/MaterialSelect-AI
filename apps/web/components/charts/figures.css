@@ -142,7 +142,7 @@
 .chart-icon-btn svg { width: 18px; height: 18px; }
 .chart-icon-btn:hover:not(:disabled) { color: rgb(var(--ink)); background: rgb(var(--ink) / 0.06); }
 .chart-icon-btn[aria-pressed="true"] { color: rgb(var(--accent)); background: rgb(var(--surface-panel)); box-shadow: var(--shadow-control); }
-.chart-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.chart-icon-btn:disabled { opacity: var(--state-disabled); cursor: not-allowed; }
 .chart-icon-btn[aria-expanded="true"] { color: rgb(var(--ink)); background: rgb(var(--ink) / 0.08); }
 /* A lone icon button (export) sits on the same well as the switch beside it. */
 .chart-icon-btn-solo { background: rgb(var(--surface-well)); }

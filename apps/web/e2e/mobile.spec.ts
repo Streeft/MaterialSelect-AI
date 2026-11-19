@@ -100,3 +100,32 @@ test("a ficha de um material no telefone: alvos de toque de 44 px", async ({ pag
   const small = await smallTargets(page);
   expect(small.slice(0, 15), `ficha: ${small.length} alvos abaixo de 44 px`).toEqual([]);
 });
+
+// D-254: no telefone a tabela some e os cartões são tudo o que há; eles agora têm a caixa.
+test("o catálogo no telefone: marca dois cartões e a barra leva ao Comparar", async ({ page }) => {
+  await page.goto("/app/catalogo");
+  const boxes = page.getByRole("checkbox", { name: /^Selecionar (?!todos)/ });
+  await expect(boxes.first()).toBeVisible({ timeout: 45_000 });
+  // The box is drawn by a span over the input, as in the matrix (telas-processos): force skips
+  // the "intercepts pointer events" check that the design itself causes.
+  await boxes.nth(0).check({ force: true });
+  await boxes.nth(1).check({ force: true });
+
+  const bar = page.getByRole("region", { name: "Ações para os materiais selecionados" });
+  await expect(bar).toBeVisible();
+  await expect(bar.getByRole("status")).toHaveText("2 materiais selecionados");
+  expect(await smallTargets(page)).toEqual([]);
+
+  await bar.getByRole("link", { name: "Comparar selecionados" }).click();
+  await expect(page).toHaveURL(/\/app\/comparar\?materiais=\d+,\d+/, { timeout: 60_000 });
+});
+
+test("processos no telefone: a seção de uma subfamília aberta tem alvos de 44 px", async ({ page }) => {
+  await page.goto("/app/processos");
+  const region = page.getByRole("group", { name: "Subfamílias de Conformação" });
+  await expect(region).toBeVisible({ timeout: 45_000 });
+  await region.getByRole("button", { name: "Abrir todas" }).click();
+  await expect(region.locator("details[open]").first()).toBeVisible();
+  const small = await smallTargets(page);
+  expect(small.slice(0, 15), `processos: ${small.length} alvos abaixo de 44 px`).toEqual([]);
+});

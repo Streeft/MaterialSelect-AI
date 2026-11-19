@@ -180,6 +180,68 @@ export interface CrossPageSelection {
 }
 
 /**
+ * The floating toolbar for the materials a reader marked (D-184, D-232): how many, "Comparar",
+ * "Abrir na Seleção" and "Limpar seleção". One component for the table and for the phone's cards
+ * and the gallery (D-254), so the bar is the same wherever the boxes are.
+ *
+ * Pinned above the bottom bar on a phone (`--bottom-nav-offset`, D-91), centred, on
+ * inverse-surface, so it stays in reach while the reader scrolls the rows they are marking.
+ */
+export function SelectionBar({
+  ids,
+  acrossPages,
+  onClear,
+}: {
+  ids: readonly number[];
+  /** Some of the marked materials are on other pages: the count says so. */
+  acrossPages: boolean;
+  onClear: () => void;
+}) {
+  const compareHref = `/app/comparar?materiais=${encodeIdList(ids)}`;
+  const tooFew = ids.length < MIN_COMPARE_MATERIALS;
+  const tooMany = ids.length > MAX_COMPARE_MATERIALS;
+  // D-232: the selection also goes to the Selection, as a list of materials.
+  const forSelection = listForSelection(ids);
+  return (
+    <div role="region" aria-label={t.selectionBar} className="m3-floating-toolbar">
+      <span role="status" className="m3-floating-toolbar-count">
+        {acrossPages ? t.selectedAcrossPages(ids.length) : t.selectedCount(ids.length)}
+      </span>
+      {tooFew || tooMany ? (
+        <>
+          <Button size="sm" variant="tonal" disabled>
+            {t.compareSelected}
+          </Button>
+          <span className="m3-floating-toolbar-note">
+            {tooMany ? t.compareTooMany(MAX_COMPARE_MATERIALS) : t.compareNeedsTwo}
+          </span>
+        </>
+      ) : (
+        <ButtonLink size="sm" variant="tonal" href={compareHref}>
+          {t.compareSelected}
+        </ButtonLink>
+      )}
+      <ButtonLink size="sm" variant="tonal" href={selectionHrefForMaterials(ids)}>
+        {t.openInSelection}
+      </ButtonLink>
+      {forSelection.truncated ? (
+        <span className="m3-floating-toolbar-note">
+          {t.openInSelectionCapped(forSelection.ids.length)}
+        </span>
+      ) : null}
+      <Button
+        size="sm"
+        variant="ghost"
+        className="m3-floating-toolbar-ghost"
+        onClick={onClear}
+      >
+        {t.clearSelection}
+      </Button>
+    </div>
+  );
+}
+
+/**
  * The catalogue as a table (D-131, after the M3 data-table pattern).
  *
  * - **Sort** by material or class — labels only. Quality and keywords are not
@@ -204,9 +266,12 @@ export function MaterialTable({
   columns,
   valueColumn,
   selection,
+  hideBar = false,
 }: {
   materials: MaterialListItem[];
   searchQuery?: string;
+  /** D-254: the bar of the marked rows is drawn by the caller (it also serves the phone's cards). */
+  hideBar?: boolean;
   /** D-232: the selection, owned by the page so it crosses pages; absent, the table keeps its own. */
   selection?: CrossPageSelection;
   /** D-184: open the material beside the list instead of leaving it. */
@@ -282,58 +347,14 @@ export function MaterialTable({
     setPicked(next);
   }
 
-  const compareHref = `/app/comparar?materiais=${encodeIdList(selectedIds)}`;
-  const tooFew = selectedIds.length < MIN_COMPARE_MATERIALS;
-  const tooMany = selectedIds.length > MAX_COMPARE_MATERIALS;
-  // D-232: the selection also goes to the Selection, as a list of materials.
-  const listCapped = listForSelection(selectedIds).truncated;
+  const bar =
+    hideBar || selectedIds.length === 0 ? null : (
+      <SelectionBar ids={selectedIds} acrossPages={acrossPages} onClear={() => setPicked(new Set())} />
+    );
 
   return (
     <div className="flex flex-col gap-2">
-      {selectedIds.length > 0 ? (
-        // D-184: the M3 floating toolbar. Pinned above the bottom bar on a
-        // phone (`--bottom-nav-offset`, D-91), centred, on inverse-surface, so
-        // it stays in reach while the reader scrolls the rows they are marking.
-        <div
-          role="region"
-          aria-label={t.selectionBar}
-          className="m3-floating-toolbar"
-        >
-          <span role="status" className="m3-floating-toolbar-count">
-            {acrossPages ? t.selectedAcrossPages(selectedIds.length) : t.selectedCount(selectedIds.length)}
-          </span>
-          {tooFew || tooMany ? (
-            <>
-              <Button size="sm" variant="tonal" disabled>
-                {t.compareSelected}
-              </Button>
-              <span className="m3-floating-toolbar-note">
-                {tooMany ? t.compareTooMany(MAX_COMPARE_MATERIALS) : t.compareNeedsTwo}
-              </span>
-            </>
-          ) : (
-            <ButtonLink size="sm" variant="tonal" href={compareHref}>
-              {t.compareSelected}
-            </ButtonLink>
-          )}
-          <ButtonLink size="sm" variant="tonal" href={selectionHrefForMaterials(selectedIds)}>
-            {t.openInSelection}
-          </ButtonLink>
-          {listCapped ? (
-            <span className="m3-floating-toolbar-note">
-              {t.openInSelectionCapped(listForSelection(selectedIds).ids.length)}
-            </span>
-          ) : null}
-          <Button
-            size="sm"
-            variant="ghost"
-            className="m3-floating-toolbar-ghost"
-            onClick={() => setPicked(new Set())}
-          >
-            {t.clearSelection}
-          </Button>
-        </div>
-      ) : null}
+      {bar}
       <TableScroll label={t.title}>
         <Table>
           <TableCaption>{t.title}</TableCaption>

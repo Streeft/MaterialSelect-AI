@@ -3474,6 +3474,12 @@ export const ptBR = {
     emptyFiltered: "Nenhum processo com estes filtros.",
     clearFilters: "Limpar filtros",
     countProcesses: (n: number) => (n === 1 ? "1 processo" : `${n} processos`),
+    // D-254: a family with many processes is grouped by sub-family, each section folding.
+    groupDirect: "Sem subfamília",
+    groupMarked: (n: number) => (n === 1 ? "1 marcado" : `${n} marcados`),
+    groupsRegion: (family: string) => `Subfamílias de ${family}`,
+    groupsOpenAll: "Abrir todas",
+    groupsCloseAll: "Recolher todas",
     countDirect: (n: number) =>
       n === 1 ? "1 processo aqui" : `${n} processos aqui`,
     countBelow: (n: number) => `${n} no total, contando as subfamílias`,

@@ -74,9 +74,18 @@ ficou sem objeto. Três regras que não são questão de gosto:
   Um aviso por vez, uma ação, sem ícone. Exclusão que apaga vocabulário usado por
   outras linhas (classe, propriedade) continua com confirmação.
 
-- **Tabela ordena rótulo e seleciona linha** ([D-131](docs/DECISIONS.md)): `SortTh` +
-  `aria-sort`; só coluna de texto é ordenável (nunca valor medido — ranquear é do
-  backend). A seleção vale para as linhas **listadas** e o botão desligado diz o motivo.
+- **Tabela ordena rótulo e seleciona linha** ([D-131](docs/DECISIONS.md), [D-254](docs/DECISIONS.md)): `SortTh` +
+  `aria-sort`; só coluna de texto ou **contagem que o servidor mandou** é ordenável (nunca valor medido — ranquear é
+  do backend). Fora do catálogo, use `useTableSort(rows, colunas)`: o ausente (`null`) fica **depois** de todos, nos dois
+  sentidos, nunca vira 0. A seleção vale para as linhas **listadas** e o botão desligado diz o motivo. No celular os
+  cartões do catálogo têm a mesma caixa (44 px) e **a mesma barra, desenhada uma vez** (`SelectionBar`; duas, uma por
+  layout, seriam duas regiões com o mesmo nome).
+- **Desabilitado desbota por `--state-disabled`** (0,38), nunca por número próprio: o teste `disabledState.test.ts`
+  reprova `:disabled { opacity }` e `disabled:opacity-NN` fixos entre 30 e 55 %. Texto que precisa de contraste
+  (link, opção, fonte bloqueada) não desbota: troca de cor ou diz em palavras.
+- **Lista longa agrupa e dobra** ([D-254](docs/DECISIONS.md)): o cartão de família de Processos passa de 12 itens
+  (`GROUP_FROM`) e agrupa por subfamília em `Disclosure` fechados, abertos com busca/filtro ligados, com contagem e os
+  "marcados" na cabeça da seção.
 
 - **Home devolve ao que se fazia** ([D-132](docs/DECISIONS.md)): `RecentRecords` lê a mesma
   `MY_RECORDS_KEY` de *Meus registros* (até 6, omite o que não resolve); `Greeting` só
