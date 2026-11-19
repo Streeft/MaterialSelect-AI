@@ -92,6 +92,17 @@ real. Log `[seed_extended] Catálogo ampliado (D-188)`: num banco limpo
 8136`; na segunda execução, tudo 0. `app.db.seed` sozinho **não** escreve esses
 valores nos 5 do baseline (as contagens fixas do painel continuam valendo).
 
+Desde o [D-255](DECISIONS.md) o mesmo comando, depois do catálogo ampliado,
+**reancora as curvas tensão–deformação demo** no `alongamento` gravado
+(`reanchor_demo_stress_strain`, em `seed_extended_identity.py`; log
+`stress_strain_reanchored`) — só a curva demo de material demo sem dono que
+ainda é **exatamente** a semeada a partir dos mesmos valores; curva editada fica
+como está, e a segunda execução reescreve 0 — e grava a **dureza Rockwell** em
+três definições, uma por escala (`dureza_rockwell_b`, `_c`, `_m`;
+`app/db/seed_demo_rockwell.py`; log `rockwell_values_created` e
+`rockwell_missing_declared`): a leitura na escala da família e ausência com o
+motivo nas outras duas, só em material demo, aditivo e idempotente (D-189).
+
 O que os 70 recebem vive em `apps/api/app/db/demo_identity_data.py` (designações
 `DEMO-…` e composição numa gramática de uma linha por material) e
 `apps/api/app/db/seed_extended_identity.py` (curvas), chamados por

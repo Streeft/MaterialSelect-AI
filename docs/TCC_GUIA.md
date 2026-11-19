@@ -263,7 +263,7 @@ Cada linha: o que faz e a decisão que a justifica. A tela de cada módulo fica 
 | **Exportação CAE** | Cartão de material para Ansys MAPDL, Abaqus, Nastran `MAT1`, LS-DYNA `*MAT_ELASTIC` e MatML 3.1, mais cartões térmicos e elastoplásticos com a curva escolhida, no sistema de unidades escolhido; propriedade não cadastrada é **omitida, nunca zerada**. Escrito a partir da documentação pública, **sem validar em solver** | [D-104](DECISIONS.md), [D-112](DECISIONS.md), [D-119](DECISIONS.md), [D-124](DECISIONS.md), [D-171](DECISIONS.md) |
 | **Documentos** | CSV, XLSX e HTML imprimível do catálogo e de cada estudo; **laudo de engenharia** à parte do relatório, com mapa de seleção e gráfico de ranking desenhados no backend; DOCX e PPTX | [D-13](DECISIONS.md), [D-20](DECISIONS.md), [D-41](DECISIONS.md), [D-53](DECISIONS.md); [`10-relatorios.md`](10-relatorios.md) |
 | **Meus registros** | Materiais e processos próprios de cada pessoa, ao lado do catálogo compartilhado; material oficial é somente leitura, e o ajuste é uma cópia própria | [D-62](DECISIONS.md), [D-116](DECISIONS.md) |
-| **Catálogo demo** | 678 materiais fictícios, 48 propriedades numéricas, 144 processos, todos marcados `is_demo` | [D-71](DECISIONS.md), [D-72](DECISIONS.md), [D-107](DECISIONS.md), [D-185](DECISIONS.md), [D-188](DECISIONS.md), [D-189](DECISIONS.md), [D-192](DECISIONS.md) |
+| **Catálogo demo** | 678 materiais fictícios, 51 propriedades numéricas (48 + três escalas Rockwell), 144 processos, todos marcados `is_demo` | [D-71](DECISIONS.md), [D-72](DECISIONS.md), [D-107](DECISIONS.md), [D-185](DECISIONS.md), [D-188](DECISIONS.md), [D-189](DECISIONS.md), [D-192](DECISIONS.md), [D-255](DECISIONS.md) |
 
 ### 4.5 Interface e acessibilidade
 
@@ -479,7 +479,7 @@ pip install -e ".[dev]"
 cp .env.example .env
 python -m alembic upgrade head      # schema, pela fonte de verdade
 python -m app.db.seed               # base de demonstração (5 materiais + referência)
-python -m app.db.seed_extended      # +70 e +593 materiais, 48 propriedades, 144 processos
+python -m app.db.seed_extended      # +70 e +593 materiais, 51 propriedades, 144 processos
 uvicorn app.main:app --reload       # http://localhost:8000/docs
 
 # Frontend

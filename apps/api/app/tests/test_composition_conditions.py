@@ -363,7 +363,12 @@ def _material_id(db_session, name: str) -> int:
 
 
 def _entry(element: str, **kw) -> dict:
-    return {"element": element, "source_label": "Folha de especificação X", **kw}
+    return {
+        "element": element,
+        "source_label": "Folha de especificação X",
+        "data_quality": "ESTIMADO",
+        **kw,
+    }
 
 
 def _put(client, material_id: int, entries: list[dict]):

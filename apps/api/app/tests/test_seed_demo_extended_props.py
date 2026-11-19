@@ -99,7 +99,8 @@ class TestDefinitions:
         assert len(EXTENDED_SLUGS) == 33
         assert len(set(EXTENDED_SLUGS)) == 33
         assert not set(EXTENDED_SLUGS) & CORE_SLUGS
-        assert len(PROPERTIES) == len(CORE_SLUGS) + 33 == 48
+        # + 3 escalas Rockwell (D-255), definidas à parte com seed próprio.
+        assert len(PROPERTIES) == len(CORE_SLUGS) + 33 + 3 == 51
         assert len(ORDINAL_SLUGS) == 12
 
     def test_every_unit_is_pint_and_the_reading_unit_is_accepted(self) -> None:

@@ -32,6 +32,7 @@ from app.domain.composition import (
     NormalizedComposition,
     UndeterminedReason,
     build_composition_entry,
+    condition_key,
     condition_order,
     validate_composition,
 )
@@ -188,6 +189,56 @@ def _designation_out(designation: MaterialDesignation) -> DesignationOut:
     )
 
 
+#: The columns a per-row edit (TM2-g) rewrites; identity, material and the
+#: creation stamp stay.
+_COMPOSITION_COLUMNS = (
+    "element",
+    "condition_label",
+    "is_balance",
+    "is_missing",
+    "value_min",
+    "value_max",
+    "value_nominal",
+    "original_unit",
+    "normalized_min",
+    "normalized_max",
+    "normalized_nominal",
+    "canonical_unit",
+    "conversion_method",
+    "notes",
+    "citation",
+    "data_quality",
+)
+
+
+def _composition_key(label: str | None, element: str) -> tuple[str | None, str]:
+    """A row's place in the composition: its condition (as compared) and element."""
+    return condition_key(label), element
+
+
+def _condition_suffix(label: str | None) -> str:
+    return f" (condição: {label})" if label else ""
+
+
+def _normalized_of(entry: MaterialCompositionEntry) -> NormalizedComposition:
+    """A stored row in the shape ``validate_composition`` reads."""
+    return NormalizedComposition(
+        element=entry.element,
+        is_balance=entry.is_balance,
+        is_missing=entry.is_missing,
+        condition_label=entry.condition_label,
+        value_min=entry.value_min,
+        value_max=entry.value_max,
+        value_nominal=entry.value_nominal,
+        original_unit=entry.original_unit,
+        normalized_min=entry.normalized_min,
+        normalized_max=entry.normalized_max,
+        normalized_nominal=entry.normalized_nominal,
+        canonical_unit=entry.canonical_unit,
+        conversion_method=entry.conversion_method,
+    )
+
+
 def _composition_entry_out(entry: MaterialCompositionEntry) -> CompositionEntryOut:
     element = element_for(entry.element)
     assert element is not None  # guaranteed by the model validator and the CHECK
@@ -198,6 +249,7 @@ def _composition_entry_out(entry: MaterialCompositionEntry) -> CompositionEntryO
     else:
         state = "faixa"
     return CompositionEntryOut(
+        id=entry.id,
         element=element.symbol,
         element_name=element.name,
         atomic_number=element.number,
@@ -214,6 +266,7 @@ def _composition_entry_out(entry: MaterialCompositionEntry) -> CompositionEntryO
         conversion_method=entry.conversion_method,
         notes=entry.notes,
         data_quality=entry.data_quality,
+        source_id=entry.source_id,
         source_label=entry.source.label,
         citation=entry.citation,
         is_demo=entry.is_demo or entry.source.is_demo,
@@ -842,63 +895,25 @@ class MaterialService:
         ``units.py``. The whole set is validated before anything is deleted, so a
         refusal leaves the stored composition untouched. An empty list is allowed
         and means "no composition registered" (never 0 %).
+
+        TM2-f (D-255): a row that replaces a stored one of the same element and
+        condition keeps that row's source and quality when it does not state
+        them; a new row must state both.
         """
         material = self._writable_identity(material_id)
         before = self._composition_snapshot(material)
+        stored = {_composition_key(r.condition_label, r.element): r for r in material.composition}
 
-        built: list[tuple[CompositionEntryIn, NormalizedComposition]] = []
-        for entry_in in payload.entries:
-            try:
-                built.append(
-                    (
-                        entry_in,
-                        build_composition_entry(
-                            entry_in.element,
-                            value_min=entry_in.value_min,
-                            value_max=entry_in.value_max,
-                            value_nominal=entry_in.value_nominal,
-                            unit=entry_in.unit,
-                            is_balance=entry_in.state == "resto",
-                            is_missing=entry_in.state == "ausente",
-                            condition_label=entry_in.condition_label,
-                        ),
-                    )
-                )
-            except CompositionError as exc:
-                raise ValidationError(str(exc)) from exc
-        try:
-            validate_composition(row for _, row in built)
-        except CompositionError as exc:
-            raise ValidationError(str(exc)) from exc
+        built = [
+            (entry_in, self._normalize_composition_in(entry_in)) for entry_in in payload.entries
+        ]
+        self._validate_composition_set(row for _, row in built)
 
         rows: list[MaterialCompositionEntry] = []
         for position, (entry_in, row) in enumerate(built):
-            source = self.repo.get_or_create_source(
-                entry_in.source_label.strip(), is_demo=material.is_demo
-            )
+            previous = stored.get(_composition_key(row.condition_label, row.element))
             rows.append(
-                MaterialCompositionEntry(
-                    material_id=material.id,
-                    element=row.element,
-                    position=position,
-                    condition_label=row.condition_label,
-                    is_balance=row.is_balance,
-                    is_missing=row.is_missing,
-                    value_min=row.value_min,
-                    value_max=row.value_max,
-                    value_nominal=row.value_nominal,
-                    original_unit=row.original_unit,
-                    normalized_min=row.normalized_min,
-                    normalized_max=row.normalized_max,
-                    normalized_nominal=row.normalized_nominal,
-                    canonical_unit=row.canonical_unit,
-                    conversion_method=row.conversion_method,
-                    notes=entry_in.notes,
-                    source_id=source.id,
-                    citation=entry_in.citation,
-                    data_quality=entry_in.data_quality,
-                    is_demo=material.is_demo,
-                )
+                self._composition_row(material, entry_in, row, position=position, previous=previous)
             )
         self.repo.replace_composition(material, rows)
 
@@ -906,6 +921,158 @@ class MaterialService:
         self._audit_update(material, changes)
         self.repo.commit()
         return self.get_material_detail(material_id)
+
+    # --- TM2-g (D-255): one row at a time ----------------------------------
+
+    def add_composition_entry(
+        self, material_id: int, entry_in: CompositionEntryIn
+    ) -> MaterialDetail:
+        """Add one row; the material's whole composition is validated with it."""
+        material = self._writable_identity(material_id)
+        before = self._composition_snapshot(material)
+        row = self._normalize_composition_in(entry_in)
+        self._validate_composition_set([*(_normalized_of(r) for r in material.composition), row])
+        position = max((r.position for r in material.composition), default=-1) + 1
+        material.composition.append(
+            self._composition_row(material, entry_in, row, position=position, previous=None)
+        )
+        self.repo.db.flush()
+        self._audit_update(material, diff_fields(before, self._composition_snapshot(material)))
+        self.repo.commit()
+        return self.get_material_detail(material_id)
+
+    def update_composition_entry(
+        self, material_id: int, entry_id: int, entry_in: CompositionEntryIn
+    ) -> MaterialDetail:
+        """Rewrite one row in place; source and quality are kept when not restated."""
+        material = self._writable_identity(material_id)
+        target = self._composition_entry(material, entry_id)
+        before = self._composition_snapshot(material)
+        row = self._normalize_composition_in(entry_in)
+        self._validate_composition_set(
+            [*(_normalized_of(r) for r in material.composition if r.id != entry_id), row]
+        )
+        fresh = self._composition_row(
+            material, entry_in, row, position=target.position, previous=target
+        )
+        for column in _COMPOSITION_COLUMNS:
+            setattr(target, column, getattr(fresh, column))
+        target.source = fresh.source
+        self.repo.db.flush()
+        self._audit_update(material, diff_fields(before, self._composition_snapshot(material)))
+        self.repo.commit()
+        return self.get_material_detail(material_id)
+
+    def delete_composition_entry(self, material_id: int, entry_id: int) -> MaterialDetail:
+        """Remove one row. The last one gone is "no composition registered", never 0 %."""
+        material = self._writable_identity(material_id)
+        target = self._composition_entry(material, entry_id)
+        before = self._composition_snapshot(material)
+        material.composition.remove(target)
+        self.repo.db.flush()
+        self._audit_update(material, diff_fields(before, self._composition_snapshot(material)))
+        self.repo.commit()
+        return self.get_material_detail(material_id)
+
+    @staticmethod
+    def _composition_entry(material: Material, entry_id: int) -> MaterialCompositionEntry:
+        for row in material.composition:
+            if row.id == entry_id:
+                return row
+        raise NotFoundError(f"Linha de composição não encontrada: {entry_id}")
+
+    @staticmethod
+    def _normalize_composition_in(entry_in: CompositionEntryIn) -> NormalizedComposition:
+        try:
+            return build_composition_entry(
+                entry_in.element,
+                value_min=entry_in.value_min,
+                value_max=entry_in.value_max,
+                value_nominal=entry_in.value_nominal,
+                unit=entry_in.unit,
+                is_balance=entry_in.state == "resto",
+                is_missing=entry_in.state == "ausente",
+                condition_label=entry_in.condition_label,
+            )
+        except CompositionError as exc:
+            raise ValidationError(str(exc)) from exc
+
+    @staticmethod
+    def _validate_composition_set(rows) -> None:
+        try:
+            validate_composition(rows)
+        except CompositionError as exc:
+            raise ValidationError(str(exc)) from exc
+
+    def _composition_source(
+        self,
+        material: Material,
+        entry_in: CompositionEntryIn,
+        row: NormalizedComposition,
+        previous: MaterialCompositionEntry | None,
+    ) -> Source:
+        """The source a row cites (TM2-f): a registered one, a label, or the stored row's."""
+        label = (entry_in.source_label or "").strip()
+        if entry_in.source_id is not None:
+            source = self.repo.get_source(entry_in.source_id)
+            if source is None:
+                raise ValidationError(f"Fonte não encontrada: {entry_in.source_id}.")
+            if source.is_demo and not material.is_demo:
+                # A demonstration source is fictitious: a real record choosing
+                # it would pass a made-up provenance off as a real one.
+                raise ValidationError(
+                    f"A fonte '{source.label}' é de demonstração e não pode ser escolhida "
+                    "para um registro real."
+                )
+            return source
+        if label:
+            return self.repo.get_or_create_source(label, is_demo=material.is_demo)
+        if previous is not None:
+            return previous.source
+        raise ValidationError(
+            f"Informe a fonte de {row.element}{_condition_suffix(row.condition_label)}: "
+            "escolha uma fonte cadastrada ou escreva o rótulo de uma nova."
+        )
+
+    def _composition_row(
+        self,
+        material: Material,
+        entry_in: CompositionEntryIn,
+        row: NormalizedComposition,
+        *,
+        position: int,
+        previous: MaterialCompositionEntry | None,
+    ) -> MaterialCompositionEntry:
+        source = self._composition_source(material, entry_in, row, previous)
+        quality = entry_in.data_quality or (previous.data_quality if previous else None)
+        if quality is None:
+            raise ValidationError(
+                f"Informe a qualidade do dado de {row.element}"
+                f"{_condition_suffix(row.condition_label)}: medido, importado ou estimado."
+            )
+        return MaterialCompositionEntry(
+            material_id=material.id,
+            element=row.element,
+            position=position,
+            condition_label=row.condition_label,
+            is_balance=row.is_balance,
+            is_missing=row.is_missing,
+            value_min=row.value_min,
+            value_max=row.value_max,
+            value_nominal=row.value_nominal,
+            original_unit=row.original_unit,
+            normalized_min=row.normalized_min,
+            normalized_max=row.normalized_max,
+            normalized_nominal=row.normalized_nominal,
+            canonical_unit=row.canonical_unit,
+            conversion_method=row.conversion_method,
+            notes=entry_in.notes,
+            source_id=source.id,
+            source=source,
+            citation=entry_in.citation,
+            data_quality=quality,
+            is_demo=material.is_demo,
+        )
 
     def replace_designations(
         self, material_id: int, payload: DesignationsReplaceIn
@@ -983,17 +1150,22 @@ class MaterialService:
 
     @staticmethod
     def _composition_repr(row: MaterialCompositionEntry) -> str:
+        """The row as the audit shows it — content, quality and source (TM2-f)."""
         if row.is_balance:
-            return "resto"
-        if row.is_missing:
-            return "ausente"
-        if row.value_min is not None and row.value_max is not None:
-            return f"{row.value_min:g}–{row.value_max:g} {row.original_unit}"
-        if row.value_max is not None:
-            return f"≤ {row.value_max:g} {row.original_unit}"
-        if row.value_min is not None:
-            return f"≥ {row.value_min:g} {row.original_unit}"
-        return f"{row.value_nominal:g} {row.original_unit}"
+            content = "resto"
+        elif row.is_missing:
+            content = "ausente"
+        elif row.value_min is not None and row.value_max is not None:
+            content = f"{row.value_min:g}–{row.value_max:g} {row.original_unit}"
+        elif row.value_max is not None:
+            content = f"≤ {row.value_max:g} {row.original_unit}"
+        elif row.value_min is not None:
+            content = f"≥ {row.value_min:g} {row.original_unit}"
+        else:
+            content = f"{row.value_nominal:g} {row.original_unit}"
+        quality = getattr(row.data_quality, "value", row.data_quality)
+        source = row.source.label if row.source is not None else "—"
+        return f"{content}; {quality}; fonte {source}"
 
     @classmethod
     def _composition_snapshot_rows(cls, rows) -> dict[str, str]:

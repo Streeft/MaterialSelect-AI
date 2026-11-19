@@ -394,6 +394,11 @@ Três detalhes que não são arbitrários:
   rodam `python -m app.knowledge.chunk_positions` (sem e com `--apply`). Refazem o corte sobre o texto guardado e só aceitam a posição do trecho
   de texto idêntico; o resto segue NULL e na busca por palavras. Idempotentes, saída só de contagens (o log é público). Rode a simulação, confira
   a contagem e depois a gravação, uma vez, depois do Deploy da API.
+- **`cadernos_reembedar_simular` e `cadernos_reembedar` trocam os vetores antigos das fontes de caderno (D-255)**: rodam
+  `python -m app.knowledge.notebook_reembed` (sem e com `--apply`) com a identidade do `conhecimento.yml` (`gemini-embedding-001`, 768).
+  Só o vetor muda — nenhuma fonte, trecho ou nota é apagado. A simulação não usa chave; a gravação lê o secret `GEMINI_API_KEY` (o mesmo do
+  workflow Cérebro), envia até 300 pedidos (lote 20, 90/min) e para com sucesso na cota do dia; rode de novo até a simulação dizer "nada a
+  fazer". Log só de contagens.
 - **`conhecimento_indexar_links` indexa o `Links.md` da base de conhecimento (D-100)**:
   roda `python -m app.knowledge.ingest --no-embed --file=Links.md` apontado
   para a pasta `Cérebro` do repositório no runner do GitHub Actions contra a

@@ -484,9 +484,16 @@ impede a ferramenta de mentir com aritmética correta:
 |---|---|---|
 | Densidade | linear **por volume** (conservação de massa) | exata |
 | Módulo, condutividade | **par de limites** de Voigt e Reuss | limites |
+| Módulos de cisalhamento e volumétrico (D-255) | **par de limites** de Voigt e Reuss | limites |
 | Custo e grandezas ambientais | linear **por fração mássica** | exata |
 | Temperatura máxima de serviço | o **mínimo** dos dois | exata |
+| Temperatura de fusão (D-255) | **fusão do primeiro constituinte**, `min(TmA, TmB)` — o início da fusão, não "a fusão do compósito" | exata |
 | Resistência | **não tem regra** | — |
+
+Na espuma a fusão é **herdada** do sólido (mesma substância) e G e K **não têm
+regra** (a escala de Gibson–Ashby implementada é a do módulo de Young); no painel
+a fusão segue a do compósito e G e K não têm regra, porque o painel é
+anisotrópico por construção ([D-255](DECISIONS.md)).
 
 As três primeiras linhas se distinguem no dado, não na fórmula: uma grandeza *por
 unidade de massa* mistura por fração mássica, o que exige as **duas** densidades,

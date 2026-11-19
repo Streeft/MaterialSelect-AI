@@ -351,3 +351,39 @@ EXTENDED_PROPERTIES: list[dict] = [
 
 #: The slugs above, in catalogue order.
 EXTENDED_SLUGS: tuple[str, ...] = tuple(spec["slug"] for spec in EXTENDED_PROPERTIES)
+
+
+def _rockwell(scale: str, name_suffix: str) -> dict:
+    """One Rockwell scale (D-255): a number with no unit, like Shore.
+
+    Rockwell is not one property but a family of scales — indenter and load
+    differ, and a reading in one is not a reading in another — so each scale is
+    a definition of its own, as Shore A and D are, with the scale in the name
+    and the symbol. The number is a depth reading, not a ratio quantity: no
+    log axis, and no direction (harder is not better in general).
+    """
+    return {
+        "slug": f"dureza_rockwell_{scale.lower()}",
+        "name": f"Dureza Rockwell {scale} ({name_suffix})",
+        "symbol": f"HR{scale}",
+        "category": PropertyCategory.MECANICA,
+        "physical_dimension": "",
+        "canonical_unit": "dimensionless",
+        "accepted_units": ["dimensionless"],
+        "is_interval": False,
+        "better_direction": BetterDirection.NEUTRAL,
+        "allows_log_scale": False,
+    }
+
+
+#: D-255 (catálogo ampliado, item 6): the three Rockwell scales the demo
+#: families read in — B for softer metals, C for hard ones, M for rigid
+#: polymers. Kept apart from ``EXTENDED_PROPERTIES`` because their demo values
+#: come from their own seed (``app.db.seed_demo_rockwell``), not from D-188's.
+ROCKWELL_PROPERTIES: list[dict] = [
+    _rockwell("B", "metais macios"),
+    _rockwell("C", "metais duros"),
+    _rockwell("M", "polímeros rígidos"),
+]
+
+ROCKWELL_SLUGS: tuple[str, ...] = tuple(spec["slug"] for spec in ROCKWELL_PROPERTIES)

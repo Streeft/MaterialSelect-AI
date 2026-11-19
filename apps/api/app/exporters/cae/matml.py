@@ -14,7 +14,7 @@ all (control characters) are removed first. The apostrophe of ``cells.py``
 would show as data corruption here — the escape is per format (CLAUDE.md).
 
 Unlike the solver decks, MatML has no minimum: any one property makes a valid
-document. A record with none of the six is refused, because an empty
+document. A record with none of the quantities is refused, because an empty
 ``BulkDetails`` would read as "this material has no data" in a file that
 travels without the catalogue around it.
 """
@@ -25,10 +25,13 @@ import xml.etree.ElementTree as ET
 
 from app.exporters.cae.card import CaeCard, CardValue
 from app.exporters.cae.quantities import (
+    BULK,
     CONDUCTIVITY,
     CTE,
     DENSITY,
+    MELTING,
     POISSON,
+    SHEAR,
     SPECIFIC_HEAT,
     YOUNG,
 )
@@ -38,7 +41,8 @@ from app.exporters.xml_text import xml_legal
 
 LABEL = "MatML 3.1 (XML aberto)"
 REQUIRED = ()
-SUPPORTED = (DENSITY, YOUNG, POISSON, CTE, CONDUCTIVITY, SPECIFIC_HEAT)
+#: D-255: G, K and Tm travel too — catalogued, or G and K derived and marked so.
+SUPPORTED = (DENSITY, YOUNG, POISSON, CTE, CONDUCTIVITY, SPECIFIC_HEAT, SHEAR, BULK, MELTING)
 
 #: The property names written in ``PropertyDetails/Name`` (English, as the
 #: schema's own examples and most consumers expect).
@@ -49,7 +53,13 @@ _NAMES = {
     CTE.key: "Coefficient of Thermal Expansion",
     CONDUCTIVITY.key: "Thermal Conductivity",
     SPECIFIC_HEAT.key: "Specific Heat",
+    SHEAR.key: "Shear Modulus",
+    BULK.key: "Bulk Modulus",
+    MELTING.key: "Melting Point",
 }
+
+#: The data source a derived value points at: no source stated it (D-255).
+DERIVED_SOURCE = "Derivado pelo MaterialSelect AI (relação isotrópica)"
 
 
 def _text(value: str) -> str:
@@ -64,9 +74,18 @@ def _sub(parent: ET.Element, tag: str, text: str | None = None, **attrs: str) ->
     return element
 
 
+def _source_of(value: CardValue) -> str:
+    if value.derivation:
+        return DERIVED_SOURCE
+    return value.source_label or "sem fonte registrada"
+
+
 def _value_notes(value: CardValue) -> str:
-    source = value.source_label or "sem fonte registrada"
-    parts = [f"Qualidade do dado: {value.data_quality or 'não informada'}", f"Fonte: {source}"]
+    parts = [f"Qualidade do dado: {value.data_quality or 'não informada'}"]
+    if value.derivation:
+        parts.append(f"Derivado, não cadastrado: {value.derivation}")
+    else:
+        parts.append(f"Fonte: {_source_of(value)}")
     if value.license_label:
         parts.append(f"Licença: {value.license_label}")
     if value.is_range:
@@ -91,7 +110,7 @@ def render(card: CaeCard) -> str:
     for quantity in present:
         value = card.get(quantity)
         assert value.value is not None
-        label = value.source_label or "sem fonte registrada"
+        label = _source_of(value)
         source_id = metadata_sources.setdefault(label, f"ds{len(metadata_sources) + 1}")
         data = _sub(
             bulk,

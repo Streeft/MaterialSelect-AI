@@ -2533,7 +2533,7 @@ export const ptBR = {
       officialReadOnly:
         "Registro do catálogo oficial licenciado: a composição e as designações não são editadas pela ficha.",
       compositionRule:
-        "Em % em massa, como a fonte escreveu. Resto e ausente não levam número: o resto nunca é calculado e a ausência nunca vira zero. Toda linha precisa de fonte. Condição (fundido, laminado…) é opcional: linhas com a mesma condição formam uma composição. Salvar substitui a composição inteira, de todas as condições.",
+        "Em % em massa, como a fonte escreveu. Resto e ausente não levam número: o resto nunca é calculado e a ausência nunca vira zero. Toda linha precisa de fonte. Condição (fundido, laminado…) é opcional: linhas com a mesma condição formam uma composição. Toda linha diz a qualidade do dado e a fonte, cadastrada ou nova. “Salvar linha” grava só aquela linha; “Salvar” substitui a composição inteira, de todas as condições.",
       designationRule:
         "Cada código com a fonte que o afirma. Uma designação não declara equivalência com outro material. Salvar substitui todas as designações.",
       rowLabel: (n: number) => `Linha ${n}`,
@@ -2556,6 +2556,21 @@ export const ptBR = {
       addDesignation: "Adicionar designação",
       emptyComposition: "Sem linhas: salvar deixa a composição não cadastrada (não é 0 %).",
       invalidNumber: (element: string) => `${element || "Linha"}: número inválido.`,
+      // TM2-f / TM2-g (D-255): qualidade e fonte por linha; gravar uma linha só.
+      quality: "Qualidade do dado",
+      qualityPick: "Escolha…",
+      newSource: "Nova fonte (escrever o rótulo)",
+      newSourceLabel: "Rótulo da nova fonte",
+      qualityRequired: (element: string) =>
+        `${element || "Linha"}: escolha a qualidade do dado (medido, importado ou estimado).`,
+      sourceRequired: (element: string) =>
+        `${element || "Linha"}: escolha uma fonte cadastrada ou escreva o rótulo de uma nova.`,
+      saveRow: (n: number) => `Salvar linha ${n}`,
+      removeRowTitle: (n: number) => `Remover a linha ${n} da composição?`,
+      removeRowMessage:
+        "A linha sai da composição gravada agora, com registro na auditoria. As outras linhas ficam como estão.",
+      rowSaved: (n: number) => `Linha ${n} gravada.`,
+      rowRemoved: "Linha removida.",
     },
   },
   // D-115 (TM1): equivalência declarada entre designações, na ficha.

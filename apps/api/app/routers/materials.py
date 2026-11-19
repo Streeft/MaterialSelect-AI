@@ -27,6 +27,7 @@ from app.schemas.curve import (
 )
 from app.schemas.material import (
     ChartData,
+    CompositionEntryIn,
     CompositionReplaceIn,
     DesignationsReplaceIn,
     MaterialBatchDeleteIn,
@@ -357,6 +358,56 @@ def replace_composition(
     """
     return MaterialService(db, user, unit_choices, can_edit_shared).replace_composition(
         material_id, payload
+    )
+
+
+@router.post(
+    "/{material_id}/composicao/linhas",
+    response_model=MaterialDetail,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_composition_entry(
+    material_id: int,
+    payload: CompositionEntryIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
+) -> MaterialDetail:
+    """Add one composition row (TM2-g, D-255), validated with the whole composition."""
+    return MaterialService(db, user, unit_choices, can_edit_shared).add_composition_entry(
+        material_id, payload
+    )
+
+
+@router.put("/{material_id}/composicao/linhas/{entry_id}", response_model=MaterialDetail)
+def update_composition_entry(
+    material_id: int,
+    entry_id: int,
+    payload: CompositionEntryIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
+) -> MaterialDetail:
+    """Rewrite one composition row (TM2-g, D-255); the other rows are left as stored."""
+    return MaterialService(db, user, unit_choices, can_edit_shared).update_composition_entry(
+        material_id, entry_id, payload
+    )
+
+
+@router.delete("/{material_id}/composicao/linhas/{entry_id}", response_model=MaterialDetail)
+def delete_composition_entry(
+    material_id: int,
+    entry_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    unit_choices: dict[str, str] = Depends(get_unit_choices),
+    can_edit_shared: bool = Depends(can_edit_shared_catalog),
+) -> MaterialDetail:
+    """Remove one composition row (TM2-g, D-255), with audit."""
+    return MaterialService(db, user, unit_choices, can_edit_shared).delete_composition_entry(
+        material_id, entry_id
     )
 
 
