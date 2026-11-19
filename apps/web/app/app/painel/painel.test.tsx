@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 // See the note in components/layout/layout.test.tsx: MWC button roles live
 // inside a shadow root, invisible to plain @testing-library/react queries.
 import { screen, within } from "shadow-dom-testing-library";
@@ -40,6 +40,9 @@ const nav = vi.hoisted(() => ({
   search: new URLSearchParams(),
   listeners: new Set<() => void>(),
   push: (() => undefined) as (url: string) => void,
+  // D-250: Next's router writes the address after the click returns; a test
+  // that sets this sees two quick clicks land before the first is in the URL.
+  defer: false,
 }));
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/painel",
@@ -53,8 +56,12 @@ vi.mock("next/navigation", () => ({
     ),
   useRouter: () => ({
     replace: (url: string) => {
-      nav.search = new URLSearchParams(url.split("?")[1] ?? "");
-      nav.listeners.forEach((listener) => listener());
+      const apply = () => {
+        nav.search = new URLSearchParams(url.split("?")[1] ?? "");
+        nav.listeners.forEach((listener) => listener());
+      };
+      if (nav.defer) setTimeout(apply, 0);
+      else apply();
     },
     push: (url: string) => nav.push(url),
   }),
@@ -668,6 +675,30 @@ describe("painel", () => {
     await userEvent.click(await screen.findByShadowRole("button", { name: "Aços" }));
     await waitFor(() => expect(nav.search.getAll("subclasse")).toEqual(["Ligas de alumínio"]));
     getDashboardComposition.mockResolvedValue(composition);
+  });
+
+  it("keeps both of two quick clicks, before the address caught up with the first (D-250)", async () => {
+    getDashboardComposition.mockResolvedValue({
+      ...composition,
+      cells: [
+        ...composition.cells,
+        { key: "s:metais:Ligas de alumínio", depth: 1, class_slug: "metais", class_name: "Metais", subclass: "Ligas de alumínio", count: 1, share_pct: 33.3, x0: 0, y0: 0, x1: 50, y1: 90 },
+      ],
+    });
+    await renderDashboard("classe=metais");
+    await screen.findByText(d.composition.title);
+    await userEvent.click(screen.getByShadowRole("button", { name: new RegExp(`^${d.filters.subclasse}: `) }));
+    const steel = await screen.findByShadowRole("button", { name: "Aços" });
+    const aluminium = screen.getByShadowRole("button", { name: "Ligas de alumínio" });
+    nav.defer = true;
+    try {
+      fireEvent.click(steel);
+      fireEvent.click(aluminium);
+      await waitFor(() => expect(nav.search.getAll("subclasse")).toEqual(["Aços", "Ligas de alumínio"]));
+    } finally {
+      nav.defer = false;
+      getDashboardComposition.mockResolvedValue(composition);
+    }
   });
 
   it("opens a link with two subclasses as it was, and the chip names them (D-250)", async () => {

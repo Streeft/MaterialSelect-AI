@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
@@ -154,7 +154,14 @@ function DashboardContent() {
     return [...names].sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [subclassOptions.data]);
 
-  const chosenSubclasses = filters.subclasses ?? [];
+  const chosenSubclasses = useMemo(() => filters.subclasses ?? [], [filters.subclasses]);
+  // D-250: two quick clicks on the subclass list land before the address has
+  // caught up with the first; toggling against the URL alone would drop it.
+  // The list being written is kept here and re-synced whenever the URL moves.
+  const pendingSubclasses = useRef<readonly string[]>(chosenSubclasses);
+  useEffect(() => {
+    pendingSubclasses.current = chosenSubclasses;
+  }, [chosenSubclasses]);
   const active = activeFilterCount(filters);
   const section: DashboardSection = tab;
 
@@ -228,8 +235,11 @@ function DashboardContent() {
           ]}
           onChange={(id, value) => {
             if (id === "classe") setFilters({ classe: value, subclasses: [] });
-            else if (id === "subclasse")
-              setFilters({ subclasses: value === null ? [] : toggleSubclass(chosenSubclasses, value) });
+            else if (id === "subclasse") {
+              const next = value === null ? [] : toggleSubclass(pendingSubclasses.current, value);
+              pendingSubclasses.current = next;
+              setFilters({ subclasses: next });
+            }
             else if (id === "nivel") setFilters({ nivel: (value ? Number(value) : 3) as 1 | 2 | 3 });
             else if (id === "demo") setFilters({ demo: (value ?? "todos") as DashboardFilters["demo"] });
           }}

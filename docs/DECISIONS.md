@@ -14674,7 +14674,9 @@ Comparar reexecutava o estudo **salvo** mais recente porque o servidor não regi
   recusa mais de 20 ou nome com mais de 200 caracteres (400). `FiltersOut.subclass` virou **`subclasses: list[str]`**; o CSV escreve
   `subclasse=A | B`.
 - `FilterBar` ganhou campo de **várias escolhas** (`multiple`, `values`): cada opção alterna e o painel continua aberto; "Qualquer" e o ✕ limpam
-  tudo; o chip diz "Subclasse: A + 2". As outras telas que usam a barra não mudaram.
+  tudo; o chip diz "Subclasse: A + 2". As outras telas que usam a barra não mudaram. Dois cliques rápidos chegam antes de o endereço
+  registrar o primeiro (o roteador escreve depois): a lista em escrita fica numa ref e se ressincroniza quando a URL muda, senão o segundo
+  clique apagava o primeiro (achado no E2E; `painel.test` reproduz com o roteador adiado).
 
 **Decisão — Correlação por classe (pequenos múltiplos).** `GET /api/dashboard/correlation/by-class`: a mesma matriz de Spearman, por pares
 completos, uma por classe dos materiais (como as caixas da distribuição), maiores primeiro, até **12** (as demais contadas em `omitted_classes`,
