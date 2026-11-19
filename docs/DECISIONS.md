@@ -14770,3 +14770,105 @@ migração e sem seed.** Toca `apps/api`: **Deploy da API** depois do merge; dep
 `sessionStorage` entre testes.
 
 **Numeração.** D-251, Sessão 208 (conferidas em `origin/main` e nas branches abertas).
+
+
+## D-252 — Pendências do TODO, parte 10: fila de reenvio do laudo, Word e PowerPoint da versão emitida, aviso de busca léxica, alternativas C e D na sugestão da Eco, i18n da IA limpo e Trafilatura nos Cadernos
+
+**Contexto.** Seis pendências do `TODO.md`, em dois grupos: o laudo (D-243, D-249) — um envio que falhou por motivo passageiro se perdia, e o
+Word/PowerPoint de uma versão **emitida** reexecutava o estudo e dizia que não era a emitida — e a IA (D-224, D-234, D-247, D-251) — a busca caía
+para a léxica sem aviso na tela, a sugestão da Eco só conhecia A e B, sobravam textos `ptBR.ai.*` do `interpret` removido, e o extrator de HTML
+dos Cadernos era o da biblioteca padrão.
+
+**Decisão — fila de reenvio.** Sem servidor de fila: a fila é a tabela `report_delivery` e quem a consulta é **uma thread do próprio processo da
+API** (`app/services/delivery_retry_worker.py`, iniciada no `lifespan` de `app/main.py`), a cada `EMAIL_RETRY_POLL_SECONDS` (30). A máquina do
+Fly é uma só e fica sempre de pé (`min_machines_running = 1`, `auto_stop_machines = false`); se reiniciar, a fila continua na tabela e a thread
+do novo processo a retoma. **Só liga com `EMAIL_PROVIDER=smtp` e `EMAIL_RETRY_MAX_ATTEMPTS` > 1** (o `mock` nunca falha: nos testes e no
+desenvolvimento não há thread). Uma consulta indexada por ciclo, três envios no máximo por ciclo.
+- *O que entra na fila.* Só falha **passageira** (`TransientEmailSendError`, subclasse de `EmailSendError`; `is_transient_smtp_failure`):
+  servidor que desconectou ou recusou a conexão, tempo esgotado, nome que não resolveu, TLS que caiu no meio, resposta `4xx`. Falha
+  **permanente** — senha, remetente ou destinatário recusado, servidor sem o TLS pedido, `5xx`, qualquer exceção desconhecida — é `falhou` na hora,
+  como antes (503 na resposta). Lacuna de configuração (`EMAIL_PROVIDER=smtp` sem host) segue 503 sem linha.
+- *Estado.* `report_delivery.status` ganha **`na_fila`**, com `attempts`, `next_attempt_at` e `reply_to` (migração `a7c3e19d5b42`, aditiva: as
+  linhas existentes ficam com `attempts = 1`). A resposta do envio que entra na fila é **201 com `status: "na_fila"`** (e não mais 503), o
+  motivo em `error` e a hora da próxima tentativa; a lista de envios mostra "Na fila", "Tentativa N de M falhou; o servidor tenta de novo em …"
+  e, esgotadas as tentativas, **"Falhou após N tentativas"**.
+- *Espera e teto.* `EMAIL_RETRY_BASE_SECONDS` (300) × 3ⁿ⁻¹ (5 min, 15 min, 45 min, 2 h 15 min; no máximo 6 h) até `EMAIL_RETRY_MAX_ATTEMPTS` (5)
+  tentativas **contando a primeira**. `1` desliga a fila: a primeira falha é final.
+- *Limite por hora.* `RATE_LIMIT_EMAIL_PER_HOUR` é gasto **uma vez, quando a pessoa aperta Enviar** (o 429 vale no pedido, antes de qualquer
+  linha); a nova tentativa é a **mesma mensagem**, não um envio novo, e o que a limita é o número de tentativas. Assim uma fila cheia não é
+  bloqueada por um limite que a própria pessoa já gastou, e ninguém consegue mandar mais mensagens do que o limite.
+- *Link.* O token nunca é guardado (só o SHA-256), e um envio que não saiu não entregou link a ninguém: a tentativa que **consegue** gera um
+  token novo, troca `token_hash`, conta a validade a partir dali e anexa o PDF assinado que a versão tem **então**. Enquanto está na fila o envio
+  não tem link (`sem_link`, e `find_by_token_hash` não o acha).
+- *Sem envio duplo.* Uma instrução `UPDATE` condicional (`claim_due`) leva a tentativa e empurra `next_attempt_at` dez minutos à frente (uma
+  concessão): outro ciclo ou outra máquina não a pega; se o processo morre no meio, a fila a retoma quando a concessão acaba. Portão de envio
+  cheio (`ServerBusyError`) **não conta como tentativa** (tenta de novo em 1 min). Uma exceção inesperada num envio é registrada e não derruba o ciclo.
+- *Cancelar.* `POST /api/exports/envios/{id}/revogar` num envio **na fila** o **cancela** (vira `falhou`, "Envio cancelado…", auditado); reenviar um
+  envio na fila é 400 (já será tentado). Auditoria: só a mudança de estado (`na_fila` → `enviado`/`falhou`, com a contagem de tentativas), nunca endereços.
+- *Limite conhecido.* É entrega **pelo menos uma vez**: um tempo esgotado depois de o servidor aceitar a mensagem (raro) faz a fila mandar de novo,
+  e o primeiro e-mail, se chegou, traz um link que o token novo não abre (404). A tela diz que a fila existe; o remédio é revogar/reenviar.
+
+**Decisão — Word e PowerPoint da versão emitida.** `GET /api/exports/estudos/{id}/laudo/versoes/{n}.docx|.pptx`. O congelado é o **HTML**
+(`IssuedReport.html`); `app/exporters/laudo_frozen.py` o **lê de volta** num `LaudoDocument` e os mesmos escritores de Word e PowerPoint o
+desenham. Nada é recalculado: cada número é o texto já formatado no documento emitido, os gráficos são os SVG **do HTML**, byte a byte (extraídos
+com expressão regular, porque o analisador de HTML minúsculiza `viewBox`), o semáforo é lido dos `<text>` do próprio SVG (o estado pela palavra) e
+quem assina, cliente, versão e data vêm das colunas da linha. A capa diz **"Cópia editável da versão emitida N, código X"** (e o assunto do `.docx`
+também) e que o texto e os números são os do documento congelado; segue sem selo e sem QR. O teste de ida e volta compara o documento lido com o
+que o serviço monta hoje (cartões, por quê, escopo, semáforo, seções, gráficos, anexo) e outro prova que mudar o catálogo depois da emissão não muda o
+arquivo. **O que o HTML não guarda, a cópia não inventa**: um rótulo do semáforo cortado em 72 caracteres no desenho vem cortado; uma tabela sem
+linhas não imprime cabeçalho; uma célula ausente é a palavra "ausente". Um HTML sem capa nem resumo é recusado (400) em vez de entregar um arquivo vazio.
+Fica a opção atual, agora rotulada **"Baixar Word do estudo atual"** / **"Baixar PowerPoint do estudo atual"** (os dados de hoje, com os campos do
+formulário), e **cada versão ganha "Word" e "PowerPoint" na linha**.
+
+**Decisão — aviso de busca léxica.** `search_detailed` (Cérebro) e `notebooks.retrieval.search` dizem **`semantic_degraded`**: a metade semântica
+era para ranquear e **não veio** (provedor de embeddings fora, 429, orçamento de tempo estourado, vetores que não servem). **Não** vale para quem não
+tem embeddings configurados nem para o provedor simulado (a léxica é, ali, o modo normal, não uma recaída). Sai como `retrieval_degraded` em
+`AnswerOut` (a resposta do caderno, **guardada com ela**, então o histórico mostra o aviso da resposta que o teve), `ProjectPlanOut` (um plano
+reaproveitado do cache não buscou nada e diz `false`) e `ExplanationOut`. A tela mostra uma linha discreta (`RetrievalDegradedNote`, `role="note"`, sem
+cor de alerta): "A busca por significado não respondeu desta vez: os trechos de referência foram escolhidos só pelas palavras, e a resposta pode ficar
+menos precisa." A resposta segue citada e conferida; só o aviso é novo.
+
+**Decisão — Eco: a sugestão conhece C e D.** O contexto da comparação que o modelo lê (`_eco_compare`) passa a trazer, para cada alternativa C/D, o
+material, o processo, a massa, os totais, o percentual de energia e de carbono **contra A** e o menor total entre todas, tudo do resultado do
+servidor (`extras[]`, `lowest_*`); com extras, o cartão de regra nomeia a de menor energia. Os parâmetros que a sugestão pode propor valem para elas com os
+nomes `material_c.*` / `material_d.*` (massa, fração reciclada, fim de vida), **só se a alternativa existe** (um nome que o servidor não ofereceu é
+recusado com o motivo), pelas mesmas faixas e valores permitidos de A e B, com o mesmo `sugestao_ia` marcado e confirmado. No cliente, `aiParamPatch`
+escreve em `extras[0]` (C) ou `extras[1]` (D) e recusa a letra que a tela não tem. Sem extras o contexto é o de A × B, sem mudança.
+
+**Decisão — i18n da IA.** `ptBR.ai` perdeu os 31 textos do painel de "Interpretar enunciado" (rota e cliente saíram no D-234) e guarda só o da
+explicação do estudo e o aviso da busca; um teste de chaves impede que texto sem leitor volte. O painel de cabeçalho "desligado" do `AIAssistPanel` usa o
+título do assistente (`planText.panelTitle`), que era o único uso de `ptBR.ai.title`. O método `interpret` dos provedores **fica** (o `rule_plan` o usa).
+
+**Decisão — Trafilatura nos Cadernos.** `trafilatura` 2.0 (Apache-2.0; courlan e htmldate Apache-2.0, jusText BSD-2, dateparser BSD-3) entra **à frente**
+do extrator embutido, em `app/notebooks/page_text.py` (`extract_page`, chamado por `ExternalSourceService`). O extrator embutido (`html_text`) não foi
+trocado: continua sendo a **regra de visibilidade** e a **recaída**.
+- *A regra do texto oculto sobrevive à troca por construção.* O Trafilatura **não recebe a página**: recebe `clean_markup`, escrita a partir da árvore
+  do extrator embutido **sem** os nós ocultos (`hidden`, `aria-hidden`, estilo que esconde, texto pequeno ou claro demais), sem `<script>`,
+  `<style>`, `<template>` e sem os marcos de navegação que ele já descarta, só com `class` e `id` (que as heurísticas dele leem), texto escapado,
+  tabela de layout achatada e **`<sup>`/`<sub>` já escritos como `³`/`₂`** (`10<sup>3</sup>` jamais vira `103`). Testado onze maneiras de ocultar, na
+  entrada **e** na saída.
+- *Forma do texto.* O Markdown dele volta ao formato que o fatiador e as citações leem (título em caixa que o fatiador reconhece, `- ` de item,
+  `a | b` de linha de tabela sem a linha de regra, linha em branco entre blocos), com os mesmos ajudantes do escritor embutido.
+- *Recaída para o extrator embutido, com o texto dele, intacto*, se o Trafilatura: levantar erro; não devolver nada; devolver menos de 200 letras;
+  guardar menos de 20% do que o embutido guardou (escolheu o bloco errado); escrever **um número que a página não tem**; se a página limpa passar de
+  1,5 milhão de caracteres (memória); se o pacote não estiver instalado; ou com `NOTEBOOK_HTML_EXTRACTOR=builtin`. A recusa de página vazia é a mesma.
+- *Memória e tempo (medidos).* Importa dentro da função, nunca na partida (D-235): **+20 MB** de RSS na primeira página lida (importa `lxml`,
+  `courlan`, `htmldate`, `dateparser`). Uma página de 1,8 MB levou **3,3 s** (o embutido sozinho, 1,2 s) e chegou a **~130 MB** de pico no processo
+  (base de 44 MB); acima de 1,5 milhão de caracteres limpos o Trafilatura nem roda. Uma página típica (43 KB) leva **76 ms** (o embutido, 29 ms).
+- *Ganho medido na página de exemplo* (banner de cookies, botões de compartilhar, "leia também" e comentários, tudo `<div>`): o embutido guarda tudo;
+  o Trafilatura guarda só o artigo, a lista, a tabela e o título.
+
+**Alternativas recusadas.** Fila externa (Redis, Celery, `pg_cron`): dependência e serviço novos para uma máquina só; a tabela e uma thread bastam e a
+perda de um ciclo é só atraso. Disparar a fila "na próxima requisição": sem tráfego a mensagem ficaria parada. Guardar o token cifrado para reaproveitar o
+link na nova tentativa (a propriedade "só o hash fica" é mais valiosa que o link antigo de um e-mail que não saiu). Gastar a cota por hora a cada
+tentativa (a pessoa não pediu cinco e-mails). Congelar também o `LaudoDocument` em JSON na emissão (migração, megabytes por versão e, mesmo assim, nada
+para as versões já emitidas; o HTML é o que se assinou e basta). Trocar o extrator embutido pelo Trafilatura (perde a defesa contra texto oculto, que
+é nossa e é testada; e sem recaída). Entregar o HTML cru ao Trafilatura (ele só descarta `display:none` literal). Escrever a saída `txt` dele (não
+distingue título). Aviso de busca em cor de alerta (a resposta continua boa; é uma nota).
+
+**Consequências.** Contratos novos em `packages/shared-types` (`retrieval_degraded`). **Migração `a7c3e19d5b42`, sem seed.** Toca `apps/api`:
+**Deploy da API** depois do merge (o `release_command` aplica a migração). Nova dependência `trafilatura>=2.0,<3` no `pyproject.toml` (a imagem é
+reconstruída). Novas variáveis, todas com padrão: `EMAIL_RETRY_MAX_ATTEMPTS`, `EMAIL_RETRY_BASE_SECONDS`, `EMAIL_RETRY_POLL_SECONDS`,
+`NOTEBOOK_HTML_EXTRACTOR` (`.env.example`, `13-deploy.md`). Nada a gravar no Fly: com `EMAIL_PROVIDER=smtp` a fila já liga sozinha.
+
+**Numeração.** D-252, Sessão 209 (conferidas em `origin/main` e nas branches abertas).

@@ -120,6 +120,27 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 209 — 19/11/26 — Pendências do TODO, parte 10: fila de reenvio do laudo, Word e PowerPoint da versão emitida, aviso de busca léxica, alternativas C e D na sugestão da Eco, i18n da IA limpo, Trafilatura nos Cadernos (D-252)
+
+**O que mudou.** *Laudo:* um envio que falha por motivo **passageiro** (servidor de e-mail fora, tempo esgotado, `4xx`) entra na fila (`na_fila`) e é
+tentado de novo por uma thread do processo da API (só com `EMAIL_PROVIDER=smtp`), com espera 5 min × 3ⁿ e no máximo `EMAIL_RETRY_MAX_ATTEMPTS` (5)
+tentativas; a lista de envios diz "Na fila", "Tentativa N de M falhou; o servidor tenta de novo em …" e "Falhou após N tentativas", e "Cancelar envio" tira
+da fila. A cota por hora é gasta uma vez, ao apertar Enviar; a tentativa que consegue gera o link (o primeiro nunca saiu). Migração `a7c3e19d5b42`.
+*Word e PowerPoint da versão emitida:* `…/laudo/versoes/{n}.docx|.pptx`, lidos de volta do HTML congelado (`exporters/laudo_frozen.py`), sem rodar o
+estudo; a capa diz "Cópia editável da versão emitida N, código X". Os botões do cabeçalho passam a "…do estudo atual" e cada versão ganha "Word" e
+"PowerPoint". *IA:* `retrieval_degraded` (resposta do caderno, plano do assistente, explicação do estudo) e uma linha discreta quando a busca por
+significado não veio; a sugestão da Eco conhece C e D (contexto do servidor e parâmetros `material_c.*`/`material_d.*`); `ptBR.ai` perdeu os 31
+textos do "Interpretar enunciado"; **Trafilatura** (2.0, Apache-2.0) à frente do extrator de páginas dos Cadernos, sobre a página **já sem os nós ocultos**,
+com recaída para o extrator embutido em qualquer falha ou número que a página não tem (`NOTEBOOK_HTML_EXTRACTOR=builtin` desliga).
+
+**Testes novos.** Backend: `test_laudo_frozen` (ida e volta do HTML congelado, seções, anexo, rotas, o catálogo que muda depois, só o dono),
+`test_laudo_email_queue` (fila: classificação, espera, teto, token novo, cota, auditoria, cancelar, concessão, portão ocupado, a thread),
+`test_migration_fila_reenvio`, `test_retrieval_mode` (Cérebro, Cadernos e as três telas), `test_ai_suggest` (alternativas C e D), `test_page_text`
+(Trafilatura: boilerplate, onze maneiras de ocultar, `³`, número inventado, cada recaída, importação preguiçosa) e os ajustes de `test_laudo_email`,
+`test_laudo_pdf_link` e `test_ai_api`. Frontend: `LaudoScreen`, `DeliveriesDialog` e `SendLaudoDialog` (fila, cancelar, "Falhou após N", Word e PowerPoint da versão),
+`AnswerView`, `PlanView` e `StudyExplanation` (aviso), `ecoBrief` (C e D), `i18n` (chaves de `ptBR.ai`); o E2E do laudo baixa o Word da versão. Depois do merge:
+**Deploy da API** (migração pelo `release_command`; a imagem ganha o Trafilatura). Nada a gravar no Fly.
+
 ## Sessão 208 — 19/11/26 — Pendências do TODO, parte 9: Eco com até quatro alternativas, Custo × Lote por processo, proposta do assistente que fica e se edita, escala ordinal à mão, posição dos trechos antigos (D-251)
 
 **O que mudou.** *Eco:* "Adicionar outra alternativa" (C e D), cada uma contra A, com a cascata `C − A` do servidor e o menor total entre todas só
