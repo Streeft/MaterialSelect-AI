@@ -120,6 +120,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 220 — 20/11/26 — O laudo do projeto, e Projetos e Cadernos no fim do "Estudar" (D-263)
+
+**O que mudou.** *Backend:* `app/services/assembly_report_service.py` (o projeto e o ensaio como um `Report`) e
+`GET /api/exports/projetos/{id}/laudo.{fmt}` (HTML, XLSX, CSV, DOCX). *Frontend:* os quatro formatos no menu "Mais ações" do projeto, "Abrir o
+laudo do projeto" na seção do ensaio, e a ordem do grupo "Estudar" na barra lateral (Projetos e Cadernos depois de Baterias).
+
+**Por quê.** Fecha a camada 5 da Oficina: faltava o documento. A ordem do menu foi pedido do autor.
+
+**Como foi conferido.** Backend: `ruff`, `black --check`, `pytest` inteiro (6616 coletados em 265 arquivos). Frontend: `typecheck`, `lint` (0
+erros), `vitest run` (2822 em 253 arquivos). No Chromium, com a API real: o link da página abre o documento numa aba, com o veredito, os 2100 MJ
+do tampo vindos do servidor, o motivo escrito onde falta a massa e o aviso de que não é guardado; `projetos`, `ensaio` e `mobile` passam.
+
+**O que olhar no navegador mostrou.** A tabela de peças com os números tinha 12 colunas e a última saía cortada: virou duas tabelas.
+
+**Ficou de fora, com motivo.** Laudo do projeto emitido e versionado (selo, código, envio): outro trabalho, sem pedido.
+
+---
+
 ## Sessão 219 — 20/11/26 — Domínio oficial materialselect.com.br (D-262)
 
 **O que mudou.** Só documentação: README, `docs/13-deploy.md` (nova subseção "Domínio oficial"), `docs/TCC_GUIA.md`, `docs/PROJECT_CONTEXT.md` e os textos do vídeo da banca passam a citar https://materialselect.com.br. O domínio antigo segue ativo por causa dos laudos já emitidos. Sem código de app. Inclui o passo obrigatório `NEXT_PUBLIC_API_URL=https://materialselect.com.br` na Vercel (sintoma `erro=sessao` se ficar no domínio antigo).

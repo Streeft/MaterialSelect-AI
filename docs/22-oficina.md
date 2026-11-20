@@ -56,7 +56,7 @@ Oficina é a mesma narrativa com cenário; nenhum número muda de lugar de cálc
 | 2 | **Projeto com peças**: backend + telas de Projetos | **feito (D-257)** |
 | 3 | **Bandeja**: materiais, fixações e ferramentas guardados na conta | **feito (D-258)** |
 | 4 | **Bancada**: levar da bandeja para o mapa, o comparador, o Custo e o Eco | **feito (D-259)** |
-| 5 | **Ensaio** por peça e **"Solucionado"**; laudo do projeto | **feito o ensaio (D-260, D-261)**: limites do estudo e caso de carga; laudo a fazer |
+| 5 | **Ensaio** por peça e **"Solucionado"**; laudo do projeto | **feito (D-260, D-261, D-263)**: limites do estudo, caso de carga e laudo do projeto |
 | 6 | Tabelas leves de verdade: até 5 colunas, resto no detalhe da linha (resultados da Seleção) | a fazer |
 
 ### Camada 2 — projeto com peças (feita, D-257)
@@ -100,7 +100,8 @@ Oficina é a mesma narrativa com cenário; nenhum número muda de lugar de cálc
 - **Caso de carga (D-261):** a peça declara um caso do Dimensionar e as medidas; passa quando a massa informada chega à massa mínima que o
   solver calcula para o material. Premissa dita na tela: a peça tem a forma do caso e só a variável livre muda. Sem massa informada, ou sem a
   propriedade no material, é "Sem dado".
-- **A fazer:** laudo do projeto.
+- **Laudo do projeto (D-263):** o projeto e o ensaio como um documento (HTML para imprimir, XLSX, CSV, DOCX), pelo menu "Mais ações" e pela
+  seção do ensaio. Não calcula nada, não é guardado, e não é o laudo emitido de um estudo.
 
 ## Onde está cada coisa (camada 1)
 

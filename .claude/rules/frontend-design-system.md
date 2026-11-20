@@ -264,7 +264,9 @@ ficou sem objeto. Três regras que não são questão de gosto:
   "passa". A cor do selo concorda com a palavra, não a substitui. O ensaio se pede por botão e depois acompanha o projeto; nada é guardado. No caso de carga
   ([D-261](docs/DECISIONS.md)) `PartLoadCase` só recolhe a declaração (caso, medidas, apoio) e as duas massas da linha vêm do servidor: a tela
   nunca calcula a massa mínima nem compara. Sobreposição fixa na janela (a lista do `Combobox`) tem de **caber nela**: toma o espaço que há,
-  abre para o outro lado quando falta, e encolhe; nunca abre para fora da tela.
+  abre para o outro lado quando falta, e encolhe; nunca abre para fora da tela. O **laudo do projeto** ([D-263](docs/DECISIONS.md)) é um
+  documento do servidor: a tela só oferece os endereços (`projectReportUrl`), nunca monta o documento. No grupo "Estudar" da barra,
+  as ferramentas vêm antes e **Projetos e Cadernos fecham o grupo**.
 
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de

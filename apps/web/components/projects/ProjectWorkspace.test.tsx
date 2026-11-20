@@ -20,6 +20,7 @@ const api = vi.hoisted(() => ({
   deleteAssemblyPart: vi.fn(),
 }));
 vi.mock("@/lib/api", () => ({
+  projectReportUrl: (id: number, format = "html") => `https://api.test/api/exports/projetos/${id}/laudo.${format}`,
   ...api,
   listMaterials: () =>
     Promise.resolve([
@@ -369,5 +370,33 @@ describe("ProjectWorkspace (D-257)", () => {
 
     await user.click(within(card).getByRole("button", { name: t.load.remove }));
     await waitFor(() => expect(api.updateAssemblyPart).toHaveBeenCalledWith(5, 1, { load_case: null }));
+  });
+
+  it("o laudo do projeto é um documento do servidor: a tela só oferece os endereços (D-263)", async () => {
+    api.getAssembly.mockResolvedValue(project([part({})]));
+    const user = userEvent.setup();
+    renderWorkspace();
+    await screen.findByRole("region", { name: t.partRegion("Tampo") });
+    // In the trial's section, the way to the printable document.
+    expect(screen.getByRole("link", { name: t.report.open })).toHaveAttribute(
+      "href",
+      "https://api.test/api/exports/projetos/5/laudo.html",
+    );
+    // And every format in the page's menu, as links the browser opens or saves.
+    await user.click(screen.getByRole("button", { name: "Mais ações" }));
+    for (const format of ["html", "xlsx", "csv", "docx"] as const) {
+      expect(screen.getByRole("menuitem", { name: t.report.menu[format] })).toHaveAttribute(
+        "href",
+        `https://api.test/api/exports/projetos/5/laudo.${format}`,
+      );
+    }
+    expect(screen.getByRole("menuitem", { name: t.delete })).toBeInTheDocument();
+  });
+
+  it("sem peças não há laudo a abrir na seção do ensaio (D-263)", async () => {
+    api.getAssembly.mockResolvedValue(project([]));
+    renderWorkspace();
+    expect(await screen.findByText(t.trial.empty)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: t.report.open })).toBeNull();
   });
 });

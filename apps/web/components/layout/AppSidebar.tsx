@@ -101,13 +101,8 @@ export const GROUPS: NavGroup[] = [
     label: t.groupStudy,
     items: [
       { href: "/app/selecao", label: t.selection, icon: IconFilter },
-      // D-257: a project is several selections, one per part; it sits right after them.
-      { href: "/app/projetos", label: t.projects, icon: IconAssembly },
       { href: "/app/mapas", label: t.maps, icon: IconScatter },
       { href: "/app/comparar", label: t.compare, icon: IconCompare },
-      // D-92: os cadernos ficam em "Estudar" — são onde se estuda com as
-      // próprias fontes, não onde os registros do catálogo moram.
-      { href: "/app/cadernos", label: t.notebooks, icon: IconNotebook },
       // P2: o Engineering Solver e o Index Finder moram na mesma tela, porque
       // são a mesma derivação lida de dois jeitos.
       { href: "/app/dimensionar", label: t.solver, icon: IconRuler },
@@ -119,6 +114,11 @@ export const GROUPS: NavGroup[] = [
       // P4: o Battery Designer (Módulo S) permite dimensionar packs de bateria
       // e selecionar químicas eletroquímicas para requisitos de aplicação.
       { href: "/app/baterias", label: t.battery, icon: IconBattery },
+      // D-263 (pedido do autor): o que reúne o trabalho vem por último, depois das
+      // ferramentas — o projeto (várias seleções, uma por peça, D-257) e os cadernos
+      // (onde se estuda com as próprias fontes, D-92). Continuam em "Estudar".
+      { href: "/app/projetos", label: t.projects, icon: IconAssembly },
+      { href: "/app/cadernos", label: t.notebooks, icon: IconNotebook },
     ],
   },
   {

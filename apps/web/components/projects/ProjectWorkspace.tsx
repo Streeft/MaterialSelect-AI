@@ -12,6 +12,7 @@ import {
   listLoadCases,
   listMaterials,
   listStudies,
+  projectReportUrl,
   updateAssembly,
   updateAssemblyPart,
 } from "@/lib/api";
@@ -456,7 +457,20 @@ export function ProjectWorkspace({ id }: { id: number }) {
         properties={
           <p className="text-support text-ink-muted">{t.progress(data.chosen_count, data.part_count)}</p>
         }
-        menu={<MenuItem onSelect={() => setConfirming(true)}>{t.delete}</MenuItem>}
+        menu={
+          <>
+            {/* D-263: the project as a document. Links, so the browser opens or saves the file. */}
+            <MenuItem href={projectReportUrl(id, "html")} target="_blank" rel="noopener">
+              {t.report.menu.html}
+            </MenuItem>
+            {(["xlsx", "csv", "docx"] as const).map((format) => (
+              <MenuItem key={format} href={projectReportUrl(id, format)} download>
+                {t.report.menu[format]}
+              </MenuItem>
+            ))}
+            <MenuItem onSelect={() => setConfirming(true)}>{t.delete}</MenuItem>
+          </>
+        }
       >
         {write.isError ? (
           <Alert tone="danger" role="alert">
@@ -595,6 +609,20 @@ export function ProjectWorkspace({ id }: { id: number }) {
 
         <Section id="ensaio" title={t.trial.title}>
           <ProjectTrial assemblyId={id} stamp={data.updated_at} hasParts={data.parts.length > 0} />
+          {data.parts.length > 0 ? (
+            <p className="text-support text-ink-muted">
+              <a
+                href={projectReportUrl(id, "html")}
+                target="_blank"
+                rel="noopener"
+                className="touch-target font-semibold text-brand-700 underline"
+              >
+                {t.report.open}
+              </a>
+              {". "}
+              {t.report.hint}
+            </p>
+          ) : null}
         </Section>
       </PageDoc>
 

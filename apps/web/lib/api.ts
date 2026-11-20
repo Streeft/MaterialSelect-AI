@@ -1520,6 +1520,16 @@ export function studyExportUrl(studyId: number, format: ExportFormat): string {
 }
 
 /**
+ * D-263: the report of a project with parts — the parts, the sums and the trial as one
+ * document, answered by the server from the catalogue as it stands. HTML opens to be printed;
+ * the others download.
+ */
+export type ProjectReportFormat = "html" | "xlsx" | "csv" | "docx";
+export function projectReportUrl(assemblyId: number, format: ProjectReportFormat = "html"): string {
+  return `${API_URL}/api/exports/projetos/${assemblyId}/laudo.${format}`;
+}
+
+/**
  * The engineering report (laudo): a document distinct from the selection
  * report, combining a ranking figure, the same audit tables, and — when the
  * AI layer is on — an interpretive narrative. HTML opens inline; DOCX and

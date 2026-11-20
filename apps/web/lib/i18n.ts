@@ -1941,6 +1941,17 @@ export const ptBR = {
       minimumUnknown: "Massa mínima: não foi possível calcular",
       declaredUnknown: "massa informada: não informada",
     },
+    // D-263: the project's report. The document is the server's; these only name the ways to get it.
+    report: {
+      open: "Abrir o laudo do projeto",
+      hint: "As peças, a soma e o ensaio num documento para imprimir ou enviar. Não é guardado: traz o catálogo como está agora.",
+      menu: {
+        html: "Laudo do projeto (imprimir)",
+        xlsx: "Laudo em planilha (XLSX)",
+        csv: "Laudo em CSV",
+        docx: "Laudo em Word (DOCX)",
+      },
+    },
     // D-261: the load a part has to carry, declared on the part.
     load: {
       title: "Caso de carga",

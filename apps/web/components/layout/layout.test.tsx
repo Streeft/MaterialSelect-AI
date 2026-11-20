@@ -232,6 +232,25 @@ describe("AppSidebar", () => {
       );
     });
 
+    it("em Estudar, as ferramentas vêm antes e Projetos e Cadernos fecham o grupo (D-263)", async () => {
+      const user = userEvent.setup();
+      renderSidebar();
+      await user.click(await screen.findByShadowRole("button", { name: ptBR.ui.openMenu }));
+      const drawer = screen.getByShadowRole("dialog", { name: ptBR.ui.mainNav });
+      const study = within(drawer).getByShadowRole("list", { name: ptBR.nav.groupStudy });
+      expect(within(study).getAllByShadowRole("link").map((link) => link.getAttribute("href"))).toEqual([
+        "/app/selecao",
+        "/app/mapas",
+        "/app/comparar",
+        "/app/dimensionar",
+        "/app/custo",
+        "/app/eco",
+        "/app/baterias",
+        "/app/projetos",
+        "/app/cadernos",
+      ]);
+    });
+
     it("marks the current page inside the drawer too", async () => {
       route.pathname = "/app/importar";
       const user = userEvent.setup();

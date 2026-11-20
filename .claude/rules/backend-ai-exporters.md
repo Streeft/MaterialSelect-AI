@@ -51,6 +51,10 @@ O **e-mail do laudo** ([D-242](docs/DECISIONS.md)) é um terceiro formato, com e
 `services/email_service.py` (`mock` por padrão, `smtp` por `smtplib`): a falha é uma frase nossa em português, **nunca** o texto da
 exceção, e `SMTP_PASSWORD` não pode chegar a log, resposta nem linha de banco.
 
+O **laudo do projeto** ([D-263](docs/DECISIONS.md)) é um `Report` comum (`services/assembly_report_service.py`): não calcula, só dispõe o que
+`AssemblyService` responde; figura ausente sai com o motivo na célula e total recusado como "sem total". Não é o laudo emitido (sem selo,
+código nem QR), e o documento diz isso.
+
 D-243: o PDF assinado (`issued_report_pdf`) fica **ao lado** da versão emitida e nunca altera o HTML congelado nem o `content_sha256`;
 só se confere `%PDF-` e o tamanho (não se abre nem se verifica assinatura), a substituição é uma linha nova e **nada se apaga**. O link
 público de um envio **vence** (`expires_at`), **revoga** e **conta aberturas** sem guardar IP, user agent nem pixel: revogado ou vencido

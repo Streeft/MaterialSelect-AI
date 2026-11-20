@@ -121,3 +121,51 @@ test("ensaio com caso de carga: a massa informada contra a massa mínima do Dime
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   await page.request.delete(`${API}/api/assemblies/${project.id}`);
 });
+
+test("laudo do projeto: o documento traz as peças, a soma e o ensaio, e abre para imprimir (D-263)", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/app");
+  const materials: { id: number; name: string }[] = await (await page.request.get(`${API}/api/materials`)).json();
+  const steel = materials.find((m) => m.name === "Aço Demo B")!;
+  const aluminium = materials.find((m) => m.name === "Liga Alumínio Demo A")!;
+  const stamp = Date.now();
+  const study = await post(page, "/api/selection/studies", {
+    name: `Leve ${stamp}`,
+    constraints: [{ operator: "lte", property_slug: "densidade", value: 5, unit: "g/cm**3" }],
+  });
+  const project = await post(page, "/api/assemblies", { name: `Mesa do laudo ${stamp}` });
+  await post(page, `/api/assemblies/${project.id}/parts`, {
+    name: "Tampo",
+    material_id: aluminium.id,
+    study_id: study.id,
+    unit_mass: 10,
+  });
+  await post(page, `/api/assemblies/${project.id}/parts`, { name: "Perna", material_id: steel.id, study_id: study.id });
+
+  await page.goto(`/app/projetos/${project.id}`);
+  await expect(page.getByRole("region", { name: "Peça Perna" })).toBeVisible({ timeout: 45_000 });
+  // The page offers the document; the menu offers every format.
+  const link = page.getByRole("link", { name: "Abrir o laudo do projeto" });
+  await expect(link).toHaveAttribute("href", new RegExp(`/api/exports/projetos/${project.id}/laudo\\.html$`));
+  await page.getByRole("button", { name: "Mais ações" }).click();
+  for (const name of ["Laudo do projeto (imprimir)", "Laudo em planilha (XLSX)", "Laudo em CSV", "Laudo em Word (DOCX)"]) {
+    await expect(page.getByRole("menuitem", { name })).toBeVisible();
+  }
+  await page.keyboard.press("Escape");
+
+  // The document itself, opened as the link opens it.
+  const [report] = await Promise.all([page.context().waitForEvent("page"), link.click()]);
+  await report.waitForLoadState();
+  await expect(report.getByRole("heading", { level: 1 })).toContainText(`Laudo do projeto Mesa do laudo ${stamp}`);
+  await expect(report.getByText("Ainda não solucionado. De 2: 1 peça passa, 1 não passa.").first()).toBeVisible();
+  // The top's 10 kg of the demo aluminium is 2.100 MJ, the server's own number.
+  await expect(report.getByRole("cell", { name: /^2[.,]?100$/ }).first()).toBeVisible();
+  // The leg has no mass: its figures are the reason, written, never a blank.
+  await expect(report.getByText("Sem massa unitária informada.").first()).toBeVisible();
+  await expect(report.getByText("Este laudo não é guardado", { exact: false })).toBeVisible();
+  if (OUT) await report.screenshot({ path: `${OUT}/laudo.png`, fullPage: true });
+  await report.close();
+
+  await page.request.delete(`${API}/api/assemblies/${project.id}`);
+  await page.request.delete(`${API}/api/selection/studies/${study.id}`);
+});
