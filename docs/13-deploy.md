@@ -261,6 +261,14 @@ nem do CORS.
 - **Atenção:** o login começa e termina no host de `BACKEND_BASE_URL` (o cookie
   de *state* é por host). Um login iniciado no domínio antigo pode falhar;
   entre sempre pelo domínio novo.
+- **Passo obrigatório na Vercel:** o botão de login usa
+  `${NEXT_PUBLIC_API_URL}/api/auth/google/login` (`apps/web/lib/api.ts`). Se a
+  variável ainda apontar para o domínio antigo, o login começa lá (o cookie de
+  *state* fica nesse host) e volta no novo, terminando em `/entrar?erro=sessao`.
+  Em *Settings → Environment Variables*, defina `NEXT_PUBLIC_API_URL` =
+  `https://materialselect.com.br` (Production) e faça *Redeploy*: a variável é
+  entrada de build (§4). Isso vale em vez do valor vazio citado na §4 enquanto
+  houver mais de um domínio ativo.
 
 ## 4. Vercel (frontend)
 
