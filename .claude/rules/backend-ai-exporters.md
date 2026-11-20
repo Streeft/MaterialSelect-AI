@@ -53,7 +53,8 @@ exceção, e `SMTP_PASSWORD` não pode chegar a log, resposta nem linha de banco
 
 O **laudo do projeto** ([D-263](docs/DECISIONS.md)) é um `Report` comum (`services/assembly_report_service.py`): não calcula, só dispõe o que
 `AssemblyService` responde; figura ausente sai com o motivo na célula e total recusado como "sem total". Não é o laudo emitido (sem selo,
-código nem QR), e o documento diz isso.
+código nem QR). Desde a [D-264](docs/DECISIONS.md) sai **sem avisos no topo** (pedido do autor), e `html.py` não desenha a caixa quando
+`Report.notices` vem vazio.
 
 D-243: o PDF assinado (`issued_report_pdf`) fica **ao lado** da versão emitida e nunca altera o HTML congelado nem o `content_sha256`;
 só se confere `%PDF-` e o tamanho (não se abre nem se verifica assinatura), a substituição é uma linha nova e **nada se apaga**. O link

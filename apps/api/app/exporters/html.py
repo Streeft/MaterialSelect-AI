@@ -202,6 +202,8 @@ def to_html(report: Report) -> str:
     report = xml_legal_report(report)
     notices = [f'<p class="notice">{escape(notice)}</p>' for notice in report.notices]
 
+    notices_box = f'<div class="notices">{"".join(notices)}</div>' if notices else ""
+
     sections = [render_sheet(sheet, i) for i, sheet in enumerate(report.sheets, start=1)]
     if report.narrative is not None or report.narrative_note is not None:
         sections.append(_render_narrative(report, len(report.sheets) + 1))
@@ -229,7 +231,9 @@ def to_html(report: Report) -> str:
         f"<h1>{escape(report.title)}</h1>"
         f"{subtitle}"
         f"{responsible}"
-        f'<div class="notices">{"".join(notices)}</div>'
+        # A report with no notice has no notice box: an empty frame would read as one
+        # whose text failed to load (D-264).
+        f"{notices_box}"
         f"{figure}"
         f"{''.join(sections)}"
         "<footer>Gerado por MaterialSelect AI — "

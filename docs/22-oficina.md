@@ -57,7 +57,7 @@ Oficina é a mesma narrativa com cenário; nenhum número muda de lugar de cálc
 | 3 | **Bandeja**: materiais, fixações e ferramentas guardados na conta | **feito (D-258)** |
 | 4 | **Bancada**: levar da bandeja para o mapa, o comparador, o Custo e o Eco | **feito (D-259)** |
 | 5 | **Ensaio** por peça e **"Solucionado"**; laudo do projeto | **feito (D-260, D-261, D-263)**: limites do estudo, caso de carga e laudo do projeto |
-| 6 | Tabelas leves de verdade: até 5 colunas, resto no detalhe da linha (resultados da Seleção) | a fazer |
+| 6 | Tabelas de resultado leves: até 5 colunas, resto em "Detalhes" da linha | **feito (D-264)**: Custo, Dimensionar e Baterias; a da Seleção já tinha cinco |
 
 ### Camada 2 — projeto com peças (feita, D-257)
 
@@ -101,7 +101,8 @@ Oficina é a mesma narrativa com cenário; nenhum número muda de lugar de cálc
   solver calcula para o material. Premissa dita na tela: a peça tem a forma do caso e só a variável livre muda. Sem massa informada, ou sem a
   propriedade no material, é "Sem dado".
 - **Laudo do projeto (D-263):** o projeto e o ensaio como um documento (HTML para imprimir, XLSX, CSV, DOCX), pelo menu "Mais ações" e pela
-  seção do ensaio. Não calcula nada, não é guardado, e não é o laudo emitido de um estudo.
+  seção do ensaio. Não calcula nada, não é guardado, e não é o laudo emitido de um estudo. Abre direto nas tabelas, sem caixa de avisos (D-264).
+- **Tabelas de resultado leves (D-264):** Custo, Dimensionar e Baterias mostram a resposta e guardam o resto em "Detalhes", por linha.
 
 ## Onde está cada coisa (camada 1)
 

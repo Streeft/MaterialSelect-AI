@@ -162,7 +162,6 @@ test("laudo do projeto: o documento traz as peças, a soma e o ensaio, e abre pa
   await expect(report.getByRole("cell", { name: /^2[.,]?100$/ }).first()).toBeVisible();
   // The leg has no mass: its figures are the reason, written, never a blank.
   await expect(report.getByText("Sem massa unitária informada.").first()).toBeVisible();
-  await expect(report.getByText("Este laudo não é guardado", { exact: false })).toBeVisible();
   if (OUT) await report.screenshot({ path: `${OUT}/laudo.png`, fullPage: true });
   await report.close();
 

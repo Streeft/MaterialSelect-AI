@@ -120,6 +120,24 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 221 — 20/11/26 — Tabelas de resultado mais leves, e o laudo do projeto sem a caixa de avisos (D-264)
+
+**O que mudou.** *Frontend:* `DetailRow` e `DetailTh` em `components/ui/Table.tsx`; Custo (7 → 4 colunas), Dimensionar (6 → 5) e Baterias (8 → 5)
+passam a mostrar a resposta e a guardar o resto em "Detalhes", por linha; exemplo em `/app/estilo`. *Backend:* o laudo do projeto sai sem avisos
+no topo, e `exporters/html.py` não desenha a moldura quando não há aviso.
+
+**Por quê.** Pedido do autor nos dois casos: tabelas com menos informação à vista, e o laudo abrindo direto nas tabelas.
+
+**Como foi conferido.** Backend: `ruff`, `black --check`, `pytest` inteiro (6616 coletados em 265 arquivos). Frontend: `typecheck`, `lint` (0
+erros), `vitest run` (2824 em 254 arquivos). No Chromium, com a API real: Custo com o primeiro processo já aberto e os demais dobrados, a 1280 e a
+375 px sem rolagem lateral; `figuras-custo-eco`, `pendencias-d251`, `sugestao-ia` e `ensaio` (com o laudo sem a caixa) passam.
+
+**O que os testes pegaram.** O teste "mostra os quatro termos, não só o total" do Custo falhou com tudo dobrado: daí a primeira linha começar
+aberta. Um teste de regra do M3 exige a classe de realce da linha exatamente como estava; a tentativa de excluir a linha de detalhes foi desfeita
+(o fundo da célula já a cobre).
+
+---
+
 ## Sessão 220 — 20/11/26 — O laudo do projeto, e Projetos e Cadernos no fim do "Estudar" (D-263)
 
 **O que mudou.** *Backend:* `app/services/assembly_report_service.py` (o projeto e o ensaio como um `Report`) e

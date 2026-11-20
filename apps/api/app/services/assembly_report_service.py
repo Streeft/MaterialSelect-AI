@@ -15,8 +15,11 @@ Two rules shape the tables:
 * **An absent figure is written as its reason**, never as a blank or a zero
   (principle 3): the cell carries the server's own sentence.
 * **Nothing is stored.** The document is answered from the catalogue, the
-  studies and the parts as they stand, and says so, with its date. It is not
-  the issued, versioned laudo of a study (D-241): no seal, no code, no QR.
+  studies and the parts as they stand, and carries its date. It is not the
+  issued, versioned laudo of a study (D-241): no seal, no code, no QR.
+
+Since D-264 it carries no box of notices (the author's request): it opens on
+its tables.
 """
 
 from __future__ import annotations
@@ -28,9 +31,8 @@ from sqlalchemy.orm import Session
 from app.calculations.load_cases import by_key as load_case_by_key
 from app.exporters.cells import format_number
 from app.exporters.laudo import long_date
-from app.exporters.report import Report, Sheet, standard_notices
+from app.exporters.report import Report, Sheet
 from app.models.user import User
-from app.repositories.chart_repository import ChartRepository
 from app.schemas.assembly import AssemblyOut, AssemblyTrialOut, FigureOut, TotalOut
 from app.services.assembly_service import AssemblyService
 
@@ -51,12 +53,6 @@ _QUANTITIES = (
 
 KIND_LABELS = {"limite": "Limite do estudo", "carga": "Caso de carga"}
 
-NOT_STORED_NOTICE = (
-    "Este laudo não é guardado: responde com o catálogo, os estudos e as peças como estavam na "
-    "data acima. Gerado de novo depois de uma correção, traz os números corrigidos. Não é um "
-    "laudo emitido (sem selo, código de verificação nem assinatura)."
-)
-
 NOT_INFORMED = "não informado"
 NONE_DECLARED = "nenhum"
 
@@ -64,7 +60,6 @@ NONE_DECLARED = "nenhum"
 class AssemblyReportService:
     def __init__(self, db: Session, project_id: int, user: User) -> None:
         self._assemblies = AssemblyService(db, project_id, user.id, user=user)
-        self._materials = ChartRepository(db, user.id)
 
     def report(self, assembly_id: int, today: date | None = None) -> Report:
         """The project and its trial as one document. ``today`` only dates it."""
@@ -74,13 +69,11 @@ class AssemblyReportService:
         return Report(
             title=f"Laudo do projeto {project.name}",
             subtitle=f"{trial.verdict_label}. {trial.summary} Gerado em {long_date(when)}.",
-            notices=[
-                *standard_notices(includes_own_records=self._has_own_records(project)),
-                project.scope_note,
-                project.monetary_unit_note,
-                trial.method_note,
-                NOT_STORED_NOTICE,
-            ],
+            # D-264 (author's request): the document opens on its tables, with no box of
+            # notices above them. What each figure covers is said where it is printed: the
+            # totals name their unit ("unidade monetária não especificada") and what blocks
+            # them, and the trial's own line says the verdict.
+            notices=[],
             sheets=[
                 self._summary(project, trial, when),
                 self._parts(project),
@@ -319,12 +312,3 @@ class AssemblyReportService:
             rows=rows,
             notes=[] if rows else ["Nenhuma peça declara um caso de carga."],
         )
-
-    # --- helpers --------------------------------------------------------------
-
-    def _has_own_records(self, project: AssemblyOut) -> bool:
-        ids = sorted({part.material.id for part in project.parts if part.material is not None})
-        if not ids:
-            return False
-        materials = self._materials.list_materials(material_ids=ids, with_values=False)
-        return any(material.owner_id is not None for material in materials)

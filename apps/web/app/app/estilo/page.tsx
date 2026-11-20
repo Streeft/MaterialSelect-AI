@@ -62,6 +62,7 @@ import {
   RadioGroup,
   RadioOption,
   RichText,
+  PropertyList,
   RowHeader,
   Section,
   Select,
@@ -71,6 +72,8 @@ import {
   TBody,
   THead,
   Table,
+  DetailRow,
+  DetailTh,
   TableScroll,
   Tabs,
   Td,
@@ -1051,6 +1054,42 @@ function StyleGuide() {
                   <DataQualityBadge state="AUSENTE" />
                 </Td>
               </Tr>
+            </TBody>
+          </Table>
+        </TableScroll>
+
+        {/* D-264: a linha de resultado guarda os números secundários. */}
+        <p className="text-caption text-ink-muted">
+          Tabela de resultado: quatro ou cinco colunas com a resposta, e o resto em “Detalhes”, por linha
+          (`DetailRow`). Nada sai da página; a linha cuja decomposição é a própria resposta pode começar aberta.
+        </p>
+        <TableScroll label="Exemplo de resultado com detalhes">
+          <Table>
+            <THead>
+              <Tr>
+                <Th>#</Th>
+                <Th>Processo</Th>
+                <Th numeric>Total</Th>
+                <DetailTh />
+              </Tr>
+            </THead>
+            <TBody>
+              {[
+                { rank: 1, name: "Fundição em areia", total: "40,03", tooling: "12" },
+                { rank: 2, name: "Usinagem", total: "58,10", tooling: "3" },
+              ].map((row) => (
+                <DetailRow
+                  key={row.rank}
+                  name={row.name}
+                  columns={3}
+                  defaultOpen={row.rank === 1}
+                  details={<PropertyList dense items={[{ label: "Ferramental", value: row.tooling }]} />}
+                >
+                  <Td numeric>{row.rank}</Td>
+                  <RowHeader>{row.name}</RowHeader>
+                  <Td numeric>{row.total}</Td>
+                </DetailRow>
+              ))}
             </TBody>
           </Table>
         </TableScroll>

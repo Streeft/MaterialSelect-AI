@@ -15356,3 +15356,38 @@ do laudo de engenharia (o `Report` já dá quatro formatos e o mesmo escape). De
 3 no frontend, mais um teste em `e2e/ensaio.spec.ts`.
 
 **Numeração.** D-263, Sessão 220 (a D-262 e a Sessão 219 são do domínio oficial, já na `main`).
+
+## D-264 — Tabelas de resultado mais leves (a linha guarda os números secundários em "Detalhes") e o laudo do projeto sem a caixa de avisos
+
+**Contexto.** No rumo da Oficina (D-256) o autor pediu "menos tabelas, ou tabelas mais leves e com menos informação". A camada 1 só trocou a pele
+da tabela no ambiente Oficina; cortar colunas ficou para um PR próprio. Pedido de 20/11/2026: fazer. No mesmo pedido, o autor mandou **retirar a
+caixa de avisos** do topo do laudo do projeto (D-263).
+
+**Decisão.**
+
+1. **Uma peça, `DetailRow`** (`components/ui/Table.tsx`, com `DetailTh` para a cabeça da coluna). A linha mostra as colunas da resposta e um botão
+   "Detalhes", que abre uma segunda linha logo abaixo com o resto, num `PropertyList`. O botão nomeia a linha ("Detalhes de Extrusão"), diz o
+   estado (`aria-expanded`) e aponta o que abre (`aria-controls`). Sem biblioteca, sem animação.
+2. **Nada sai da página.** A peça só dobra o que o servidor mandou: nenhum número é calculado, arredondado de outro jeito nem omitido, e o ausente
+   continua escrito dentro dos detalhes.
+3. **Três tabelas mudam,** as que passavam de cinco colunas entre os resultados:
+   - **Custo** (7 → 4): #, Processo, Total. Detalhes: material, ferramental, operação e capital.
+   - **Dimensionar** (6 → 5): #, Material, objetivo, variável livre. Detalhes: o índice e os próximos passos (Custo e Eco com a massa da linha).
+   - **Baterias** (8 → 5): Química, Massa, Custo, Segurança. Detalhes: Ns × Np, volume, ciclos e custo nivelado.
+4. **A linha cuja decomposição é a própria resposta começa aberta** (`defaultOpen`): no Custo, o primeiro processo. Um total sem os termos à vista
+   seria oráculo, que é o que o teste antigo "mostra os quatro termos, não só o total" guardava; ele continua passando.
+5. **A Seleção não muda:** a tabela do ranking já tem cinco colunas, e a contribuição de cada critério tem bloco próprio por decisão anterior.
+6. **Sem barra de valor nova.** Barra dentro da célula só onde o servidor manda o valor normalizado (o escore da Seleção já tem); nas três
+   tabelas acima não há, e normalizar no cliente seria cálculo (ADR 0004).
+7. **Laudo do projeto sem a caixa de avisos** (pedido do autor): o documento abre direto nas tabelas. O que cada número cobre fica dito onde ele
+   é impresso (a soma nomeia a unidade e o que a bloqueia; o ensaio diz o veredito). O HTML deixou de desenhar a moldura quando não há aviso
+   nenhum, para não sobrar uma caixa vazia. Os outros relatórios continuam com os seus avisos.
+
+**Alternativas recusadas.** Esconder colunas por largura de tela (a tabela mudaria de conteúdo conforme o aparelho, e no celular sumiria justo o que
+se quer ver). Um painel lateral por linha (`SidePeek`) para quatro números. Tirar as colunas de vez. Mexer na tabela do comparador, que é larga por
+natureza (uma coluna por propriedade escolhida) e já rola dentro da própria caixa.
+
+**Consequências.** Toca `apps/api` (o laudo e o HTML dos relatórios), **sem migração**: depois do merge, **Deploy da API**. 2 testes novos no
+frontend (`DetailRow.test.tsx`); o de Dimensionar passou a abrir os detalhes.
+
+**Numeração.** D-264, Sessão 221 (conferidas em `origin/main`).

@@ -3657,6 +3657,12 @@ export const ptBR = {
   },
 
   ui: {
+    // D-264: a result row keeps its secondary figures folded.
+    showDetails: "Detalhes",
+    hideDetails: "Fechar",
+    showDetailsOf: (name: string) => `Detalhes de ${name}`,
+    hideDetailsOf: (name: string) => `Fechar os detalhes de ${name}`,
+    detailsColumn: "Detalhes",
     loading: "Carregando…",
     errorTitle: "Algo não funcionou",
     retry: "Tentar novamente",
