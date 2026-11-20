@@ -20,6 +20,7 @@ import { flowText } from "@/lib/i18n-flow";
 import { fichaText } from "@/lib/i18n-ficha";
 import { curadoriaText } from "@/lib/i18n-curadoria";
 import { FavoriteButton } from "@/components/my-records/FavoriteButton";
+import { TakeToTrayButton } from "@/components/tray/AddToTray";
 import { useCanEditCatalog } from "@/lib/billing";
 import { SimilarPanel } from "@/components/similar/SimilarPanel";
 import { useRecordVisit } from "@/components/my-records/useRecordVisit";
@@ -317,6 +318,8 @@ export default function MaterialDetailPage() {
             // D-197: on a phone these two live in the floating toolbar below.
             <span className="m3-hide-compact inline-flex items-center gap-2">
               <FavoriteButton universe="material" recordId={data.id} />
+              {/* D-258: carry this material to the tray. */}
+              <TakeToTrayButton size="md" target={{ kind: "material", id: data.id, name: data.name }} />
               {/* D-104 e D-124: menu "Exportar ▾" com ficha técnica em PDF/HTML e CAE card. */}
               <MaterialExportMenu materialId={data.id} unitChoices={unitChoices} />
             </span>
@@ -662,7 +665,7 @@ export default function MaterialDetailPage() {
             </div>
           </div>
 
-          <SheetActions materialId={data.id} unitChoices={unitChoices} showMap />
+          <SheetActions materialId={data.id} materialName={data.name} unitChoices={unitChoices} showMap />
         </>
       )}
     </div>

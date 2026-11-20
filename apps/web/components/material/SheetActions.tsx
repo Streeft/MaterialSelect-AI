@@ -4,6 +4,7 @@ import { ptBR } from "@/lib/i18n";
 import { ButtonLink } from "@/components/ui";
 import { IconCompare, IconScatter } from "@/components/ui/icons";
 import { FavoriteButton } from "@/components/my-records/FavoriteButton";
+import { TakeToTrayButton } from "@/components/tray/AddToTray";
 import { MaterialExportMenu } from "@/components/CaeExportDialog";
 import type { ComponentProps } from "react";
 
@@ -19,10 +20,13 @@ const t = ptBR.detail;
  */
 export function SheetActions({
   materialId,
+  materialName,
   unitChoices,
   showMap,
 }: {
   materialId: number;
+  /** Named for the tray's notice ("Aço 1020 foi para a bandeja"). */
+  materialName: string;
   unitChoices: ComponentProps<typeof MaterialExportMenu>["unitChoices"];
   /** Only when the sheet itself offers the map (it has the chart's two properties). */
   showMap: boolean;
@@ -30,6 +34,8 @@ export function SheetActions({
   return (
     <div role="toolbar" aria-label={t.sheetActions} className="m3-floating-toolbar m3-floating-toolbar-standard m3-sheet-actions">
       <FavoriteButton universe="material" recordId={materialId} />
+      {/* D-258: the header's copy is hidden on a phone, so the command is here too. */}
+      <TakeToTrayButton size="md" target={{ kind: "material", id: materialId, name: materialName }} />
       {/* Icons with their names kept for screen readers: four labelled
           buttons do not fit one row at 375 px. */}
       <ButtonLink

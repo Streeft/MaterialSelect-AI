@@ -1769,6 +1769,48 @@ export const ptBR = {
   },
 
   // D-92: Cadernos — fontes do aluno, conversa citada, notas e Estúdio.
+  // D-258: the tray is what the reader is carrying. Names and commands only; it holds no number.
+  tray: {
+    title: "Bandeja",
+    open: (n: number) => (n === 0 ? "Bandeja, vazia" : n === 1 ? "Bandeja, 1 item" : `Bandeja, ${n} itens`),
+    hint: "O que você separou para o trabalho: materiais, fixações e ferramentas. Fica guardado na sua conta.",
+    loading: "Carregando a bandeja",
+    error: "Não foi possível carregar a bandeja.",
+    writeError: "Não foi possível mudar a bandeja.",
+    empty: "A bandeja está vazia.",
+    emptyHint:
+      "Arraste um envelope de uma gaveta do Catálogo, ou use “Levar para a bandeja” numa ficha de material ou de processo.",
+    compartments: { material: "Materiais", fixacao: "Fixações", ferramenta: "Ferramentas" },
+    compartmentEmpty: {
+      material: "Nenhum material separado.",
+      fixacao: "Nenhuma fixação separada. Um material vira fixação pelo menu dele.",
+      ferramenta: "Nenhum processo nem calculadora.",
+    },
+    itemMenu: (name: string) => `Ações de ${name} na bandeja`,
+    moveTo: (compartment: string) => `Mover para ${compartment}`,
+    remove: "Tirar da bandeja",
+    removed: (name: string) => `${name} saiu da bandeja.`,
+    unavailable: "Não está mais disponível no catálogo.",
+    clear: "Esvaziar a bandeja",
+    cleared: "Bandeja esvaziada.",
+    compare: "Comparar os materiais",
+    addTool: "Acrescentar ferramenta",
+    addToolEmpty: "Todas as calculadoras já estão na bandeja.",
+    take: "Levar para a bandeja",
+    takeNamed: (name: string) => `Levar ${name} para a bandeja`,
+    takeMany: (n: number) => (n === 1 ? "Levar 1 para a bandeja" : `Levar ${n} para a bandeja`),
+    taken: (name: string) => `${name} foi para a bandeja.`,
+    takenMany: (n: number) => (n === 1 ? "1 item foi para a bandeja." : `${n} itens foram para a bandeja.`),
+    already: (name: string) => `${name} já está na bandeja.`,
+    inTray: "Na bandeja",
+    show: "Abrir a bandeja",
+    dropHere: "Solte aqui para levar à bandeja",
+    // On a project page: the tray's materials, at hand over the parts.
+    stripTitle: "Da bandeja",
+    stripHint: "Arraste um material para uma peça, ou use o menu da peça.",
+    useInPart: (material: string) => `Usar ${material}, da bandeja`,
+    usedInPart: (material: string, part: string) => `${material} agora é o material de ${part}.`,
+  },
   // D-257: a project is a thing being designed, as a list of parts. Every number on these screens
   // is the server's; the words here only name them.
   projects: {

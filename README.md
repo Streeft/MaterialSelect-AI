@@ -71,6 +71,7 @@ cada uma, os números medidos e as limitações (incluindo o que é demonstrativ
   vindas do servidor. O nome interno da propriedade nunca aparece; o modo
   "Digitar" guarda a sintaxe para quem prefere escrever.
 - **Projetos com peças** — o que se está fazendo, peça por peça (a mesa é o tampo, as pernas e os pregos): cada peça tem papel, quantidade, massa, material do catálogo e o estudo de seleção que o decide; o servidor soma massa, custo do material, energia incorporada e CO₂ da fase de material, diz o motivo de cada ausência e recusa o total quando falta dado ([D-257](docs/DECISIONS.md)).
+- **Bandeja** — o que você separou para o trabalho, guardado na conta: materiais, fixações e ferramentas (processos e calculadoras). Entra arrastando um envelope da gaveta ou pelo botão "Levar para a bandeja", e o material levado vai para a peça de um projeto com um arrasto ou pelo menu ([D-258](docs/DECISIONS.md)).
 - **Cadernos** — o NotebookLM dentro do app: cadernos privados com fontes
   próprias (PDF, DOCX, TXT, MD, texto colado, ficha de material, estudo salvo)
   e **fontes externas** (link de site, vídeo do YouTube com a transcrição

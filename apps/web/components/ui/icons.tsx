@@ -761,3 +761,11 @@ export const IconAssembly = (p: IconProps) => (
     <path d="M6.5 15h11" />
   </Svg>
 );
+
+/** A bandeja (D-258): a shallow tray with what was picked on it. */
+export const IconTray = (p: IconProps) => (
+  <Svg {...p} gesture="hop">
+    <path d="M3 13.5h18l-1.6 5a1.5 1.5 0 0 1-1.4 1H6a1.5 1.5 0 0 1-1.4-1Z" />
+    <path d="M7 13.5v-4h4.5v4M13.5 13.5V7H17v6.5" />
+  </Svg>
+);

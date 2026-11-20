@@ -7,6 +7,8 @@ import { Badge, Bar, Card, CardBody, Checkbox } from "@/components/ui";
 import { QualityBar, SortValueCell } from "@/components/catalog/MaterialRows";
 import { DesignationCodes } from "./DesignationCodes";
 import { HighlightText } from "./HighlightText";
+import { TakeToTrayButton } from "@/components/tray/AddToTray";
+import { trayDragProps, type TrayTarget } from "@/lib/tray";
 
 const t = ptBR.catalog;
 
@@ -47,9 +49,11 @@ function MaterialCard({
   const { quality } = material;
   const filled = quality.medido + quality.importado + quality.estimado;
   const total = filled + quality.missing;
+  // D-258: a card can be carried to the tray, by dragging or by the button in its head.
+  const target: TrayTarget = { kind: "material", id: material.id, name: material.name };
 
   return (
-    <Card riseIndex={index} {...{ [ORIGIN_ATTRIBUTE]: "" }}>
+    <Card riseIndex={index} data-tray-carry {...trayDragProps(target)} {...{ [ORIGIN_ATTRIBUTE]: "" }}>
       <CardBody className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
@@ -66,10 +70,12 @@ function MaterialCard({
               <Link
                 href={`/app/materiais/${material.id}`}
                 onClick={markContainerOrigin}
+                draggable={false}
                 className="break-words text-[0.9375rem] font-semibold text-brand-700"
               >
                 <HighlightText text={material.name} query={searchQuery} />
               </Link>
+              <TakeToTrayButton target={target} />
             </span>
             {material.subclass ? (
               <span className="text-caption text-ink-subtle">

@@ -51,6 +51,8 @@ import {
   type ComboboxOption,
 } from "@/components/ui";
 import { IconPlus } from "@/components/ui/icons";
+import { carriesTrayTarget, readTrayDrag, trayDragProps, trayMaterials, useTray } from "@/lib/tray";
+import type { TrayItem } from "@/lib/types";
 import { ASSEMBLIES_KEY, assemblyKey } from "./keys";
 
 const t = ptBR.projects;
@@ -121,6 +123,8 @@ function PartCard({
   busy,
   onPatch,
   onRemove,
+  carried,
+  onUseCarried,
 }: {
   part: AssemblyPart;
   units: Record<AssemblyQuantity, string>;
@@ -129,8 +133,12 @@ function PartCard({
   busy: boolean;
   onPatch: (patch: AssemblyPartPatch) => void;
   onRemove: () => void;
+  /** D-258: the tray's materials, offered in the part's menu and accepted when dropped here. */
+  carried: TrayItem[];
+  onUseCarried: (materialId: number, materialName: string) => void;
 }) {
   const [name, setName] = useState(part.name);
+  const [over, setOver] = useState(false);
   const [quantity, setQuantity] = useState(String(part.quantity));
   const [mass, setMass] = useState(part.unit_mass === null ? "" : String(part.unit_mass));
 
@@ -170,6 +178,24 @@ function PartCard({
       <section
         aria-label={t.partRegion(part.name)}
         className="flex flex-col gap-4 rounded-card border border-line bg-panel p-4"
+        // D-258: a material dragged from the tray's strip lands here. The outline says where.
+        data-drop-over={over || undefined}
+        onDragOver={(event) => {
+          if (!carriesTrayTarget(event)) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+          setOver(true);
+        }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOver(false);
+        }}
+        onDrop={(event) => {
+          setOver(false);
+          const target = readTrayDrag(event);
+          if (target?.kind !== "material") return;
+          event.preventDefault();
+          onUseCarried(target.id, target.name);
+        }}
       >
         <div className="flex flex-wrap items-end gap-3">
           <Input
@@ -216,6 +242,13 @@ function PartCard({
             {part.material || part.material_unavailable ? (
               <MenuItem onSelect={() => onPatch({ material_id: null })}>{t.clearMaterial}</MenuItem>
             ) : null}
+            {carried
+              .filter((item) => item.record_id !== part.material?.id)
+              .map((item) => (
+                <MenuItem key={item.id} onSelect={() => onUseCarried(item.record_id!, item.name)}>
+                  {ptBR.tray.useInPart(item.name)}
+                </MenuItem>
+              ))}
             <MenuItem onSelect={onRemove} disabled={busy}>
               {t.removePart}
             </MenuItem>
@@ -305,6 +338,9 @@ export function ProjectWorkspace({ id }: { id: number }) {
   const project = useQuery({ queryKey: key, queryFn: () => getAssembly(id), retry: false });
   const materials = useQuery({ queryKey: ["materials"], queryFn: () => listMaterials() });
   const studies = useQuery({ queryKey: ["studies"], queryFn: listStudies });
+  // D-258: what the reader carried here. Materials and fixings both can be a part's material.
+  const tray = useTray();
+  const carried = trayMaterials(tray.data);
 
   const materialOptions = useMemo<ComboboxOption[]>(
     () =>
@@ -440,6 +476,27 @@ export function ProjectWorkspace({ id }: { id: number }) {
 
         <Section id="pecas" title={t.parts} description={t.partsHint}>
           <div className="flex flex-col gap-4">
+            {carried.length > 0 && data.parts.length > 0 ? (
+              // D-258: the tray's materials on the bench, to drag onto a part. The same choice
+              // is in each part's menu, so dragging is never the only way.
+              <div role="group" aria-label={ptBR.tray.stripTitle} className="well flex flex-col gap-2">
+                <p className="text-support text-ink-muted">
+                  <span className="font-semibold text-ink">{ptBR.tray.stripTitle}.</span> {ptBR.tray.stripHint}
+                </p>
+                <ul className="flex flex-wrap gap-2">
+                  {carried.map((item) => (
+                    <li
+                      key={item.id}
+                      className="ds-tray-chip"
+                      data-tray-carry
+                      {...trayDragProps({ kind: "material", id: item.record_id!, name: item.name })}
+                    >
+                      {item.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             {data.parts.length === 0 ? (
               <p className="text-support text-ink-muted">{t.partsEmpty}</p>
             ) : (
@@ -455,6 +512,12 @@ export function ProjectWorkspace({ id }: { id: number }) {
                     busy={write.isPending}
                     onPatch={(patch) => write.mutate(() => updateAssemblyPart(id, part.id, patch))}
                     onRemove={() => removePart(part)}
+                    carried={carried}
+                    onUseCarried={(materialId, materialName) =>
+                      write.mutate(() => updateAssemblyPart(id, part.id, { material_id: materialId }), {
+                        onSuccess: () => announce(ptBR.tray.usedInPart(materialName, part.name)),
+                      })
+                    }
                   />
                 ))}
               </ul>

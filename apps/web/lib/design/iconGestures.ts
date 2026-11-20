@@ -134,6 +134,7 @@ export const APP_ICON_GESTURES = {
   IconCalculator: "pulse",
   IconWorkbench: "hop",
   IconAssembly: "hop",
+  IconTray: "hop",
 } as const satisfies Record<string, GestureSpec>;
 
 /**

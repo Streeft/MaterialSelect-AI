@@ -4816,3 +4816,46 @@ export interface AssemblyPartInput {
 
 /** Only the fields sent are changed; a nullable field sent as `null` is cleared. */
 export type AssemblyPartPatch = Partial<AssemblyPartInput> & { position?: number };
+
+// --- The tray (D-258): what the reader is carrying to the bench. A marker, never a number. ---
+
+export type TrayCompartment = "material" | "fixacao" | "ferramenta";
+export type TrayKind = "material" | "process" | "tool";
+
+export interface TrayItem {
+  id: number;
+  kind: TrayKind;
+  compartment: TrayCompartment;
+  position: number;
+  /** The material's or the process's id; `null` for a tool. */
+  record_id: number | null;
+  /** The tool's slug; `null` for a record. */
+  tool: string | null;
+  name: string;
+  /** The record's class; `null` for a tool. */
+  detail: string | null;
+  /** Where the item opens; `null` when the record can no longer be read. */
+  href: string | null;
+  unavailable: boolean;
+}
+
+export interface TrayTool {
+  slug: string;
+  label: string;
+  route: string;
+}
+
+export interface Tray {
+  items: TrayItem[];
+  /** Every calculator that can be carried: the list is the server's. */
+  tools: TrayTool[];
+  max_items: number;
+}
+
+/** One thing to put in the tray: exactly one of the three targets. */
+export interface TrayItemInput {
+  material_id?: number;
+  process_id?: number;
+  tool?: string;
+  compartment?: TrayCompartment;
+}

@@ -2597,3 +2597,29 @@ export function updateAssemblyPart(
 export function deleteAssemblyPart(id: number, partId: number): Promise<import("./types").Assembly> {
   return request(`/api/assemblies/${id}/parts/${partId}`, { method: "DELETE" });
 }
+
+// --- The tray (D-258). Every write answers the whole tray. ----------------------------------
+
+export function getTray(): Promise<import("./types").Tray> {
+  return request(`/api/tray`);
+}
+
+/** Puts one or several things in the tray; one already there stays where it is. */
+export function putTrayItems(items: import("./types").TrayItemInput[]): Promise<import("./types").Tray> {
+  return request(`/api/tray/items`, { method: "PUT", body: JSON.stringify({ items }) });
+}
+
+export function updateTrayItem(
+  id: number,
+  patch: { compartment?: import("./types").TrayCompartment; position?: number },
+): Promise<import("./types").Tray> {
+  return request(`/api/tray/items/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+}
+
+export function removeTrayItem(id: number): Promise<import("./types").Tray> {
+  return request(`/api/tray/items/${id}`, { method: "DELETE" });
+}
+
+export function clearTray(): Promise<import("./types").Tray> {
+  return request(`/api/tray`, { method: "DELETE" });
+}

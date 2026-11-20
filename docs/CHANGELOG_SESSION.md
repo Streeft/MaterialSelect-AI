@@ -120,6 +120,30 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 215 — 20/11/26 — A bandeja: `tray_item` na conta, painel no topo, arrastar com comando ao lado e o material levado até a peça (D-258)
+
+**O que mudou.** *Backend:* `TrayItem` (migração `0ad472526206`, um alvo entre material, processo e calculadora, três compartimentos),
+`app/domain/tray_tools.py` (lista fechada de calculadoras), `TrayService` e `/api/tray` (ler, pôr um ou vários, mover, tirar, esvaziar; toda escrita
+devolve a bandeja). *Frontend:* `lib/tray.ts` (cache único e o formato do arrasto), `components/tray/` (`TrayButton` no topo e no cabeçalho do
+celular, `Tray` com o painel e a zona de soltar, `AddToTray` com o comando), arrasto e botão no envelope, no cartão da Galeria e na linha de
+Processos, botão nas fichas e na barra dos marcados, e, na página do projeto, a faixa "Da bandeja" com soltar na peça e o item de menu equivalente.
+
+**Por quê.** Camada 3 do rumo da Oficina: é o "pegar e levar" da ideia do autor, e o que dá destino ao arrastar.
+
+**Como foi conferido.** Backend: `ruff`, `black --check`, `pytest` inteiro (6575 passaram, 9 pulados, antes dos últimos ajustes só de frontend;
+6584 coletados em 263 arquivos), migração subindo, descendo e subindo de novo num banco limpo, `alembic check` sem diferença. Frontend: `typecheck`,
+`lint` (0 erros), `vitest run` (2802 em 250 arquivos). No Chromium, com a API real: `e2e/bandeja.spec.ts` leva dois materiais pela gaveta, recarrega
+e os encontra, move o aço para Fixações, acrescenta a calculadora de Custo, passa no axe com o painel aberto, tira e desfaz, arrasta um envelope até
+a zona de soltar, solta o alumínio da faixa numa peça e usa o aço pelo menu, lê 2.100 MJ vindos do servidor e repete no telefone a 375 px.
+
+**O que os testes pegaram.** O "Desfazer" no aviso do app ficava atrás do painel modal: passou para dentro do painel. 135 testes antigos quebraram
+porque os cartões passaram a exigir o cache de dados: o comando agora simplesmente não é oferecido onde ele não existe.
+
+**Ficou de fora, com motivo.** Levar da bandeja para o mapa, o comparador em modo A/B e para dentro das calculadoras (camada 4). Reordenar os
+itens arrastando dentro do painel (a posição já existe no `PATCH`).
+
+---
+
 ## Sessão 214 — 19/11/26 — Projeto com peças: `assembly` no backend, somas da fase de material e as telas de Projetos (D-257)
 
 **O que mudou.** *Backend:* `Assembly` e `AssemblyPart` (migração `bcea4470c5b0`), `app/calculations/assembly.py` (massa, custo do material, energia

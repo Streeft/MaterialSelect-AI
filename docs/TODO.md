@@ -536,11 +536,10 @@ entregue (ver "Débitos já quitados"); ficou de fora, de propósito:
 
 ---
 
-**Ambiente "Oficina" — próximas camadas (D-256, D-257, roteiro em `22-oficina.md`).** Camada 2 (projeto com peças) feita na D-257.
+**Ambiente "Oficina" — próximas camadas (D-256, D-257, D-258, roteiro em `22-oficina.md`).** Camada 2 (projeto com peças) feita na D-257.
 ▁ Restos da camada 2: levar as peças de um projeto para o Eco Audit e o Custo com um clique; reordenar peças arrastando (a posição já existe no
 `PATCH`); esquema em blocos do objeto; notas da peça na tela (o campo já existe na API). ▁ PR próprio: ambiente guardado na conta
-(`user_appearance`) e propriedades-chave no envelope da gaveta (a busca do catálogo passa a mandá-las). ▁ Camada 3: **bandeja** (materiais,
-fixações e ferramentas guardados no estudo, na conta), com arrastar e o mesmo gesto por teclado. ▁ Camada 4: **bancada** (levar da bandeja para o
+(`user_appearance`) e propriedades-chave no envelope da gaveta (a busca do catálogo passa a mandá-las). ▁ Camada 3 (bandeja) feita na D-258; resto dela: reordenar os itens arrastando dentro do painel. ▁ Camada 4: **bancada** (levar da bandeja para o
 mapa, a calculadora e o comparador). ▁ Camada 5: **ensaio** por peça e "Solucionado". ▁ Camada 6: tabelas de resultado com até 5 colunas e o resto
 no detalhe da linha. ▁ Miúdos: objetos para as outras seções do trilho (Eco, Cadernos, Comparar), cortiça no quadro de fixados, e as páginas de
 família e Processos como gavetas.

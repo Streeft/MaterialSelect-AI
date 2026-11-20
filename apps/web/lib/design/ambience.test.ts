@@ -98,19 +98,23 @@ describe('ambiente "Oficina": contraste (D-256)', () => {
     expect(handwritten).toMatch(/:root\[data-theme="dark"\]\s*\{[^}]*--oficina-grain:\s*var\(--oficina-grain-darker\)/);
   });
 
-  it("textura só na página, no trilho, no poço e na madeira do arquivo; nunca num painel", () => {
+  it("textura só na página, no trilho, no poço e na madeira do arquivo e da bandeja; nunca num painel", () => {
     const textured = [...handwritten.matchAll(/([^{}]+)\{[^{}]*background-image:[^;{}]*oficina-[^{}]*\}/g)].map((m) =>
       m[1]!.replace(/\/\*[\s\S]*?\*\//g, "").trim(),
     );
     expect(textured.length).toBeGreaterThanOrEqual(5);
     for (const selector of textured) {
-      expect(selector).toMatch(/ body$|\[data-surface="rail"\]\.bg-rail$| \.well$|^\.oficina-(cabinet|drawer-front)$/);
+      // D-258: the tray's compartments are wood too; the things on them are paper (next test).
+      expect(selector).toMatch(
+        / body$|\[data-surface="rail"\]\.bg-rail$| \.well$| \.ds-tray-compartment$|^\.oficina-(cabinet|drawer-front)$/,
+      );
     }
   });
 
   it("nenhum texto é escrito sobre a madeira: a gaveta tem etiqueta de papel", () => {
     expect(handwritten).toMatch(/\.oficina-drawer-label\s*\{[^}]*background:\s*rgb\(var\(--surface-panel\)\)/);
     expect(handwritten).toMatch(/\.oficina-envelope\s*\{[^}]*background:\s*rgb\(var\(--surface-panel\)\)/);
+    expect(handwritten).toMatch(/\.ds-tray-item\s*\{[^}]*background:\s*rgb\(var\(--surface-panel\)\)/);
   });
 
   it("a gaveta só se move fora do movimento reduzido", () => {
