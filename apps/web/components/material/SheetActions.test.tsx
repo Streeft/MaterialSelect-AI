@@ -17,7 +17,7 @@ function wrap(node: React.ReactNode) {
 
 describe("SheetActions (D-197)", () => {
   it("offers the sheet's own doors: compare, the map, export and favourite", () => {
-    render(wrap(<SheetActions materialId={7} unitChoices={undefined} showMap />));
+    render(wrap(<SheetActions materialId={7} materialName="Aço de teste" unitChoices={undefined} showMap />));
     const bar = screen.getByRole("toolbar", { name: ptBR.detail.sheetActions });
     expect(within(bar).getByRole("link", { name: ptBR.detail.compareThis })).toHaveAttribute(
       "href",
@@ -31,7 +31,7 @@ describe("SheetActions (D-197)", () => {
   });
 
   it("leaves the map out when the sheet does not offer it", () => {
-    render(wrap(<SheetActions materialId={7} unitChoices={undefined} showMap={false} />));
+    render(wrap(<SheetActions materialId={7} materialName="Aço de teste" unitChoices={undefined} showMap={false} />));
     expect(screen.queryByRole("link", { name: ptBR.detail.seeOnMap })).not.toBeInTheDocument();
   });
 });

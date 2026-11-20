@@ -11,6 +11,7 @@ import { ProjectWorkspace } from "./ProjectWorkspace";
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 const api = vi.hoisted(() => ({
+  getTray: vi.fn(),
   getAssembly: vi.fn(),
   updateAssembly: vi.fn(),
   deleteAssembly: vi.fn(),
@@ -238,5 +239,41 @@ describe("ProjectWorkspace (D-257)", () => {
     api.getAssembly.mockRejectedValue(Object.assign(new Error("Projeto não encontrado: 5"), { status: 404 }));
     renderWorkspace();
     expect(await screen.findByText(t.notFound)).toBeInTheDocument();
+  });
+
+  it("os materiais da bandeja ficam à mão: pelo menu da peça, o escolhido vai ao servidor (D-258)", async () => {
+    api.getAssembly.mockResolvedValue(project([part({ material: null })]));
+    api.getTray.mockResolvedValue({
+      items: [
+        { id: 1, kind: "material", compartment: "fixacao", position: 0, record_id: 9, tool: null, name: "Aço 1020", detail: "Metais", href: "/app/materiais/9", unavailable: false },
+        { id: 2, kind: "material", compartment: "material", position: 0, record_id: 11, tool: null, name: "Material indisponível", detail: null, href: null, unavailable: true },
+        { id: 3, kind: "tool", compartment: "ferramenta", position: 0, record_id: null, tool: "custo", name: "Custo", detail: null, href: "/app/custo", unavailable: false },
+      ],
+      tools: [],
+      max_items: 40,
+    });
+    api.updateAssemblyPart.mockResolvedValue(
+      project([part({ material: { id: 9, name: "Aço 1020", class_name: "Metais" } })]),
+    );
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    // The strip shows only what can be a part's material: readable materials, fixings included.
+    const strip = await screen.findByRole("group", { name: ptBR.tray.stripTitle });
+    expect(within(strip).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["Aço 1020"]);
+    expect(within(strip).getByRole("listitem")).toHaveAttribute("draggable", "true");
+
+    const card = screen.getByRole("region", { name: t.partRegion("Tampo") });
+    await user.click(within(card).getByRole("button", { name: t.partMenu("Tampo") }));
+    await user.click(await screen.findByRole("menuitem", { name: ptBR.tray.useInPart("Aço 1020") }));
+    await waitFor(() => expect(api.updateAssemblyPart).toHaveBeenCalledWith(5, 1, { material_id: 9 }));
+  });
+
+  it("sem nada na bandeja, a página do projeto não fala dela", async () => {
+    api.getAssembly.mockResolvedValue(project([part({})]));
+    api.getTray.mockResolvedValue({ items: [], tools: [], max_items: 40 });
+    renderWorkspace();
+    await screen.findByRole("region", { name: t.partRegion("Tampo") });
+    expect(screen.queryByRole("group", { name: ptBR.tray.stripTitle })).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,7 @@
 "use client";
 
+import { TakeToTrayButton } from "@/components/tray/AddToTray";
+import { trayDragProps } from "@/lib/tray";
 import Link from "next/link";
 import { Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -583,9 +585,16 @@ function ProcessLines({
       {processes.map((process) => (
         // The checkbox sits beside the link, never inside it: a control
         // nested in a link is the axe `nested-interactive` failure.
-        <li key={process.slug} className="flex items-center gap-1 pl-3">
+        <li
+          key={process.slug}
+          className="flex items-center gap-1 pl-3"
+          // D-258: a process can be carried to the tray, as a tool.
+          data-tray-carry
+          {...trayDragProps({ kind: "process", id: process.id, name: process.name })}
+        >
           <CompareCheck process={process} selected={selected} onToggle={onToggle} />
           <Link
+            draggable={false}
             href={`/app/processos/${process.slug}`}
             // `touch-target`: beside the checkbox the link is no longer the
             // item's only child, which the global rule needs to give it the
@@ -602,6 +611,9 @@ function ProcessLines({
               {t.materialsServed(process.material_count)}
             </span>
           </Link>
+          <span className="pr-2">
+            <TakeToTrayButton target={{ kind: "process", id: process.id, name: process.name }} />
+          </span>
         </li>
       ))}
     </ul>

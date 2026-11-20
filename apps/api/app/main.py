@@ -78,6 +78,7 @@ from app.routers import (
     solver,
     sources,
     synthesis,
+    tray,
 )
 
 
@@ -397,6 +398,8 @@ app.include_router(
 app.include_router(
     assemblies.router, prefix="/api", dependencies=[Depends(require_active_subscription)]
 )
+# D-258: the tray is the reader's working set, beside the projects it serves.
+app.include_router(tray.router, prefix="/api", dependencies=[Depends(require_active_subscription)])
 # D-249: the account's own appearance needs a login and nothing more (no subscription gate).
 app.include_router(me.router, prefix="/api")
 app.include_router(

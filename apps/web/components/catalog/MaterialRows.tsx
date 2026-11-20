@@ -1,5 +1,6 @@
 "use client";
 
+import { TakeManyToTrayButton } from "@/components/tray/AddToTray";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ORIGIN_ATTRIBUTE, markContainerOrigin } from "@/lib/containerTransition";
@@ -229,6 +230,8 @@ export function SelectionBar({
           {t.openInSelectionCapped(forSelection.ids.length)}
         </span>
       ) : null}
+      {/* D-258: the marked ones go to the tray together. */}
+      <TakeManyToTrayButton ids={ids} />
       <Button
         size="sm"
         variant="ghost"

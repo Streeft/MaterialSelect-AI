@@ -9,6 +9,7 @@ import type { ProcessAttributeValue } from "@/lib/types";
 import { ptBR } from "@/lib/i18n";
 import { AISuggestPanel } from "@/components/ai/AISuggestPanel";
 import { FavoriteButton } from "@/components/my-records/FavoriteButton";
+import { TakeToTrayButton } from "@/components/tray/AddToTray";
 import { useRecordVisit } from "@/components/my-records/useRecordVisit";
 import { AttributeValueText } from "@/components/process/AttributeValueText";
 import {
@@ -96,7 +97,13 @@ export default function ProcessDetailPage() {
       <PageDoc
         icon={<IconGear className="h-5 w-5" />}
         title={data.name}
-        primaryAction={<FavoriteButton universe="process" recordId={data.id} />}
+        primaryAction={
+          <span className="inline-flex items-center gap-2">
+            <FavoriteButton universe="process" recordId={data.id} />
+            {/* D-258: carry this process to the tray, among the tools. */}
+            <TakeToTrayButton size="md" target={{ kind: "process", id: data.id, name: data.name }} />
+          </span>
+        }
         properties={
           <PropertyList
             items={[

@@ -86,10 +86,12 @@ from app.models.selection import (
 from app.models.source import Source
 from app.models.subscription import Subscription
 from app.models.transport_mode import TransportMode
+from app.models.tray import TrayItem
 from app.models.user import User, UserSession
 from app.models.user_appearance import UserAppearance
 
 __all__ = [
+    "TrayItem",
     "Assembly",
     "AssemblyPart",
     "AIUsage",

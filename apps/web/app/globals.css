@@ -2790,6 +2790,98 @@ div[data-surface="rail"] .msds-rail-item {
   }
 }
 
+/* D-258 — the tray. A panel like any other in "Engenharia"; in "Oficina" its compartments are
+ * the wood of a tray and each thing on it is a slip of paper (text is only ever set on paper). */
+.ds-tray-count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgb(var(--m3-primary));
+  color: rgb(var(--m3-on-primary));
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.ds-tray-compartment {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-tray-item {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  border-radius: var(--shape-small);
+  border: 1px solid rgb(var(--border-panel));
+  background: rgb(var(--surface-panel));
+}
+:root[data-ambience="oficina"] .ds-tray-compartment {
+  padding: 8px;
+  border-radius: var(--shape-medium);
+  border: 1px solid rgb(var(--edge-strong));
+  background-color: rgb(var(--oficina-wood-now));
+  background-image: var(--oficina-grain);
+}
+/* Where a carried thing is dropped: it exists only while one is being dragged. */
+.ds-tray-drop {
+  position: fixed;
+  z-index: 55;
+  right: 16px;
+  bottom: calc(var(--bottom-nav-offset, 0px) + 16px + env(safe-area-inset-bottom));
+  display: flex;
+  min-height: 72px;
+  width: min(22rem, calc(100vw - 32px));
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--shape-large);
+  border: 2px dashed rgb(var(--m3-primary));
+  background: rgb(var(--m3-surface-container-high));
+  color: rgb(var(--m3-on-surface));
+  font-weight: 600;
+  box-shadow: var(--elevation-3);
+}
+.ds-tray-drop[data-over="true"] {
+  border-style: solid;
+  background: rgb(var(--m3-primary-container));
+  color: rgb(var(--m3-on-primary-container));
+}
+/* A material of the tray shown on a project page, to drag onto a part. */
+.ds-tray-chip {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--shape-small);
+  border: 1px solid rgb(var(--edge-control));
+  background: rgb(var(--surface-panel));
+  color: rgb(var(--ink));
+  font-size: 0.875rem;
+  font-weight: 600;
+  user-select: none;
+}
+/* The part a carried material is over. */
+[data-drop-over="true"] {
+  outline: 2px solid rgb(var(--m3-primary));
+  outline-offset: 2px;
+}
+/* What can be carried says so to the mouse; the command beside it serves everyone else. */
+[data-tray-carry] { cursor: grab; }
+[data-tray-carry]:active { cursor: grabbing; }
+
 /* ---------------------------------------------------------------------------
  * D-256 — Ambiente "Oficina": the same screens, dressed as a workshop.
  *

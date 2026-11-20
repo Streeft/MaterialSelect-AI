@@ -248,6 +248,12 @@ ficou sem objeto. Três regras que não são questão de gosto:
   e a soma parcial dita como parcial. Toda escrita de peça devolve o projeto inteiro: ponha a resposta no cache, não remonte a soma. Custo sai
   sem símbolo de moeda, com a nota do servidor uma vez na página. Remover peça é imediato e o "Desfazer" regrava a peça.
 
+- **A bandeja** ([D-258](docs/DECISIONS.md)): o que a pessoa leva fica na conta (`/api/tray`) e num só cache (`lib/tray.ts`); toda escrita
+  guarda a resposta do servidor. É marcador: nunca ponha valor de material num item nem no arrasto (o arrasto leva tipo, id e nome). Onde algo
+  pode ser arrastado para a bandeja, o botão `TakeToTrayButton` está ao lado; destino novo de arrasto usa `carriesTrayTarget`/`readTrayDrag` e
+  oferece o mesmo por menu. Aviso com "Desfazer" de dentro de um painel modal fica **no painel**, nunca no snackbar atrás dele. O link dentro de
+  um elemento arrastável leva `draggable={false}`.
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".

@@ -64,6 +64,7 @@ import { useCanEditCatalog } from "@/lib/billing";
 import { labelForPath } from "@/lib/design/sections";
 import { OPEN_SEARCH_EVENT } from "./GlobalSearch";
 import { NavIcon } from "./workshopIcons";
+import { TrayButton } from "@/components/tray/TrayButton";
 
 const t = ptBR.nav;
 
@@ -763,6 +764,8 @@ export function AppSidebar() {
           icon={<IconSearch />}
           onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
         />
+        {/* D-258: the tray, on a narrow screen. */}
+        <TrayButton size="sm" />
       </header>
 
       {/* Wide screens: the rail. `sticky` with `h-screen` keeps it in place

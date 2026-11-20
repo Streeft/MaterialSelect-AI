@@ -9,6 +9,8 @@ import { ptBR } from "@/lib/i18n";
 import type { MaterialListItem } from "@/lib/types";
 import { QualityBar } from "@/components/catalog/MaterialRows";
 import { Button, ButtonLink, ErrorState, ToggleChip, LoadingState } from "@/components/ui";
+import { TakeToTrayButton } from "@/components/tray/AddToTray";
+import { trayDragProps, type TrayTarget } from "@/lib/tray";
 
 const t = ptBR.catalog.cabinet;
 
@@ -67,15 +69,23 @@ export function Drawer({
  * is shown here: the search does not carry one, and an envelope must not invent it.
  */
 export function Envelope({ material }: { material: MaterialListItem }) {
+  // D-258: an envelope can be carried — dragged to the tray, or taken with the button beside its
+  // name, which is the same command for the keyboard and the touch screen.
+  const target: TrayTarget = { kind: "material", id: material.id, name: material.name };
   return (
-    <li className="oficina-envelope" {...{ [ORIGIN_ATTRIBUTE]: "" }}>
-      <Link
-        href={`/app/materiais/${material.id}`}
-        onClick={markContainerOrigin}
-        className="touch-target break-words text-body font-semibold text-brand-700"
-      >
-        {material.name}
-      </Link>
+    <li className="oficina-envelope" data-tray-carry {...trayDragProps(target)} {...{ [ORIGIN_ATTRIBUTE]: "" }}>
+      <span className="flex items-start gap-2">
+        <Link
+          href={`/app/materiais/${material.id}`}
+          onClick={markContainerOrigin}
+          // The envelope is what is dragged, not the link's address.
+          draggable={false}
+          className="touch-target min-w-0 flex-1 break-words text-body font-semibold text-brand-700"
+        >
+          {material.name}
+        </Link>
+        <TakeToTrayButton target={target} />
+      </span>
       {material.subclass ? <span className="text-caption text-ink-muted">{material.subclass}</span> : null}
       <QualityBar quality={material.quality} />
     </li>

@@ -15147,3 +15147,52 @@ uma peça). Guardar as somas na linha (envelhecem quando o catálogo muda). Tota
 `e2e/projetos.spec.ts`.
 
 **Numeração.** D-257, Sessão 214 (conferidas em `origin/main` e nas branches abertas; a D-256/Sessão 213 está no PR #280, do qual esta branch parte).
+
+## D-258 — A bandeja: a camada 3 da Oficina (`tray_item` na conta, três compartimentos, arrastar com comando ao lado)
+
+**Contexto.** Na ideia do autor (D-256), depois de abrir a gaveta a pessoa **pega** os envelopes que quer, mais fixações e ferramentas, e **leva**
+para a bancada. O app não tinha esse "o que estou carregando": os *marcados* do Catálogo vivem no endereço e só naquela tela; os *Favoritos* são
+"voltar um dia", sem papel no trabalho em curso. Pedido de 20/11/2026, depois do roteiro em [`22-oficina.md`](22-oficina.md): fazer a camada 3. Duas
+escolhas do autor: a bandeja abre por um **botão no topo com painel lateral**, e o compartimento Ferramentas leva **processos e calculadoras**.
+
+**Decisão.**
+
+1. **A bandeja é da conta e é marcador, não dado.** Tabela `tray_item` (migração `0ad472526206`), no molde de `Favorite`: `user_id` e **exatamente
+   um** alvo entre `material_id`, `process_id` e `tool`, garantido por `CheckConstraint`; `compartment`; `position`. Nenhum número: valor de material
+   mora em `MaterialPropertyValue`, com a proveniência.
+2. **Três compartimentos, com regra de quem cabe onde.** Material vai em **Materiais** ou **Fixações** (o mesmo aço, como prego); processo e
+   calculadora vão em **Ferramentas**. Coisa no compartimento errado é 400, com a frase ("Um material não vai em Ferramentas: vai em Materiais ou
+   Fixações.").
+3. **Calculadora é atalho, de lista fechada no servidor** (`app/domain/tray_tools.py`: Dimensionar, Custo, Eco, Sintetizar, Baterias). O que se
+   guarda é o slug; rótulo e rota vêm na resposta, e a mesma resposta lista todas as que podem ser levadas, para o cliente não manter cópia. Não
+   carrega dado nenhum; levar o material para **dentro** da calculadora é a camada 4.
+4. **Pôr é idempotente e tudo-ou-nada.** `PUT /api/tray/items` aceita vários de uma vez (os marcados do Catálogo). O que já está lá fica onde
+   está; se um item é inválido, nada é gravado. Limite de 40 itens, recusado em palavras (409), contando só o que é novo.
+5. **O que saiu do catálogo fica, dito como tal.** Um material inativado ou que o leitor não pode mais ver continua na bandeja como "Material
+   indisponível", sem nome, classe nem link, até a pessoa tirar. Nunca some em silêncio, e nunca revela o nome de um registro que ela não pode ler.
+6. **Toda escrita devolve a bandeja inteira** (como a D-257), e o cliente guarda a resposta num único cache (`lib/tray.ts`, padrão do
+   `FavoriteButton`): o número no botão, o painel e a faixa no projeto não podem discordar.
+7. **Arrastar tem sempre um comando ao lado** (D-146, D-206). Arrasta-se o envelope da gaveta, o cartão da Galeria e a linha de Processos; ao
+   começar, aparece no canto a zona "Solte aqui para levar à bandeja", que só existe durante o arrasto. O mesmo gesto é o botão "Levar para a
+   bandeja" no envelope, no cartão, na linha, nas fichas de material e de processo (e na barra flutuante da ficha no celular) e na barra dos
+   marcados. O que se arrasta leva tipo, id e nome (`application/x-msai-tray`); nunca um valor.
+8. **A bandeja já serve nesta camada.** Na página de um projeto, os materiais da bandeja (fixações incluídas) aparecem numa faixa "Da bandeja";
+   soltar um numa peça define o material dela, e o menu da peça oferece "Usar X, da bandeja" para quem não arrasta. A soma vem do servidor, na
+   resposta do `PATCH`. O painel ainda compara os materiais (`/app/comparar?materiais=…`), abre cada ficha e cada calculadora, move entre
+   Materiais e Fixações, tira e esvazia.
+9. **"Desfazer" fica dentro do painel.** O painel é modal (`SidePeek`): o aviso do app ficaria atrás dele, fora do alcance do mouse e do teclado
+   (o teste de navegador pegou isso). Tirar e esvaziar são imediatos e a linha de estado do painel traz o "Desfazer", que repõe o item no
+   compartimento em que estava.
+10. **Onde não há o cache do app, o comando não é oferecido** (`useTrayAvailable`): um cartão não pode precisar da bandeja para ser um cartão.
+    No ambiente Oficina o compartimento é madeira e cada item é papel (`.ds-tray-item`), pela regra da D-256.
+
+**Alternativas recusadas.** Guardar no navegador (não acompanha a pessoa, e a ideia é levar para a bancada onde ela estiver). Reaproveitar
+`Favorite` com uma coluna a mais (favorito e bandeja têm vidas diferentes, e o favorito não tem compartimento). Faixa fixa no rodapé (ocupa altura em
+toda tela e disputa com a barra dos marcados, o "Novo" e a navegação do celular). Uma biblioteca de arrastar (proibida, REDESIGN §13; o HTML5 nativo
+já serve `Block` e o construtor de expressão). Deixar o painel não modal para dar para arrastar de dentro dele (perde o foco preso e o padrão do
+`SidePeek`; a faixa no projeto resolve o arrasto sem isso). Calculadora como linha de tabela (não é registro).
+
+**Consequências.** Toca `apps/api` e **tem migração** (`0ad472526206`, uma tabela nova). Depois do merge: **Deploy da API**. Nenhum seed. 13 testes
+novos no backend e 26 no frontend, mais `e2e/bandeja.spec.ts` (4 testes).
+
+**Numeração.** D-258, Sessão 215 (conferidas em `origin/main` e nas branches abertas).

@@ -7,6 +7,8 @@ import { GlobalSearchButton } from "@/components/layout/GlobalSearch";
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { OfflineBanner } from "@/components/layout/OfflineBanner";
 import { RouteTransition } from "@/components/layout/RouteTransition";
+import { Tray } from "@/components/tray/Tray";
+import { TrayButton } from "@/components/tray/TrayButton";
 import { AnnouncerProvider } from "@/components/ui/Announcer";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import { ptBR } from "@/lib/i18n";
@@ -37,8 +39,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               D-206: from lg up; below, the top app bar carries it as an icon.
               The dialog is a portal, so it opens from there too. */}
           <div className="sticky top-0 z-20 hidden border-b border-line-divider bg-page/90 px-4 py-2 backdrop-blur sm:px-6 lg:top-0 lg:block lg:px-8">
-            <div className="mx-auto w-full max-w-screen-2xl">
+            <div className="mx-auto flex w-full max-w-screen-2xl items-center gap-3">
               <GlobalSearchButton />
+              {/* D-258: what the reader is carrying, one click away on every screen. */}
+              <span className="ml-auto">
+                <TrayButton />
+              </span>
             </div>
           </div>
           <OfflineBanner />
@@ -55,6 +61,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <KeyboardShortcuts />
+      {/* D-258: the tray's panel and its drop zone, once for the whole app. */}
+      <Tray />
       {/* D-249: the colour, contrast, motion and rail follow the reader across devices. */}
       <AppearanceSync />
       {/* D-207: the tab title per page, and the menu's "Recentes". */}
