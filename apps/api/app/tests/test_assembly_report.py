@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models.material import Material
 from app.models.user import User
-from app.services.assembly_report_service import NOT_STORED_NOTICE, AssemblyReportService
+from app.services.assembly_report_service import AssemblyReportService
 
 LIGHT = {"operator": "lte", "property_slug": "densidade", "value": 5, "unit": "g/cm**3"}
 TIE = {"key": "tirante-rigidez", "inputs": {"comprimento": 1.0, "rigidez": 1.0e6}}
@@ -81,13 +81,8 @@ def test_the_report_says_what_the_page_and_the_trial_say(client, db_session, tab
         "Ensaio",
         "Casos de carga declarados",
     ]
-    for notice in (
-        page["scope_note"],
-        page["monetary_unit_note"],
-        trial["method_note"],
-        NOT_STORED_NOTICE,
-    ):
-        assert notice in report.notices
+    # D-264: no box of notices above the tables.
+    assert report.notices == []
 
     summary = dict(report.sheet("Resumo").rows)
     assert summary["Peças"] == 4
@@ -216,6 +211,8 @@ def test_the_html_escapes_what_the_reader_typed_and_carries_no_script(client, ta
         "Escolha um material para a peça.",
     ):
         assert said in body
+    # D-264: with no notice, the page has no empty notice box either.
+    assert '<div class="notices">' not in body
 
 
 def test_an_unknown_format_and_another_readers_project_are_refused(client, table):

@@ -34,6 +34,9 @@ import {
   StepCard,
   TBody,
   THead,
+  DetailRow,
+  DetailTh,
+  PropertyList,
   Table,
   TableCaption,
   TableScroll,
@@ -167,16 +170,33 @@ function ResultTable({ result }: { result: CostResult }) {
           <Tr>
             <Th scope="col">#</Th>
             <Th scope="col">{t.columnProcess}</Th>
-            <Th scope="col">{t.columnMaterial}</Th>
-            <Th scope="col">{t.columnTooling}</Th>
-            <Th scope="col">{t.columnOverhead}</Th>
-            <Th scope="col">{t.columnCapital}</Th>
             <Th scope="col">{t.columnTotal}</Th>
+            <DetailTh />
           </Tr>
         </THead>
         <TBody>
           {result.costed.map((item) => (
-            <Tr key={item.process_id}>
+            // D-264: the answer is the process and its total; the four terms that add up to
+            // it are the row's details, one click away. The first row starts open: a total
+            // with no breakdown in sight would be an oracle, and the best process is the one
+            // the reader came for.
+            <DetailRow
+              key={item.process_id}
+              name={item.process_name}
+              columns={3}
+              defaultOpen={item.rank === 1}
+              details={
+                <PropertyList
+                  dense
+                  items={[
+                    { label: t.columnMaterial, value: formatNumber(item.terms.material) },
+                    { label: t.columnTooling, value: formatNumber(item.terms.tooling) },
+                    { label: t.columnOverhead, value: formatNumber(item.terms.overhead) },
+                    { label: t.columnCapital, value: formatNumber(item.terms.capital) },
+                  ]}
+                />
+              }
+            >
               <Td className="tabular-nums">{item.rank}</Td>
               <Td>
                 <Link
@@ -186,12 +206,8 @@ function ResultTable({ result }: { result: CostResult }) {
                   {item.process_name}
                 </Link>
               </Td>
-              <Td className="tabular-nums">{formatNumber(item.terms.material)}</Td>
-              <Td className="tabular-nums">{formatNumber(item.terms.tooling)}</Td>
-              <Td className="tabular-nums">{formatNumber(item.terms.overhead)}</Td>
-              <Td className="tabular-nums">{formatNumber(item.terms.capital)}</Td>
               <Td className="font-medium tabular-nums">{formatNumber(item.terms.total)}</Td>
-            </Tr>
+            </DetailRow>
           ))}
         </TBody>
       </Table>

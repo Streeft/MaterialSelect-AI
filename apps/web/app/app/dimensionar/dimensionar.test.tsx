@@ -427,6 +427,8 @@ describe("Dimensionar", () => {
     );
 
     await screen.findByRole("link", { name: "Alumínio 6061" });
+    // On a cost run the details hold the index and no link that would carry a mass.
+    await user.click(screen.getByRole("button", { name: ptBR.ui.showDetailsOf("Alumínio 6061") }));
     expect(
       screen.queryByRole("link", { name: ptBR.cost.fromSolver }),
     ).not.toBeInTheDocument();
@@ -443,9 +445,18 @@ describe("Dimensionar", () => {
     );
 
     await screen.findByRole("link", { name: "Alumínio 6061" });
+    // D-264: the row shows the answer; the index and the next steps are its details.
+    expect(screen.queryByRole("link", { name: ptBR.cost.fromSolver })).not.toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: ptBR.ui.showDetailsOf("Alumínio 6061") });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await user.click(toggle);
+    expect(
+      screen.getByRole("button", { name: ptBR.ui.hideDetailsOf("Alumínio 6061") }),
+    ).toHaveAttribute("aria-expanded", "true");
     expect(
       screen.getByRole("link", { name: ptBR.cost.fromSolver }),
     ).toHaveAttribute("href", "/app/custo?material=1&massa=0.402&origem=dimensionar");
+    expect(screen.getAllByText(t.columnIndex).length).toBeGreaterThan(0);
   });
 
   it("abre com o objetivo e o limite que o servidor mandar, sem cópia na tela (D-216)", async () => {

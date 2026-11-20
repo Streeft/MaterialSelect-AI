@@ -46,6 +46,9 @@ import {
   SelectOption,
   TBody,
   THead,
+  DetailRow,
+  DetailTh,
+  PropertyList,
   Table,
   TableCaption,
   TableScroll,
@@ -1046,13 +1049,10 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
                           <THead>
                             <Tr>
                               <Th scope="col">{t.tableColChem}</Th>
-                              <Th scope="col">{t.tableColNsNp}</Th>
                               <Th scope="col">{t.tableColMass}</Th>
-                              <Th scope="col">{t.tableColVol}</Th>
                               <Th scope="col">{t.tableColCost}</Th>
-                              <Th scope="col">{t.tableColLife}</Th>
-                              <Th scope="col">{t.tableColLevelized}</Th>
                               <Th scope="col">{t.tableColSafety}</Th>
+                              <DetailTh />
                             </Tr>
                           </THead>
                           <TBody>
@@ -1060,13 +1060,34 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
                               const isSelected =
                                 item.chemistry_slug === chemistrySlug;
                               return (
-                                <Tr
+                                // D-264: mass, cost and safety compare the chemistries at a
+                                // glance; the pack's make-up and its life are the details.
+                                <DetailRow
                                   key={item.chemistry_slug}
+                                  name={item.chemistry_name}
+                                  columns={4}
                                   aria-current={isSelected ? "true" : undefined}
                                   className={
                                     isSelected
                                       ? "bg-brand-50/40 dark:bg-brand-950/20 font-medium"
                                       : undefined
+                                  }
+                                  details={
+                                    <PropertyList
+                                      dense
+                                      items={[
+                                        {
+                                          label: t.tableColNsNp,
+                                          value: `${item.series_cells_ns}s ${item.parallel_strings_np}p (${formatNumber(item.total_cells)})`,
+                                        },
+                                        { label: t.tableColVol, value: `${formatNumber(item.pack_volume_l)} L` },
+                                        { label: t.tableColLife, value: formatNumber(item.cycle_life) },
+                                        {
+                                          label: t.tableColLevelized,
+                                          value: `US$ ${formatScore(item.levelized_cost_per_kwh_cycle, 4)}`,
+                                        },
+                                      ]}
+                                    />
                                   }
                                 >
                                   <Td>
@@ -1078,25 +1099,10 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
                                     </div>
                                   </Td>
                                   <Td className="tabular-nums">
-                                    {item.series_cells_ns}s{" "}
-                                    {item.parallel_strings_np}p (
-                                    {formatNumber(item.total_cells)})
-                                  </Td>
-                                  <Td className="tabular-nums">
                                     {formatNumber(item.pack_mass_kg)} kg
                                   </Td>
                                   <Td className="tabular-nums">
-                                    {formatNumber(item.pack_volume_l)} L
-                                  </Td>
-                                  <Td className="tabular-nums">
                                     US$ {formatNumber(item.pack_cost_usd)}
-                                  </Td>
-                                  <Td className="tabular-nums">
-                                    {formatNumber(item.cycle_life)}
-                                  </Td>
-                                  <Td className="tabular-nums">
-                                    US${" "}
-                                    {formatScore(item.levelized_cost_per_kwh_cycle, 4)}
                                   </Td>
                                   <Td>
                                     <Badge
@@ -1105,7 +1111,7 @@ function BateriasScreen({ defaults }: { defaults: DefaultsResult["baterias"] }) 
                                       {SAFETY_LABEL[item.thermal_safety]}
                                     </Badge>
                                   </Td>
-                                </Tr>
+                                </DetailRow>
                               );
                             })}
                           </TBody>

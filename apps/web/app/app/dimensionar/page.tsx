@@ -52,6 +52,9 @@ import {
   StepCard,
   TBody,
   THead,
+  DetailRow,
+  DetailTh,
+  PropertyList,
   Table,
   TableCaption,
   TableScroll,
@@ -238,15 +241,55 @@ function ResultTable({ result }: { result: SolveResult }) {
           <Tr>
             <Th scope="col">#</Th>
             <Th scope="col">{t.columnMaterial}</Th>
-            <Th scope="col">{t.columnIndex}</Th>
             <Th scope="col">{`${objectiveColumn} (${result.objective_unit})`}</Th>
             <Th scope="col">{`${result.case.free_variable_label} (${result.free_unit})`}</Th>
-            {isCost ? null : <Th scope="col">{t.columnNext}</Th>}
+            <DetailTh />
           </Tr>
         </THead>
         <TBody>
           {result.solved.map((record) => (
-            <Tr key={record.record_id}>
+            // D-264: the row answers "how heavy, and how thick"; the index that ordered it and
+            // where to take the mass next are its details.
+            <DetailRow
+              key={record.record_id}
+              name={record.name}
+              columns={4}
+              details={
+                <PropertyList
+                  dense
+                  items={[
+                    { label: t.columnIndex, value: formatNumber(record.index_value) },
+                    ...(isCost
+                      ? []
+                      : [
+                          {
+                            label: t.columnNext,
+                            // The mass this row just computed is exactly the number both the
+                            // cost estimate and the eco audit need, so the links carry it (B1).
+                            // Both are absent on a cost run: they carry `massa=`, and a cost
+                            // there is a different quantity.
+                            value: (
+                              <span className="flex flex-wrap gap-3">
+                                <Link
+                                  className="text-accent underline underline-offset-2"
+                                  href={`/app/custo?material=${record.record_id}&massa=${record.objective_value}&origem=dimensionar`}
+                                >
+                                  {ptBR.cost.fromSolver}
+                                </Link>
+                                <Link
+                                  className="text-accent underline underline-offset-2"
+                                  href={`/app/eco?material=${record.record_id}&massa=${record.objective_value}`}
+                                >
+                                  {ptBR.eco.fromSolver}
+                                </Link>
+                              </span>
+                            ),
+                          },
+                        ]),
+                  ]}
+                />
+              }
+            >
               <Td className="tabular-nums">{record.rank}</Td>
               <Td>
                 <div className="flex flex-wrap items-center gap-2">
@@ -265,39 +308,9 @@ function ResultTable({ result }: { result: SolveResult }) {
                   />
                 </div>
               </Td>
-              <Td className="tabular-nums">
-                {formatNumber(record.index_value)}
-              </Td>
-              <Td className="tabular-nums">
-                {formatNumber(record.objective_value)}
-              </Td>
-              <Td className="tabular-nums">
-                {formatNumber(record.free_value)}
-              </Td>
-              {isCost ? null : (
-                <Td>
-                  {/* The mass this row just computed is exactly the number both
-                      the cost estimate and the eco audit need, so the links
-                      carry it (B1). Typing it again would be an invitation to
-                      type it wrong. Both are absent on a cost run: they carry
-                      `massa=`, and a cost there is a different quantity. */}
-                  <div className="flex flex-wrap gap-3">
-                    <Link
-                      className="text-accent underline underline-offset-2"
-                      href={`/app/custo?material=${record.record_id}&massa=${record.objective_value}&origem=dimensionar`}
-                    >
-                      {ptBR.cost.fromSolver}
-                    </Link>
-                    <Link
-                      className="text-accent underline underline-offset-2"
-                      href={`/app/eco?material=${record.record_id}&massa=${record.objective_value}`}
-                    >
-                      {ptBR.eco.fromSolver}
-                    </Link>
-                  </div>
-                </Td>
-              )}
-            </Tr>
+              <Td className="tabular-nums">{formatNumber(record.objective_value)}</Td>
+              <Td className="tabular-nums">{formatNumber(record.free_value)}</Td>
+            </DetailRow>
           ))}
         </TBody>
       </Table>

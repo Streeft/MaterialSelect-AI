@@ -101,6 +101,8 @@ export {
   TableScroll,
   Td,
   Th,
+  DetailRow,
+  DetailTh,
   RowHeader,
   SortTh,
   Tr,

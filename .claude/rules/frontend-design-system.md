@@ -80,6 +80,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   sentidos, nunca vira 0. A seleção vale para as linhas **listadas** e o botão desligado diz o motivo. No celular os
   cartões do catálogo têm a mesma caixa (44 px) e **a mesma barra, desenhada uma vez** (`SelectionBar`; duas, uma por
   layout, seriam duas regiões com o mesmo nome).
+- **Tabela de resultado mostra a resposta e dobra o resto** ([D-264](docs/DECISIONS.md)): passando de cinco colunas, use `DetailRow` +
+  `DetailTh` (o botão "Detalhes" nomeia a linha e abre uma segunda linha com um `PropertyList`). Só dobra o que o servidor mandou: nada é
+  calculado nem omitido, e o ausente continua escrito. A linha cuja decomposição é a própria resposta começa aberta (`defaultOpen`).
+  Barra de valor na célula só com o normalizado vindo do servidor.
 - **Desabilitado desbota por `--state-disabled`** (0,38), nunca por número próprio: o teste `disabledState.test.ts`
   reprova `:disabled { opacity }` e `disabled:opacity-NN` fixos entre 30 e 55 %. Texto que precisa de contraste
   (link, opção, fonte bloqueada) não desbota: troca de cor ou diz em palavras.

@@ -1,6 +1,8 @@
 "use client";
 
+import { useId, useState } from "react";
 import type { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } from "react";
+import { ptBR } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { useTableDensity } from "@/lib/density";
 
@@ -213,5 +215,73 @@ export function TableCaption({
     >
       {children}
     </caption>
+  );
+}
+
+/**
+ * A row that keeps its secondary figures folded (D-264).
+ *
+ * A result table answers one question per row — which process, at what total — and the
+ * numbers that explain the answer are for whoever asks. They stay one click away, in a
+ * second row under this one, so the table shows four or five columns instead of eight and
+ * nothing is removed from the page. The button names the row it opens (`aria-expanded`,
+ * `aria-controls`); the head of its column is `DetailTh`.
+ *
+ * It folds what the server sent and nothing else: no figure is computed, rounded differently
+ * or left out here, and an absent one keeps its written state inside the details.
+ */
+export function DetailRow({
+  name,
+  columns,
+  details,
+  defaultOpen = false,
+  className,
+  children,
+  ...rest
+}: HTMLAttributes<HTMLTableRowElement> & {
+  /** What the row is about, for the button's name ("Detalhes de Fundição em areia"). */
+  name: string;
+  /** How many cells the row has besides the toggle's, so the details span them all. */
+  columns: number;
+  details: ReactNode;
+  /** Starts open: for the one row whose breakdown *is* the answer (the best process's cost). */
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const id = useId();
+  return (
+    <>
+      <Tr {...rest} className={className} data-detail-open={open || undefined}>
+        {children}
+        <Td className="w-px whitespace-nowrap text-right">
+          <button
+            type="button"
+            className="msds-table-toggle touch-target"
+            aria-expanded={open}
+            aria-controls={open ? id : undefined}
+            aria-label={open ? ptBR.ui.hideDetailsOf(name) : ptBR.ui.showDetailsOf(name)}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? ptBR.ui.hideDetails : ptBR.ui.showDetails}
+          </button>
+        </Td>
+      </Tr>
+      {open ? (
+        <tr id={id} data-detail-row>
+          <td colSpan={columns + 1} className="bg-well px-3 py-3">
+            {details}
+          </td>
+        </tr>
+      ) : null}
+    </>
+  );
+}
+
+/** The head of the column `DetailRow` adds: named for a screen reader, empty to the eye. */
+export function DetailTh() {
+  return (
+    <Th>
+      <span className="sr-only">{ptBR.ui.detailsColumn}</span>
+    </Th>
   );
 }
