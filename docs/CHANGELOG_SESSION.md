@@ -120,6 +120,23 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 217 — 20/11/26 — O ensaio: cada peça contra os limites do seu estudo, e o carimbo "Solucionado" (D-260)
+
+**O que mudou.** *Backend:* `app/calculations/assembly_trial.py` (a contagem dos vereditos), `SelectionService.trial_requirements` (o motor da
+Seleção julgando um material contra cada requisito de um estudo salvo), `AssemblyService.trial` e `GET /api/assemblies/{id}/trial`. *Frontend:*
+`components/projects/ProjectTrial.tsx` e a seção "Ensaio" na página do projeto.
+
+**Por quê.** Camada 5 do rumo da Oficina, primeira parte: o projeto somava, mas não dizia se o material atende ao que se pediu da peça.
+
+**Como foi conferido.** Backend: `ruff`, `black --check`, `pytest` inteiro (6595 coletados em 264 arquivos). Frontend: `typecheck`, `lint` (0
+erros), `vitest run` (2812 em 252 arquivos). No Chromium, com a API real, `e2e/ensaio.spec.ts`: um estudo com dois limites, duas peças, o aço não
+passa na densidade e o alumínio passa; trocar o material da perna faz o ensaio se refazer e o carimbo virar "Solucionado"; axe nos dois estados e
+375 px sem rolagem lateral.
+
+**Ficou de fora, com motivo.** O caso de carga por peça (segundo PR, decisão do autor) e o laudo do projeto.
+
+---
+
 ## Sessão 216 — 20/11/26 — A bancada: a faixa "Da bandeja" no mapa, no comparador, no Custo e no Eco (D-259)
 
 **O que mudou.** `components/tray/TrayStrip.tsx` (a faixa e `TrayDropZone`), `useTrayDrop` e `benchDestinations` em `lib/tray.ts`. Mapas destaca

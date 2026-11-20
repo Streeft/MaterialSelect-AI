@@ -56,7 +56,7 @@ Oficina é a mesma narrativa com cenário; nenhum número muda de lugar de cálc
 | 2 | **Projeto com peças**: backend + telas de Projetos | **feito (D-257)** |
 | 3 | **Bandeja**: materiais, fixações e ferramentas guardados na conta | **feito (D-258)** |
 | 4 | **Bancada**: levar da bandeja para o mapa, o comparador, o Custo e o Eco | **feito (D-259)** |
-| 5 | **Ensaio** por peça e **"Solucionado"**; laudo do projeto | a fazer |
+| 5 | **Ensaio** por peça e **"Solucionado"**; laudo do projeto | **em parte (D-260)**: limites do estudo feitos; caso de carga e laudo a fazer |
 | 6 | Tabelas leves de verdade: até 5 colunas, resto no detalhe da linha (resultados da Seleção) | a fazer |
 
 ### Camada 2 — projeto com peças (feita, D-257)
@@ -89,6 +89,15 @@ Oficina é a mesma narrativa com cenário; nenhum número muda de lugar de cálc
 - **Soltar** é `useTrayDrop` (ou `TrayDropZone`): o lugar ganha contorno e recebe id e nome. A tela muda a pergunta; o servidor responde.
 - **Do painel**, o menu do material leva às quatro telas (o painel é modal, nada sai dele arrastado).
 - **Regra para destino novo:** use `TrayStrip` + `useTrayDrop`, com o motivo escrito quando o comando não cabe, e anuncie o que mudou.
+
+### Camada 5 — o ensaio (primeira parte feita, D-260)
+
+- **O requisito da peça é o estudo ligado a ela**: cada limite e cada estágio ligado, na ordem do estudo.
+- **Quem julga é o motor da Seleção**, sobre o material da peça: Passa, Não passa ou Sem dado. Ausência nunca aprova.
+- **Peça que não pôde ser ensaiada diz o que falta** (material, estudo, limites) e não conta como aprovada.
+- **"Solucionado"** só com todas as peças passando em tudo. Nada é guardado: o ensaio responde com o catálogo como está.
+- **Na tela**, a seção "Ensaio" da página do projeto: pede-se o ensaio, e depois ele acompanha o projeto.
+- **A fazer:** caso de carga por peça como segundo tipo de requisito; laudo do projeto.
 
 ## Onde está cada coisa (camada 1)
 

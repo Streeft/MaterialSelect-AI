@@ -15,6 +15,7 @@ from app.schemas.assembly import (
     AssemblyIn,
     AssemblyOut,
     AssemblyPatch,
+    AssemblyTrialOut,
     PartIn,
     PartPatch,
 )
@@ -28,7 +29,7 @@ def _service(
     project: Project = Depends(get_current_project),
     user: User = Depends(get_current_user),
 ) -> AssemblyService:
-    return AssemblyService(db, project.id, user.id)
+    return AssemblyService(db, project.id, user.id, user=user)
 
 
 @router.get("", response_model=list[AssemblyBriefOut])
@@ -48,6 +49,12 @@ def create_assembly(
 def get_assembly(assembly_id: int, service: AssemblyService = Depends(_service)) -> AssemblyOut:
     """The project, its parts and what they add up to, from the catalogue as it stands."""
     return service.get_assembly(assembly_id)
+
+
+@router.get("/{assembly_id}/trial", response_model=AssemblyTrialOut)
+def trial(assembly_id: int, service: AssemblyService = Depends(_service)) -> AssemblyTrialOut:
+    """The trial (D-260): each part's material against the requirements of its study."""
+    return service.trial(assembly_id)
 
 
 @router.patch("/{assembly_id}", response_model=AssemblyOut)

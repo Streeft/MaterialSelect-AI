@@ -1919,6 +1919,23 @@ export const ptBR = {
       embodied_energy: "Energia incorporada",
       carbon: "CO₂ da produção",
     },
+    // D-260: the trial. Every verdict and sentence is the server's; these only name the screen.
+    trial: {
+      title: "Ensaio",
+      hint: "Confere o material de cada peça contra os requisitos do estudo ligado a ela.",
+      empty: "Acrescente uma peça para poder ensaiar.",
+      run: "Ensaiar o projeto",
+      again: "Ensaiar de novo",
+      running: "Ensaiando o projeto",
+      error: "Não foi possível ensaiar o projeto.",
+      result: "Resultado do ensaio",
+      partsLabel: "Ensaio por peça",
+      requirementsOf: (part: string) => `Requisitos de ${part}`,
+      with: (material: string) => `com ${material}`,
+      against: (study: string) => `contra “${study}”`,
+      openStudy: (study: string) => `Abrir o estudo ${study}`,
+      announce: (verdict: string, summary: string) => `${verdict}. ${summary}`,
+    },
     totals: "Soma do projeto",
     totalsEmpty: "Acrescente uma peça para ver a soma.",
     noTotal: (n: number, names: string) =>

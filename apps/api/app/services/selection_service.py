@@ -1511,6 +1511,65 @@ class SelectionService:
 
         return stage_outs, flat, remaining
 
+    def trial_requirements(self, study_id: int, material_id: int) -> list[tuple[str, str]] | None:
+        """How one material answers each requirement of a saved study (D-260).
+
+        One entry per thing the study asks, in its order: ``(label, verdict)``
+        with the verdict ``"passa"``, ``"falha"`` or ``"sem_dado"``. The
+        judgement is the engine's own (``apply_stage`` / ``apply_constraint_tree``
+        over this one record), so a trial cannot disagree with a run. Switched-off
+        stages ask nothing. ``None`` when the study is not the reader's or the
+        material is not one they can read.
+
+        An AND of limits is one requirement per limit; an OR is a single
+        requirement (any alternative satisfies it), and it is "sem dado" only when
+        the record lacks a datum for every alternative — the D-240 rule.
+        """
+        study = self.repo.get_study(study_id, self.project_id)
+        if study is None or study.universe != "material":
+            return None
+        self._load_catalogue("material")
+        record = next((m for m in self._load() if m.id == material_id), None)
+        if record is None:
+            return None
+        stages = [stage for stage in self._load_stages(study) if stage.enabled]
+        self._fill_derived([record], stages)
+        many = len(stages) > 1
+        out: list[tuple[str, str]] = []
+
+        def verdict(passes: bool, lacks: bool) -> str:
+            return "passa" if passes else "sem_dado" if lacks else "falha"
+
+        for position, stage in enumerate(stages):
+            display = self._stage_display(stage, position)
+            if stage.kind != "limit":
+                if not self._stage_constrains(stage):
+                    continue
+                out.append((display, verdict(bool(apply_stage([record], stage)), False)))
+                continue
+            root = stage.root
+            if root is None:
+                continue
+            items: list[Constraint | ConstraintGroupNode] = [*root.constraints, *root.children]
+            if not items:
+                continue
+            prefix = f"{display} · " if many else ""
+            if root.operator == "OR":
+                label = " ou ".join(self._item_label(item) for item in items)
+                passes = bool(apply_constraint_tree([record], root))
+                lacks = all(self._item_lacks(item, record) for item in items)
+                out.append((prefix + label, verdict(passes, lacks)))
+                continue
+            for item in items:
+                passes = bool(apply_constraint_tree([record], self._item_node(item)))
+                out.append(
+                    (
+                        prefix + self._item_label(item),
+                        verdict(passes, self._item_lacks(item, record)),
+                    )
+                )
+        return out
+
     def _load_stages(self, study: SelectionStudy) -> list[SelectionStageNode]:
         """Assemble the stage pipeline from a persisted study (P0-1).
 
