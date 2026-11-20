@@ -68,3 +68,56 @@ test("ensaio: cada peça contra os limites do seu estudo, e o carimbo quando tod
   await page.request.delete(`${API}/api/assemblies/${project.id}`);
   await page.request.delete(`${API}/api/selection/studies/${study.id}`);
 });
+
+test("ensaio com caso de carga: a massa informada contra a massa mínima do Dimensionar", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/app");
+  const materials: { id: number; name: string }[] = await (await page.request.get(`${API}/api/materials`)).json();
+  const aluminium = materials.find((m) => m.name === "Liga Alumínio Demo A")!;
+  const project = await post(page, "/api/assemblies", { name: `Tirante do ensaio ${Date.now()}` });
+  // A tie far too light for the stiffness that will be asked of it.
+  await post(page, `/api/assemblies/${project.id}/parts`, { name: "Tirante", material_id: aluminium.id, unit_mass: 0.001 });
+
+  await page.goto(`/app/projetos/${project.id}`);
+  const part = page.getByRole("region", { name: "Peça Tirante" });
+  await expect(part).toBeVisible({ timeout: 45_000 });
+  await part.getByRole("button", { name: "Declarar caso de carga" }).click();
+  const form = part.getByRole("form", { name: "Caso de carga de Tirante" });
+  await form.getByRole("combobox", { name: "Caso" }).selectOption("tirante-rigidez");
+  await form.getByRole("spinbutton", { name: /Comprimento/ }).fill("1");
+  await form.getByRole("spinbutton", { name: /Rigidez/ }).fill("1000000");
+  await form.getByRole("button", { name: "Salvar caso" }).click();
+  await expect(part.getByText("Tirante em tração, rigidez especificada")).toBeVisible();
+
+  await page.getByRole("button", { name: "Ensaiar o projeto" }).click();
+  const result = page.getByRole("region", { name: "Resultado do ensaio" });
+  const line = result.getByRole("list", { name: "Requisitos de Tirante" }).getByRole("listitem");
+  await expect(line).toHaveCount(1);
+  await expect(line).toContainText("Caso de carga: Tirante em tração, rigidez especificada");
+  await expect(line).toContainText(/Massa mínima: [\d.,]+ kg; massa informada: 0,001 kg\./);
+  await expect(line).toContainText("Não passa");
+  await expect(result.getByText("Ainda não solucionado")).toBeVisible();
+  let found = await runAxe(page);
+  expect(found, describeFound(found)).toEqual([]);
+  if (OUT) await page.screenshot({ path: `${OUT}/carga-falha.png`, fullPage: true });
+
+  // Heavier at the same length is more section: the part now holds, and the trial follows.
+  const mass = part.getByRole("spinbutton", { name: /Massa de cada uma/ });
+  await mass.fill("100000");
+  await mass.blur();
+  await expect(line).toContainText("Passa");
+  await expect(result.getByText("Solucionado", { exact: true })).toBeVisible();
+  found = await runAxe(page);
+  expect(found, describeFound(found)).toEqual([]);
+  if (OUT) await result.screenshot({ path: `${OUT}/carga-passa.png` });
+
+  // Without the mass there is nothing to compare, and that is said.
+  await mass.fill("");
+  await mass.blur();
+  await expect(line).toContainText("massa informada: não informada");
+  await expect(line).toContainText("Sem dado");
+
+  await page.setViewportSize({ width: 375, height: 800 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  await page.request.delete(`${API}/api/assemblies/${project.id}`);
+});

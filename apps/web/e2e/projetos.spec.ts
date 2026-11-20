@@ -88,3 +88,27 @@ test("projeto com peças: remover uma peça tem Desfazer, e excluir o projeto pe
   await expect(page).toHaveURL(/\/app\/projetos$/);
   await expect(page.getByRole("link", { name: new RegExp(name) })).toHaveCount(0);
 });
+
+test("projeto: o campo de material no pé da tela abre a lista onde ela cabe (D-261)", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/app");
+  const materials: { id: number; name: string }[] = await (await page.request.get(`http://127.0.0.1:8811/api/materials`)).json();
+  const steel = materials.find((m) => m.name === "Aço Demo B")!;
+  const made = await page.request.post(`http://127.0.0.1:8811/api/assemblies`, { data: { name: `Repro ${Date.now()}` } });
+  const project = await made.json();
+  await page.request.post(`http://127.0.0.1:8811/api/assemblies/${project.id}/parts`, { data: { name: "Perna", material_id: steel.id } });
+  await page.goto(`/app/projetos/${project.id}`);
+  const part = page.getByRole("region", { name: "Peça Perna" });
+  const field = part.getByRole("combobox", { name: /Material/ });
+  await expect(field).toBeVisible({ timeout: 30_000 });
+  // Put the field at the very bottom of the viewport, as a long page does.
+  // A viewport that ends just under the field, and a page with nothing left to scroll.
+  const bottom = await field.evaluate((el) => el.getBoundingClientRect().bottom);
+  await page.setViewportSize({ width: 1280, height: Math.ceil(bottom) + 12 });
+  await field.evaluate((el) => el.scrollIntoView({ block: "end" }));
+  await field.click();
+  // The list is fixed to the viewport: it has to open where a pointer can reach it.
+  await page.getByRole("option", { name: /Liga Alumínio Demo A/ }).click({ timeout: 15_000 });
+  await expect(part.getByRole("link", { name: "Abrir a ficha de Liga Alumínio Demo A" })).toBeVisible();
+  await page.request.delete(`http://127.0.0.1:8811/api/assemblies/${project.id}`);
+});

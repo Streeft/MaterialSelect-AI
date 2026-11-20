@@ -167,6 +167,70 @@ class SolverService:
             ],
         )
 
+    def required_mass(
+        self, case_key: str, inputs: dict[str, float], material_id: int
+    ) -> tuple[LoadCase, float | None, str, str | None]:
+        """The minimum mass one material needs to carry a brief (D-261).
+
+        The same ``solve`` as a ranking run, over a pool of one: ``(case, mass,
+        unit, reason)``, with ``mass`` ``None`` and ``reason`` in words when the
+        material lacks a property the case needs or its index cannot be
+        inverted. A material the reader cannot see reads the same as one with
+        no data — it is never named.
+
+        Raises:
+            NotFoundError: an unknown case, or one whose index is not catalogued.
+            ValidationError: inputs the case cannot use.
+        """
+        case = by_key(case_key)
+        if case is None:
+            raise NotFoundError(f"Caso de carga não encontrado: {case_key}")
+        catalogued = {index.slug: index for index in self.selection_repo.list_indices()}
+        index = catalogued.get(case.index_slug)
+        if index is None:
+            raise NotFoundError(
+                f"O índice {case.index_slug}, que este caso produz, não está no catálogo."
+            )
+        definitions = {p.slug: p for p in self.repo.list_properties()}
+        try:
+            basis = sorted(variables_in(index.expression) | variables_in(case.free_material))
+        except ExpressionError as exc:
+            raise ValidationError(f"Expressão inválida no catálogo: {exc}") from exc
+        unknown = sorted(set(basis) - set(definitions))
+        if unknown:
+            raise ValidationError(
+                "O índice deste caso usa propriedades que não estão no catálogo: "
+                + ", ".join(unknown)
+            )
+        materials = self.repo.list_materials(material_ids=[material_id], property_slugs=basis)
+        try:
+            result = solve(
+                case,
+                index_expression=index.expression,
+                index_goal=index.goal,
+                index_variables=variables_in(index.expression),
+                inputs=dict(inputs),
+                records=[(m.id, m.name, self._values(m, basis)) for m in materials],
+                property_units={slug: definitions[slug].canonical_unit for slug in basis},
+                limit=1,
+            )
+        except SolverError as exc:
+            raise ValidationError(str(exc)) from exc
+        if result.solved:
+            return case, result.solved[0].objective_value, result.objective_unit, None
+        if result.excluded:
+            missing = [
+                definitions[slug].name if slug in definitions else slug
+                for slug in result.excluded[0].missing_keys
+            ]
+            reason = (
+                "O material não tem: " + ", ".join(missing) + "."
+                if missing
+                else result.excluded[0].reason
+            )
+            return case, None, result.objective_unit, reason
+        return case, None, result.objective_unit, "O material não está disponível."
+
     # --- shaping ----------------------------------------------------------
 
     @staticmethod

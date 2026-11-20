@@ -15273,3 +15273,41 @@ no frontend (`ProjectTrial.test.tsx`), mais `e2e/ensaio.spec.ts`. Fica para o se
 requisito; e, depois, o laudo do projeto.
 
 **Numeração.** D-260, Sessão 217 (conferidas em `origin/main` e na branch da bancada).
+
+## D-261 — O ensaio com caso de carga: a camada 5 da Oficina, segunda parte (a massa informada contra a massa mínima do Dimensionar)
+
+**Contexto.** A D-260 ensaia cada peça contra os limites do estudo ligado a ela. Limite de propriedade diz se o material **serve**; não diz se
+**aquela peça, com aquele tamanho**, aguenta a carga. O autor pediu os dois, em dois PRs (20/11/2026); este é o segundo.
+
+**Decisão.**
+
+1. **O caso de carga é declarado na peça** e é um dos casos do Dimensionar (`app/calculations/load_cases.py`): a chave do caso e um número por
+   variável de projeto, na unidade canônica de cada uma. Duas colunas anuláveis em `assembly_part` (`load_case_key`, `load_case_inputs`; migração
+   `ba2af8a23955`). Só o que foi declarado é guardado; a massa mínima nunca.
+2. **Gravar passa pela conferência do próprio solver** (`structural_factors`): caso inexistente é 404; variável faltando, sobrando, nula ou
+   negativa é recusada em palavras. Uma peça nunca guarda um enunciado que o Dimensionar recusaria.
+3. **Quem calcula a massa mínima é o solver, sobre aquele único material** (`SolverService.required_mass`: o mesmo `solve`, com o índice
+   catalogado do caso). O número do ensaio é o número do Dimensionar para o mesmo enunciado; há teste que compara os dois.
+4. **O veredito é uma comparação** (`judge_load`, em `assembly_trial.py`): a peça **passa** quando a massa informada de uma peça é pelo menos a
+   massa mínima. A justificativa é a fatoração do caso: com as medidas fixas do caso, a massa cresce com a variável livre (a seção), então mais
+   massa é mais seção. **Premissa dita na tela**: a peça tem a forma do caso e só a variável livre muda.
+5. **Qualquer número ausente é "Sem dado"**, nunca "passa": sem massa informada ("Informe a massa de cada peça…"), ou material sem uma
+   propriedade do índice ("O material não tem: Módulo de Young."). A linha mostra a massa mínima que deu para calcular mesmo quando falta a outra.
+6. **É mais um requisito, depois dos do estudo.** Uma peça pode ter estudo, caso de carga, os dois ou nenhum; com só o caso de carga ela já pode
+   ser ensaiada. "Solucionado" continua exigindo todas as peças passando em tudo (D-260).
+7. **Na tela**, `PartLoadCase` só recolhe a declaração (caso, medidas, condição de apoio escolhida entre as do caso) e a manda; o ensaio mostra
+   "Massa mínima: X kg; massa informada: Y kg." com os dois números do servidor.
+
+8. **A lista do `Combobox` cabe na tela.** A suíte de navegador da CI pegou um defeito antigo que a peça mais alta expôs: a lista é fixa na janela e
+   abria sempre abaixo do campo, então um campo no pé da tela mostrava opções fora dela, onde o ponteiro não chega. Agora ela toma o espaço que há
+   abaixo, abre para cima quando há pouco ali e mais acima, e encolhe até caber (nunca menos que umas duas opções). Vale para todo `Combobox`.
+
+**Alternativas recusadas.** Comparar a variável livre (a área) em vez da massa: a peça não declara área, e pedir mais um número seria pedir o que a
+massa já diz. Calcular a massa mínima no cliente a partir da ficha (princípio 2). Um fator de segurança embutido: seria um número inventado; quem
+quer margem declara uma carga maior. Guardar a massa mínima na peça: envelheceria quando o catálogo fosse corrigido. Rodar o solver sobre o catálogo
+inteiro e procurar o material no resultado: o resultado é limitado aos primeiros, e a peça pode usar um material mal colocado.
+
+**Consequências.** Toca `apps/api` e **tem migração** (`ba2af8a23955`, duas colunas). Depois do merge: **Deploy da API**. 10 testes novos no
+backend e 7 no frontend, mais um teste em `e2e/ensaio.spec.ts` e um em `e2e/projetos.spec.ts`. Fica para depois o laudo do projeto.
+
+**Numeração.** D-261, Sessão 218 (conferidas em `origin/main`).

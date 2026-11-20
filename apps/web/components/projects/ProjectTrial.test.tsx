@@ -13,6 +13,8 @@ vi.mock("@/lib/api", () => api);
 
 const t = ptBR.projects.trial;
 
+const LIMIT = { kind: "limite", required_value: null, declared_value: null, unit: null, detail: null } as const;
+
 function part(over: Partial<PartTrial>): PartTrial {
   return {
     part_id: 1,
@@ -22,7 +24,7 @@ function part(over: Partial<PartTrial>): PartTrial {
     reason: null,
     material_name: "Pinho",
     study: { id: 3, name: "Leve e rígido" },
-    requirements: [{ label: "Densidade ≤ 5 g/cm³", verdict: "passa", verdict_label: "Passa" }],
+    requirements: [{ label: "Densidade ≤ 5 g/cm³", verdict: "passa", verdict_label: "Passa", ...LIMIT }],
     ...over,
   };
 }
@@ -45,8 +47,8 @@ function answer(over: Partial<AssemblyTrial>): AssemblyTrial {
         status_label: "Não passa",
         material_name: "Aço 1020",
         requirements: [
-          { label: "Densidade ≤ 5 g/cm³", verdict: "falha", verdict_label: "Não passa" },
-          { label: "Fadiga ≥ 1 MPa", verdict: "sem_dado", verdict_label: "Sem dado" },
+          { label: "Densidade ≤ 5 g/cm³", verdict: "falha", verdict_label: "Não passa", ...LIMIT },
+          { label: "Fadiga ≥ 1 MPa", verdict: "sem_dado", verdict_label: "Sem dado", ...LIMIT },
         ],
       }),
       part({
@@ -144,5 +146,47 @@ describe("o ensaio do projeto (D-260)", () => {
     renderTrial();
     await user.click(screen.getByRole("button", { name: t.run }));
     expect(await screen.findByText(t.error)).toBeInTheDocument();
+  });
+
+  it("no caso de carga, mostra as duas massas que o servidor mandou e o motivo do que falta (D-261)", async () => {
+    api.getAssemblyTrial.mockResolvedValue(
+      answer({
+        parts: [
+          part({
+            requirements: [
+              {
+                label: "Caso de carga: Tirante em tração",
+                verdict: "falha",
+                verdict_label: "Não passa",
+                kind: "carga",
+                required_value: 2.5,
+                declared_value: 1.25,
+                unit: "kg",
+                detail: null,
+              },
+              {
+                label: "Caso de carga: Viga em flexão",
+                verdict: "sem_dado",
+                verdict_label: "Sem dado",
+                kind: "carga",
+                required_value: null,
+                declared_value: null,
+                unit: "kg",
+                detail: "O material não tem: Módulo de Young.",
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+    const user = userEvent.setup();
+    renderTrial();
+    await user.click(screen.getByRole("button", { name: t.run }));
+    const lines = within(await screen.findByRole("list", { name: t.requirementsOf("Tampo") })).getAllByRole("listitem");
+    expect(lines[0]).toHaveTextContent("Massa mínima: 2,5 kg; massa informada: 1,25 kg.");
+    expect(lines[0]).toHaveTextContent("Não passa");
+    // An absent number is said as absent, never as zero.
+    expect(lines[1]).toHaveTextContent(`${t.minimumUnknown}; ${t.declaredUnknown}.`);
+    expect(lines[1]).toHaveTextContent("O material não tem: Módulo de Young.");
   });
 });

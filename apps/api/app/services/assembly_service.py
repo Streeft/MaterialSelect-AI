@@ -22,9 +22,12 @@ from app.calculations.assembly_trial import (
     STATUS_REASONS,
     VERDICT_LABELS,
     Requirement,
+    judge_load,
     try_assembly,
     try_part,
 )
+from app.calculations.load_cases import by_key as load_case_by_key
+from app.calculations.solver import SolverError, structural_factors
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.models.assembly import Assembly, AssemblyPart
 from app.repositories.assembly_repository import AssemblyRepository
@@ -39,6 +42,8 @@ from app.schemas.assembly import (
     AssemblyTrialOut,
     FigureOut,
     PartIn,
+    PartLoadCaseIn,
+    PartLoadCaseOut,
     PartMaterialOut,
     PartOut,
     PartPatch,
@@ -56,7 +61,10 @@ MAX_PARTS = 60
 #: What a trial is, said once on the page (D-260).
 TRIAL_METHOD_NOTE = (
     "O ensaio confere o material de cada peça contra os requisitos do estudo da Seleção ligado "
-    "a ela, com o catálogo como está agora. Dado ausente não aprova: aparece como “Sem dado”."
+    "a ela, com o catálogo como está agora. Dado ausente não aprova: aparece como “Sem dado”. "
+    "No caso de carga, a peça passa quando a massa informada é pelo menos a massa mínima que o "
+    "Dimensionar calcula para o material, com as medidas do caso; a comparação supõe a forma do "
+    "caso e só a variável livre mudando."
 )
 
 #: The material properties the sums read; nothing else is loaded.
@@ -122,6 +130,7 @@ class AssemblyService:
         selection engine; the counting is ``app.calculations.assembly_trial``."""
         # Imported here: the selection service is large and only the trial needs it.
         from app.services.selection_service import SelectionService
+        from app.services.solver_service import SolverService
 
         assembly = self._own(assembly_id)
         parts = list(assembly.parts)
@@ -134,6 +143,7 @@ class AssemblyService:
             sorted({p.study_id for p in parts if p.study_id is not None}), self.project_id
         )
         engine = SelectionService(self._db, self.project_id, self._user)
+        solver = SolverService(self._db, self._user.id if self._user is not None else None)
 
         tried = []
         for part in parts:
@@ -144,17 +154,24 @@ class AssemblyService:
                 if has_study and material is not None
                 else None
             )
+            requirements = (
+                [Requirement(label, verdict) for label, verdict in answered]
+                if answered is not None
+                else None
+            )
+            # D-261: the load case is one more requirement, after the study's.
+            if part.load_case_key is not None and material is not None:
+                requirements = [
+                    *(requirements or []),
+                    self._load_requirement(solver, part, material),
+                ]
             tried.append(
                 try_part(
                     part.name,
                     has_material=part.material_id is not None,
                     material_readable=material is not None,
-                    has_study=has_study,
-                    requirements=(
-                        [Requirement(label, verdict) for label, verdict in answered]
-                        if answered is not None
-                        else None
-                    ),
+                    has_study=has_study or part.load_case_key is not None,
+                    requirements=requirements,
                 )
             )
         result = try_assembly(tried)
@@ -177,6 +194,11 @@ class AssemblyService:
                             label=r.label,
                             verdict=r.verdict,
                             verdict_label=VERDICT_LABELS[r.verdict],
+                            kind=r.kind,
+                            required_value=r.required,
+                            declared_value=r.declared,
+                            unit=r.unit,
+                            detail=r.detail,
                         )
                         for r in trial.requirements
                     ],
@@ -193,6 +215,32 @@ class AssemblyService:
             pending_count=result.pending,
             parts=parts_out,
             method_note=TRIAL_METHOD_NOTE,
+        )
+
+    @staticmethod
+    def _load_requirement(solver, part: AssemblyPart, material) -> Requirement:
+        """The part's load case, judged: the solver's minimum mass for this
+        material against the mass declared for one part."""
+        try:
+            case, required, unit, reason = solver.required_mass(
+                part.load_case_key, dict(part.load_case_inputs or {}), material.id
+            )
+        except (NotFoundError, ValidationError) as exc:
+            # A case that left the catalogue, or stored numbers a later version
+            # of the case refuses: it cannot be tried, and the line says why.
+            return judge_load(
+                f"Caso de carga: {part.load_case_key}",
+                required=None,
+                declared=part.unit_mass,
+                unit="kg",
+                missing_reason=str(exc),
+            )
+        return judge_load(
+            f"Caso de carga: {case.label}",
+            required=required,
+            declared=part.unit_mass,
+            unit=unit,
+            missing_reason=reason,
         )
 
     @staticmethod
@@ -226,6 +274,7 @@ class AssemblyService:
                 f"Limite de {MAX_PARTS} peças por projeto. Remova uma antes de acrescentar outra."
             )
         self._check_links(payload.material_id, payload.study_id)
+        load_key, load_inputs = self._load_case(payload.load_case)
         part = AssemblyPart(
             assembly_id=assembly.id,
             position=max((p.position for p in assembly.parts), default=-1) + 1,
@@ -236,6 +285,8 @@ class AssemblyService:
             material_id=payload.material_id,
             study_id=payload.study_id,
             notes=payload.notes,
+            load_case_key=load_key,
+            load_case_inputs=load_inputs,
         )
         self.repo.add(part)
         self._touch(assembly)
@@ -266,6 +317,8 @@ class AssemblyService:
         ):
             if name in sent:
                 setattr(part, name, getattr(patch, name))
+        if "load_case" in sent:
+            part.load_case_key, part.load_case_inputs = self._load_case(patch.load_case)
         self._touch(assembly)
         self.repo.commit()
         return self._reread(assembly)
@@ -321,6 +374,41 @@ class AssemblyService:
                 raise ValidationError(
                     "Uma peça é decidida por um estudo de materiais; este estudo devolve processos."
                 )
+
+    @staticmethod
+    def _load_case(payload: PartLoadCaseIn | None) -> tuple[str | None, dict[str, float] | None]:
+        """Check a declared load case against the solver's catalogue (D-261).
+
+        The case must exist and every one of its design variables must carry a
+        usable number — the solver's own check, so a part can never store a
+        brief the Dimensionar would refuse. Only the case's variables are kept."""
+        if payload is None:
+            return None, None
+        case = load_case_by_key(payload.key)
+        if case is None:
+            raise NotFoundError(f"Caso de carga não encontrado: {payload.key}")
+        extra = sorted(set(payload.inputs) - case.variable_keys)
+        if extra:
+            raise ValidationError(
+                f"O caso “{case.label}” não tem estas variáveis: {', '.join(extra)}."
+            )
+        try:
+            structural_factors(case, dict(payload.inputs))
+        except SolverError as exc:
+            raise ValidationError(str(exc)) from exc
+        return case.key, {key: float(payload.inputs[key]) for key in sorted(case.variable_keys)}
+
+    @staticmethod
+    def _load_case_out(part: AssemblyPart) -> PartLoadCaseOut | None:
+        if part.load_case_key is None:
+            return None
+        case = load_case_by_key(part.load_case_key)
+        return PartLoadCaseOut(
+            key=part.load_case_key,
+            label=case.label if case is not None else part.load_case_key,
+            inputs=dict(part.load_case_inputs or {}),
+            unavailable=case is None,
+        )
 
     @staticmethod
     def _brief(assembly: Assembly) -> AssemblyBriefOut:
@@ -389,6 +477,7 @@ class AssemblyService:
                     ),
                     material_unavailable=part.material_id is not None and material is None,
                     study=PartStudyOut(id=part.study_id, name=study[0]) if study else None,
+                    load_case=self._load_case_out(part),
                     notes=part.notes,
                     mass=self._figure(figures.figures[MASS]),
                     material_cost=self._figure(figures.figures[MATERIAL_COST]),
