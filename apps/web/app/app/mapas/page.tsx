@@ -33,6 +33,8 @@ import { ptBR } from "@/lib/i18n";
 import { toMapBox } from "@/lib/mapBox";
 import { optionsAtLevel } from "@/lib/depth";
 import { encodeIdList, parseIdList } from "@/lib/idList";
+import { useTrayDrop } from "@/lib/tray";
+import { TrayStrip } from "@/components/tray/TrayStrip";
 import { formatNumber } from "@/lib/format";
 import { useUrlState } from "@/lib/urlState";
 import { recordMapUrl } from "@/lib/navMemory";
@@ -209,6 +211,20 @@ function MapsPageContent() {
   );
   const highlightIds = useStableIds(parseIdList(params.get("destaque")));
   const explicitSelection = useStableIds(live.selection);
+
+  // D-259: a material of the tray is put on the map as a highlight — the same `?destaque=` a
+  // selection run writes, so the server draws it. Dropping never removes; the button toggles.
+  function setHighlighted(id: number, name: string, on: boolean) {
+    const next = on ? [...highlightIds.filter((x) => x !== id), id] : highlightIds.filter((x) => x !== id);
+    const query = new URLSearchParams(window.location.search);
+    if (next.length > 0) query.set("destaque", encodeIdList(next));
+    else query.delete("destaque");
+    router.replace(`?${query.toString()}`, { scroll: false });
+    announce(on ? ptBR.tray.bench.highlighted(name) : ptBR.tray.bench.unhighlighted(name));
+  }
+  const mapDrop = useTrayDrop((id, name) => {
+    if (universe === "material") setHighlighted(id, name, true);
+  });
 
   const properties = useQuery({
     queryKey: ["properties"],
@@ -965,7 +981,20 @@ function MapsPageContent() {
           under it on a phone — where the map still comes first, because the
           default axes already draw one. */}
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,1fr)_26rem]">
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4" {...mapDrop}>
+          {universe === "material" ? (
+            <TrayStrip
+              hint={ptBR.tray.bench.mapHint}
+              actions={[
+                {
+                  label: ptBR.tray.bench.highlight,
+                  describe: ptBR.tray.bench.highlightNamed,
+                  pressed: (id) => highlightIds.includes(id),
+                  run: (id, name) => setHighlighted(id, name, !highlightIds.includes(id)),
+                },
+              ]}
+            />
+          ) : null}
           {axisConflict && (
             <Alert tone="warning" role="alert">
               {sameExpression ? t.sameExpressionAxis : t.sameAxis}

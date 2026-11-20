@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, type DragEvent } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { clearTray, putTrayItems, removeTrayItem, updateTrayItem } from "@/lib/api";
 import { describeApiError } from "@/lib/errors";
 import { encodeIdList } from "@/lib/idList";
@@ -10,6 +10,7 @@ import { ptBR } from "@/lib/i18n";
 import {
   OPEN_TRAY_EVENT,
   TRAY_DRAG_EVENT,
+  benchDestinations,
   carriesTrayTarget,
   readTrayDrag,
   trayMaterials,
@@ -55,6 +56,10 @@ function TrayRow({
 }) {
   const other: TrayCompartment | null =
     item.kind !== "material" ? null : item.compartment === "material" ? "fixacao" : "material";
+  const router = useRouter();
+  // D-259: from the panel a material goes to the bench by a command — the panel is modal, so
+  // nothing can be dragged out of it. Each destination is a link the screen already reads.
+  const destinations = item.kind === "material" && !item.unavailable ? benchDestinations(item.record_id!) : [];
   return (
     <li className="ds-tray-item">
       <span className="flex min-w-0 flex-1 flex-col">
@@ -72,6 +77,17 @@ function TrayRow({
         ) : null}
       </span>
       <MenuButton label={t.itemMenu(item.name)} iconOnly icon={<span aria-hidden>⋯</span>}>
+        {destinations.map((destination) => (
+          <MenuItem
+            key={destination.key}
+            onSelect={() => {
+              onOpen();
+              router.push(destination.href);
+            }}
+          >
+            {t.takeTo[destination.key]}
+          </MenuItem>
+        ))}
         {other ? <MenuItem onSelect={() => onMove(other)}>{t.moveTo(t.compartments[other])}</MenuItem> : null}
         <MenuItem onSelect={onRemove}>{t.remove}</MenuItem>
       </MenuButton>

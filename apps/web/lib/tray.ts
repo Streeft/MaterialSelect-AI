@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, type DragEvent } from "react";
+import { useContext, useState, type DragEvent } from "react";
 import { QueryClientContext, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getTray, putTrayItems } from "@/lib/api";
 import type { Tray, TrayItem, TrayItemInput } from "@/lib/types";
@@ -113,4 +113,43 @@ export function readTrayDrag(event: DragEvent<HTMLElement>): TrayTarget | null {
 /** The materials of the tray that can be used: the ones still readable. */
 export function trayMaterials(tray: Tray | undefined): TrayItem[] {
   return (tray?.items ?? []).filter((item) => item.kind === "material" && !item.unavailable);
+}
+
+/**
+ * Props that make an element a place where a carried material can be put down (D-259): the
+ * project's part, the map, the comparison bar, a calculator's brief. The outline says where the
+ * drop will land. Only the id and the name arrive: what the place does with them is ask the
+ * server. Every such place also offers the same gesture as a command (`TrayStrip`).
+ */
+export function useTrayDrop(onMaterial: (id: number, name: string) => void) {
+  const [over, setOver] = useState(false);
+  return {
+    "data-drop-over": over || undefined,
+    onDragOver: (event: DragEvent<HTMLElement>) => {
+      if (!carriesTrayTarget(event)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      setOver(true);
+    },
+    onDragLeave: (event: DragEvent<HTMLElement>) => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOver(false);
+    },
+    onDrop: (event: DragEvent<HTMLElement>) => {
+      setOver(false);
+      const target = readTrayDrag(event);
+      if (target?.kind !== "material") return;
+      event.preventDefault();
+      onMaterial(target.id, target.name);
+    },
+  };
+}
+
+/** Where a material of the tray can be taken from the panel: the bench's four places. */
+export function benchDestinations(id: number): { key: "map" | "compare" | "cost" | "eco"; href: string }[] {
+  return [
+    { key: "map", href: `/app/mapas?destaque=${id}` },
+    { key: "compare", href: `/app/comparar?materiais=${id}` },
+    { key: "cost", href: `/app/custo?material=${id}` },
+    { key: "eco", href: `/app/eco?material=${id}` },
+  ];
 }

@@ -47,6 +47,8 @@ import { aiField, revealField } from "@/lib/ai/revealField";
 import { suggestText } from "@/lib/i18n-suggest";
 import { DefaultsGate } from "@/components/layout/DefaultsGate";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
+import { TrayDropZone, TrayStrip } from "@/components/tray/TrayStrip";
+import { useAnnounce } from "@/components/ui/Announcer";
 import {
   ComponentsTable,
   HowToFill,
@@ -302,6 +304,18 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
   const setLegs = (next: (list: LegDraft[]) => LegDraft[]) =>
     setBrief((current) => ({ legs: next(effectiveLegs(current, defaults)) }));
 
+  // D-259: a material of the tray becomes a component of the product, or the material of one
+  // alternative. Only the brief changes; the audit is the server's answer to it.
+  const announce = useAnnounce();
+  const addCarriedComponent = (id: number, name: string) => {
+    setComponents((list) => [...list, { ...blankComponent(defaults), material: String(id) }]);
+    announce(ptBR.tray.bench.ecoAdded(name));
+  };
+  const putCarriedInSide = (index: number, id: number, name: string) => {
+    patchSide(index, { material: String(id), process: "" });
+    announce(ptBR.tray.bench.ecoSideDone(name, "ABCD"[index] ?? ""));
+  };
+
   const materialOptions: MaterialOption[] = useMemo(
     () =>
       (materials.data ?? []).map((material) => ({
@@ -355,8 +369,31 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
 
       <ParamsResultLayout>
         <ParamsPanel>
+          <TrayStrip
+            hint={individual ? ptBR.tray.bench.ecoProductHint : ptBR.tray.bench.ecoSidesHint}
+            actions={
+              individual
+                ? [
+                    {
+                      label: ptBR.tray.bench.ecoAdd,
+                      describe: ptBR.tray.bench.ecoAddNamed,
+                      run: addCarriedComponent,
+                    },
+                  ]
+                : resolvedSides.map((side, index) => {
+                    const letter = "ABCD"[index] ?? "";
+                    return {
+                      label: letter,
+                      describe: (material: string) => ptBR.tray.bench.ecoSideNamed(material, letter),
+                      pressed: (id: number) => side.material === String(id),
+                      run: (id: number, name: string) => putCarriedInSide(index, id, name),
+                    };
+                  })
+            }
+          />
           {individual ? (
             <div className="flex flex-col gap-6">
+              <TrayDropZone onMaterial={addCarriedComponent}>
               <StepCard title={t.productStep} description={t.productHint}>
                 <ComponentsTable
                   components={resolvedComponents}
@@ -376,6 +413,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                 />
                 <HowToFill />
               </StepCard>
+              </TrayDropZone>
 
               <StepCard title={t.transportStep} description={t.legsHint}>
                 <LegsTable
@@ -394,8 +432,8 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
           ) : (
             <div className="flex flex-col gap-6">
               {resolvedSides.map((_, index) => (
+                <TrayDropZone key={index} onMaterial={(id, name) => putCarriedInSide(index, id, name)}>
                 <StepCard
-                  key={index}
                   title={t.alternativeName(index + 1)}
                   actions={
                     index >= 2 ? (
@@ -423,6 +461,7 @@ function EcoScreen({ defaults }: { defaults: DefaultsResult["eco"] }) {
                     onChange={(patch) => patchSide(index, patch)}
                   />
                 </StepCard>
+                </TrayDropZone>
               ))}
               {brief.extras.length < MAX_EXTRAS ? (
                 <div className="flex flex-col items-start gap-1">

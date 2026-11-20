@@ -51,7 +51,7 @@ import {
   type ComboboxOption,
 } from "@/components/ui";
 import { IconPlus } from "@/components/ui/icons";
-import { carriesTrayTarget, readTrayDrag, trayDragProps, trayMaterials, useTray } from "@/lib/tray";
+import { trayDragProps, trayMaterials, useTray, useTrayDrop } from "@/lib/tray";
 import type { TrayItem } from "@/lib/types";
 import { ASSEMBLIES_KEY, assemblyKey } from "./keys";
 
@@ -138,7 +138,7 @@ function PartCard({
   onUseCarried: (materialId: number, materialName: string) => void;
 }) {
   const [name, setName] = useState(part.name);
-  const [over, setOver] = useState(false);
+  const drop = useTrayDrop(onUseCarried);
   const [quantity, setQuantity] = useState(String(part.quantity));
   const [mass, setMass] = useState(part.unit_mass === null ? "" : String(part.unit_mass));
 
@@ -179,23 +179,7 @@ function PartCard({
         aria-label={t.partRegion(part.name)}
         className="flex flex-col gap-4 rounded-card border border-line bg-panel p-4"
         // D-258: a material dragged from the tray's strip lands here. The outline says where.
-        data-drop-over={over || undefined}
-        onDragOver={(event) => {
-          if (!carriesTrayTarget(event)) return;
-          event.preventDefault();
-          event.dataTransfer.dropEffect = "copy";
-          setOver(true);
-        }}
-        onDragLeave={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOver(false);
-        }}
-        onDrop={(event) => {
-          setOver(false);
-          const target = readTrayDrag(event);
-          if (target?.kind !== "material") return;
-          event.preventDefault();
-          onUseCarried(target.id, target.name);
-        }}
+        {...drop}
       >
         <div className="flex flex-wrap items-end gap-3">
           <Input

@@ -23,6 +23,9 @@ import { parseIdList } from "@/lib/idList";
 import { prettyUnit } from "@/lib/format";
 import { optionsAtLevel } from "@/lib/depth";
 import { depthSelectorsText } from "@/lib/i18n-depth-selectors";
+import { useTrayDrop } from "@/lib/tray";
+import { TrayStrip } from "@/components/tray/TrayStrip";
+import { useAnnounce } from "@/components/ui/Announcer";
 import { DepthLevelPicker, useDepthLevel } from "@/components/DepthLevelPicker";
 import {
   COMPARISON_MODES,
@@ -302,6 +305,15 @@ function ComparePageContent() {
     });
   }
 
+  // D-259: a material of the tray enters the comparison by a drop on the bar or by its button.
+  const announce = useAnnounce();
+  function addCarried(id: number, name: string) {
+    if (selectedMaterials.includes(id) || selectedMaterials.length >= MAX_MATERIALS) return;
+    addMaterials([id]);
+    announce(ptBR.tray.bench.compared(name));
+  }
+  const barDrop = useTrayDrop(addCarried);
+
   function toggleMaterial(id: number) {
     setSelectedMaterials((current) =>
       current.includes(id)
@@ -405,7 +417,28 @@ function ComparePageContent() {
           properties as chips, each added by search — instead of two step
           cards; with two materials the result below takes the screen. A link
           with `?materiais=` arrives with the bar filled (D-86). */}
-      <section id="controles" aria-label={compareViewText.bar.label} className="msds-card flex flex-col gap-4 p-4">
+      <TrayStrip
+        hint={ptBR.tray.bench.compareHint}
+        actions={[
+          {
+            label: ptBR.tray.bench.compare,
+            describe: ptBR.tray.bench.compareNamed,
+            run: addCarried,
+            disabledReason: (id) =>
+              selectedMaterials.includes(id)
+                ? ptBR.tray.bench.alreadyCompared
+                : selectedMaterials.length >= MAX_MATERIALS
+                  ? ptBR.tray.bench.compareFull
+                  : undefined,
+          },
+        ]}
+      />
+      <section
+        id="controles"
+        aria-label={compareViewText.bar.label}
+        className="msds-card flex flex-col gap-4 p-4"
+        {...barDrop}
+      >
         <div className="grid items-start gap-3 md:grid-cols-[8rem_minmax(0,1fr)]">
           <div className="flex flex-col gap-1 pt-2">
             <h2 className="text-body font-semibold text-ink">{compareViewText.bar.materials}</h2>
