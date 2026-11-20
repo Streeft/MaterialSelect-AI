@@ -17,6 +17,14 @@ from app.calculations.assembly import (
     PartInput,
     summarise,
 )
+from app.calculations.assembly_trial import (
+    STATUS_LABELS,
+    STATUS_REASONS,
+    VERDICT_LABELS,
+    Requirement,
+    try_assembly,
+    try_part,
+)
 from app.domain.errors import ConflictError, NotFoundError, ValidationError
 from app.models.assembly import Assembly, AssemblyPart
 from app.repositories.assembly_repository import AssemblyRepository
@@ -28,19 +36,28 @@ from app.schemas.assembly import (
     AssemblyOut,
     AssemblyPatch,
     AssemblyTotalsOut,
+    AssemblyTrialOut,
     FigureOut,
     PartIn,
     PartMaterialOut,
     PartOut,
     PartPatch,
     PartStudyOut,
+    PartTrialOut,
     TotalOut,
+    TrialRequirementOut,
 )
 
 #: One account's projects, and one project's parts. Both are generous for a
 #: design of a real object and keep one account from filling the tables.
 MAX_ASSEMBLIES = 50
 MAX_PARTS = 60
+
+#: What a trial is, said once on the page (D-260).
+TRIAL_METHOD_NOTE = (
+    "O ensaio confere o material de cada peça contra os requisitos do estudo da Seleção ligado "
+    "a ela, com o catálogo como está agora. Dado ausente não aprova: aparece como “Sem dado”."
+)
 
 #: The material properties the sums read; nothing else is loaded.
 _SLUGS = [slug for slug, _label in PROPERTY_OF.values()]
@@ -50,10 +67,14 @@ class AssemblyService:
     """Every method is scoped to one project. Another reader's assembly is a
     404, never a 403, so its existence is not disclosed (D-42)."""
 
-    def __init__(self, db: Session, project_id: int, viewer_id: int) -> None:
+    def __init__(self, db: Session, project_id: int, viewer_id: int, user=None) -> None:
         self.repo = AssemblyRepository(db)
         self.materials = ChartRepository(db, viewer_id)
         self.project_id = project_id
+        self._db = db
+        #: The reader, for the trial: the selection engine decides which
+        #: materials exist for them (P1-4), so it needs the user, not just an id.
+        self._user = user
 
     # --- assemblies ---------------------------------------------------------
 
@@ -93,6 +114,108 @@ class AssemblyService:
     def delete_assembly(self, assembly_id: int) -> None:
         self.repo.delete(self._own(assembly_id))
         self.repo.commit()
+
+    # --- the trial (D-260) ----------------------------------------------------
+
+    def trial(self, assembly_id: int) -> AssemblyTrialOut:
+        """Each part against the requirements of its study, judged by the
+        selection engine; the counting is ``app.calculations.assembly_trial``."""
+        # Imported here: the selection service is large and only the trial needs it.
+        from app.services.selection_service import SelectionService
+
+        assembly = self._own(assembly_id)
+        parts = list(assembly.parts)
+        material_ids = sorted({p.material_id for p in parts if p.material_id is not None})
+        readable = {
+            m.id: m
+            for m in self.materials.list_materials(material_ids=material_ids, with_values=False)
+        }
+        studies = self.repo.study_names(
+            sorted({p.study_id for p in parts if p.study_id is not None}), self.project_id
+        )
+        engine = SelectionService(self._db, self.project_id, self._user)
+
+        tried = []
+        for part in parts:
+            material = readable.get(part.material_id) if part.material_id is not None else None
+            has_study = part.study_id is not None and part.study_id in studies
+            answered = (
+                engine.trial_requirements(part.study_id, material.id)
+                if has_study and material is not None
+                else None
+            )
+            tried.append(
+                try_part(
+                    part.name,
+                    has_material=part.material_id is not None,
+                    material_readable=material is not None,
+                    has_study=has_study,
+                    requirements=(
+                        [Requirement(label, verdict) for label, verdict in answered]
+                        if answered is not None
+                        else None
+                    ),
+                )
+            )
+        result = try_assembly(tried)
+
+        parts_out = []
+        for part, trial in zip(parts, result.parts, strict=True):
+            material = readable.get(part.material_id) if part.material_id is not None else None
+            study = studies.get(part.study_id) if part.study_id is not None else None
+            parts_out.append(
+                PartTrialOut(
+                    part_id=part.id,
+                    name=part.name,
+                    status=trial.status,
+                    status_label=STATUS_LABELS[trial.status],
+                    reason=STATUS_REASONS.get(trial.status),
+                    material_name=material.name if material is not None else None,
+                    study=PartStudyOut(id=part.study_id, name=study[0]) if study else None,
+                    requirements=[
+                        TrialRequirementOut(
+                            label=r.label,
+                            verdict=r.verdict,
+                            verdict_label=VERDICT_LABELS[r.verdict],
+                        )
+                        for r in trial.requirements
+                    ],
+                )
+            )
+        return AssemblyTrialOut(
+            assembly_id=assembly.id,
+            solved=result.solved,
+            verdict_label="Solucionado" if result.solved else "Ainda não solucionado",
+            summary=self._trial_summary(result),
+            part_count=len(parts),
+            passed_count=result.passed,
+            failed_count=result.failed,
+            pending_count=result.pending,
+            parts=parts_out,
+            method_note=TRIAL_METHOD_NOTE,
+        )
+
+    @staticmethod
+    def _trial_summary(result) -> str:
+        total = len(result.parts)
+        if total == 0:
+            return "O projeto ainda não tem peças."
+        if result.solved:
+            return (
+                "A peça passa em todos os requisitos."
+                if total == 1
+                else f"As {total} peças passam em todos os requisitos."
+            )
+
+        def count(n: int, one: str, many: str) -> str:
+            return f"1 {one}" if n == 1 else f"{n} {many}"
+
+        said = [count(result.passed, "peça passa", "peças passam")] if result.passed else []
+        if result.failed:
+            said.append(count(result.failed, "não passa", "não passam"))
+        if result.pending:
+            said.append(count(result.pending, "não pôde ser aprovada", "não puderam ser aprovadas"))
+        return f"De {total}: " + ", ".join(said) + "."
 
     # --- parts --------------------------------------------------------------
 

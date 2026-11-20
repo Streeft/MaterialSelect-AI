@@ -259,6 +259,10 @@ ficou sem objeto. Três regras que não são questão de gosto:
   pergunta (URL, rascunho); o que aparece depois é a resposta do servidor. Comando que não cabe agora fica com `aria-disabled` e o motivo no
   `title`, nunca some. O que mudou é anunciado. Do painel modal o material sai por item de menu (`benchDestinations`), nunca arrastado.
 
+- **O ensaio** ([D-260](docs/DECISIONS.md)): `ProjectTrial` só imprime `GET /api/assemblies/{id}/trial`. Veredito, rótulo, contagem, frase e o
+  "Solucionado" vêm do servidor; a tela nunca decide se uma peça passa nem conta as que passaram. "Sem dado" é um estado próprio, nunca um
+  "passa". A cor do selo concorda com a palavra, não a substitui. O ensaio se pede por botão e depois acompanha o projeto; nada é guardado.
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".

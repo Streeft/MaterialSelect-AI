@@ -211,3 +211,50 @@ TOTAL_UNITS: dict[str, str] = {
     "embodied_energy": "MJ",
     "carbon": "kg de CO₂",
 }
+
+
+# --- the trial (D-260) --------------------------------------------------------
+
+
+class TrialRequirementOut(BaseModel):
+    """One requirement of the part's study and how its material answered."""
+
+    label: str
+    #: ``passa`` | ``falha`` | ``sem_dado`` — and the same thing in words.
+    verdict: Literal["passa", "falha", "sem_dado"]
+    verdict_label: str
+
+
+class PartTrialOut(BaseModel):
+    part_id: int
+    name: str
+    #: ``passa`` | ``falha`` | ``sem_dado`` | ``sem_material`` |
+    #: ``material_indisponivel`` | ``sem_estudo`` | ``sem_requisitos``.
+    status: str
+    status_label: str
+    #: What the reader can do about a part that could not be tried; ``None``
+    #: when it was tried.
+    reason: str | None = None
+    material_name: str | None = None
+    study: PartStudyOut | None = None
+    requirements: list[TrialRequirementOut] = []
+
+
+class AssemblyTrialOut(BaseModel):
+    """The trial of the whole project, answered from the catalogue as it stands.
+
+    Nothing here is stored: asking again after a correction in the catalogue,
+    in a study or in a part answers again."""
+
+    assembly_id: int
+    #: True only when the project has parts and every one passes everything.
+    solved: bool
+    verdict_label: str
+    #: One sentence saying what is missing, or that nothing is.
+    summary: str
+    part_count: int
+    passed_count: int
+    failed_count: int
+    pending_count: int
+    parts: list[PartTrialOut]
+    method_note: str

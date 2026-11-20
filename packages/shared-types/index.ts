@@ -4859,3 +4859,47 @@ export interface TrayItemInput {
   tool?: string;
   compartment?: TrayCompartment;
 }
+
+// --- the trial of a project (D-260) ---------------------------------------
+
+export type TrialVerdict = "passa" | "falha" | "sem_dado";
+/** A part's status: a verdict, or why it could not be tried at all. */
+export type PartTrialStatus =
+  | TrialVerdict
+  | "sem_material"
+  | "material_indisponivel"
+  | "sem_estudo"
+  | "sem_requisitos";
+
+export interface TrialRequirement {
+  label: string;
+  verdict: TrialVerdict;
+  verdict_label: string;
+}
+
+export interface PartTrial {
+  part_id: number;
+  name: string;
+  status: PartTrialStatus;
+  status_label: string;
+  /** What to do about a part that could not be tried; null when it was. */
+  reason: string | null;
+  material_name: string | null;
+  study: { id: number; name: string } | null;
+  requirements: TrialRequirement[];
+}
+
+/** Each part against the requirements of its study. Nothing here is stored. */
+export interface AssemblyTrial {
+  assembly_id: number;
+  /** True only when the project has parts and every one passes everything. */
+  solved: boolean;
+  verdict_label: string;
+  summary: string;
+  part_count: number;
+  passed_count: number;
+  failed_count: number;
+  pending_count: number;
+  parts: PartTrial[];
+  method_note: string;
+}

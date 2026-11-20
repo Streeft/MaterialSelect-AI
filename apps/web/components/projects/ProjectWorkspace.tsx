@@ -53,6 +53,7 @@ import {
 import { IconPlus } from "@/components/ui/icons";
 import { trayDragProps, trayMaterials, useTray, useTrayDrop } from "@/lib/tray";
 import type { TrayItem } from "@/lib/types";
+import { ProjectTrial } from "./ProjectTrial";
 import { ASSEMBLIES_KEY, assemblyKey } from "./keys";
 
 const t = ptBR.projects;
@@ -563,6 +564,10 @@ export function ProjectWorkspace({ id }: { id: number }) {
             </dl>
           )}
           <p className="text-caption text-ink-muted">{data.monetary_unit_note}</p>
+        </Section>
+
+        <Section id="ensaio" title={t.trial.title}>
+          <ProjectTrial assemblyId={id} stamp={data.updated_at} hasParts={data.parts.length > 0} />
         </Section>
       </PageDoc>
 

@@ -15233,3 +15233,43 @@ por material ali seria funcionalidade nova, não bancada. Ficam com o atalho de 
 `e2e/bancada.spec.ts` (4 testes).
 
 **Numeração.** D-259, Sessão 216 (conferidas em `origin/main`).
+
+## D-260 — O ensaio: a camada 5 da Oficina, primeira parte (cada peça contra os limites do seu estudo; "Solucionado" só com todas passando)
+
+**Contexto.** O fim do caminho da Oficina (D-256) é ensaiar o que se montou e dar o problema por solucionado. O projeto com peças (D-257) já
+somava massa, custo e energia, mas não dizia se o material de cada peça **atende** ao que se pediu dela. Pedido de 20/11/2026: fazer a camada 5.
+Duas escolhas do autor: o ensaio vem em **dois PRs** (primeiro contra os limites do estudo da peça; depois, um caso de carga por peça), e o
+projeto só é "Solucionado" quando **todas** as peças passam.
+
+**Decisão.**
+
+1. **O requisito de uma peça é o estudo da Seleção ligado a ela.** Cada limite e cada estágio ligado do estudo é um requisito, na ordem do estudo.
+   Nada novo é declarado na peça: quem escreveu "densidade ≤ 5 g/cm³" no estudo já disse o que a peça tem de cumprir.
+2. **Quem julga é o motor da Seleção, sobre aquele único material** (`SelectionService.trial_requirements`: `apply_stage` e
+   `apply_constraint_tree`, as mesmas funções da execução). Um ensaio e uma execução do mesmo estudo não podem discordar; há teste que confere isso
+   material por material.
+3. **Três vereditos, e o terceiro não é um "passa" fraco** (princípio 3): **Passa**, **Não passa** (tem o dado, e ele está fora do limite) e
+   **Sem dado** (não tem o dado que o requisito leria; a regra de "sem dado" é a da D-240). Sob "OU", as alternativas são **um** requisito, que só
+   é "Sem dado" se faltar dado para todas.
+4. **A contagem é pura e separada** (`app/calculations/assembly_trial.py`): a peça **passa** só com todos os requisitos passando; uma falha
+   conhecida vale mais que uma ausência ("Não passa" antes de "Falta dado para ensaiar").
+5. **Peça que não pôde ser ensaiada diz o que falta**, em palavras do servidor: sem material, material indisponível, sem estudo, ou estudo sem
+   nenhum limite. Nenhuma delas conta como aprovada.
+6. **"Solucionado" exige todas** (decisão do autor): o projeto tem peças e **toda** peça passa em tudo. Um prego sem estudo impede o carimbo, e a
+   frase do resultado diz quantas passaram, quantas não passaram e quantas não puderam ser aprovadas.
+7. **Nada é guardado.** `GET /api/assemblies/{id}/trial` responde com o catálogo, o estudo e as peças como estão; corrigir um valor corrige o
+   ensaio. Não há coluna "solucionado": um carimbo gravado envelheceria calado.
+8. **Na tela, o ensaio se pede** (`ProjectTrial`, botão "Ensaiar o projeto"): é um teste de bancada, e custa uma leitura do catálogo. Depois de
+   pedido, acompanha o projeto (cada escrita de peça pergunta de novo) e "Ensaiar de novo" serve para o que mudou fora dele (o estudo, o catálogo).
+   A tela só imprime: veredito, rótulos, contagem e frases vêm na resposta. O carimbo é texto com borda; a cor só concorda com a palavra.
+
+**Alternativas recusadas.** Declarar requisitos na própria peça (duplicaria o estudo, com duas verdades). Reimplementar a comparação fora do motor
+(a segunda verdade que a D-35 e a D-60 recusaram). Tratar "sem dado" como aprovado com aviso (fere o princípio 3). Carimbar com as peças sem
+requisito de fora (o autor escolheu o contrário). Guardar o resultado no projeto (ver item 7). Incluir o ensaio em toda leitura do projeto (cada
+leitura passaria a carregar o catálogo inteiro).
+
+**Consequências.** Toca `apps/api`, **sem migração**: depois do merge, **Deploy da API**. 11 testes novos no backend (`test_assembly_trial.py`) e 4
+no frontend (`ProjectTrial.test.tsx`), mais `e2e/ensaio.spec.ts`. Fica para o segundo PR o caso de carga por peça (Dimensionar) como outro tipo de
+requisito; e, depois, o laudo do projeto.
+
+**Numeração.** D-260, Sessão 217 (conferidas em `origin/main` e na branch da bancada).

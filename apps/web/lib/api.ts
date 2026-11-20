@@ -2560,6 +2560,11 @@ export function getAssembly(id: number): Promise<import("./types").Assembly> {
   return request(`/api/assemblies/${id}`);
 }
 
+/** D-260: each part's material against the requirements of its study, judged by the server. */
+export function getAssemblyTrial(id: number): Promise<import("./types").AssemblyTrial> {
+  return request(`/api/assemblies/${id}/trial`);
+}
+
 export function createAssembly(name: string): Promise<import("./types").Assembly> {
   return request(`/api/assemblies`, { method: "POST", body: JSON.stringify({ name }) });
 }

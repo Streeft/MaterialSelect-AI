@@ -2876,6 +2876,24 @@ div[data-surface="rail"] .msds-rail-item {
   gap: 4px;
   flex-wrap: wrap;
 }
+/* D-260: the trial's verdict, as a stamp. The words say it; the colour only agrees. */
+.ds-trial-stamp {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border: 2px solid rgb(var(--ink-muted));
+  border-radius: var(--shape-small);
+  background: rgb(var(--surface-panel));
+  color: rgb(var(--ink));
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ds-trial-stamp[data-solved="true"] {
+  border-color: rgb(var(--success-fg));
+  color: rgb(var(--success-fg));
+}
 /* A command of the chip that does not apply now: said in the title, and muted (still readable). */
 .ds-tray-chip button[aria-disabled="true"] {
   color: rgb(var(--ink-muted));
