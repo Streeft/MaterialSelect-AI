@@ -16,8 +16,8 @@ veio. A IA interpreta, sugere e explica — e nunca produz um número.
 > A interface e as exportações não trazem mais aviso sobre isso nem sobre limite
 > de uso ([D-138](docs/DECISIONS.md)).
 
-No ar: frontend em <https://material-select-ai-web.vercel.app> (login pelo
-Google). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md).
+No ar: frontend em <https://materialselect.com.br> (login pelo
+Google; o endereço antigo, `material-select-ai-web.vercel.app`, segue ativo — [D-262](docs/DECISIONS.md)). Estado detalhado em [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md).
 
 **Quem escreve a monografia do TCC** começa por [`docs/TCC_GUIA.md`](docs/TCC_GUIA.md):
 o que o app é, o método, a arquitetura, as funcionalidades com a decisão D-NN de

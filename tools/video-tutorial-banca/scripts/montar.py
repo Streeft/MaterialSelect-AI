@@ -297,7 +297,7 @@ def card_items(kind: str, narr: dict | None, extra: dict) -> list[dict]:
             {"text": "Teste de usabilidade com estudantes", "font": "bold", "size": 60, "xy": (L, 230), "at": 0.2, "rule": 420},
             {"text": "de Engenharia de Materiais", "font": "bold", "size": 60, "xy": (L, 305), "at": 0.4},
             {"text": "Quer participar? Fale com o autor.", "font": "medium", "size": 40, "xy": (L, 450), "at": st(1), "fill": gold},
-            {"text": "material-select-ai-web.vercel.app", "font": "mono", "size": 36, "xy": (L, 520), "at": st(1) + 0.3, "fill": soft},
+            {"text": "materialselect.com.br", "font": "mono", "size": 36, "xy": (L, 520), "at": st(1) + 0.3, "fill": soft},
             {"text": "Francisco de Almeida Lemos · Orientador: Prof. Dr. Felipe Antonio Lucca Sánchez · UFRGS", "size": 28, "xy": (L, 760), "at": st(2)},
             {"text": "Narração: voz sintética Piper (pt-BR). Trilha e sons: síntese própria. Créditos em CREDITOS.md.", "size": 24, "xy": (L, 810), "at": st(2) + 0.3, "fill": soft},
         ]

@@ -120,6 +120,10 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 219 — 20/11/26 — Domínio oficial materialselect.com.br (D-262)
+
+**O que mudou.** Só documentação: README, `docs/13-deploy.md` (nova subseção "Domínio oficial"), `docs/TCC_GUIA.md`, `docs/PROJECT_CONTEXT.md` e os textos do vídeo da banca passam a citar https://materialselect.com.br. O domínio antigo segue ativo por causa dos laudos já emitidos. Sem código de app. Inclui o passo obrigatório `NEXT_PUBLIC_API_URL=https://materialselect.com.br` na Vercel (sintoma `erro=sessao` se ficar no domínio antigo).
+
 ## Sessão 218 — 20/11/26 — O ensaio com caso de carga: a massa informada contra a massa mínima do Dimensionar (D-261)
 
 **O que mudou.** *Backend:* `assembly_part.load_case_key` e `load_case_inputs` (migração `ba2af8a23955`), `SolverService.required_mass` (o solver

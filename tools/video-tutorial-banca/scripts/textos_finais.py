@@ -91,7 +91,7 @@ def main() -> None:
         "IMPORTANTE: os materiais e valores mostrados são demonstrativos (fictícios). Servem para ensinar o método, não para especificar material para um projeto real.",
         "",
         "Teste de usabilidade (estudantes de Engenharia de Materiais): [LINK DO FORMULÁRIO]",
-        "Aplicação: https://material-select-ai-web.vercel.app",
+        "Aplicação: https://materialselect.com.br",
         "Código: https://github.com/Streeft/MaterialSelect-AI",
         "",
         "Capítulos",

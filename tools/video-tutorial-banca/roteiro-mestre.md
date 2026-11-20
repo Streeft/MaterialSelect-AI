@@ -159,7 +159,7 @@ etiqueta inferior esquerda (Remotion), selo demo nas telas com valores.
 | Cena | Bloco | Duração-alvo | Narração (texto exato) | Ações de tela | Destaque/zoom | Motion graphic | Som | Número citado e onde aparece |
 |---|---|---|---|---|---|---|---|---|
 | C8 | Encerramento | 2 s | (sem narração) | — | — | Cartela "Encerramento" | trans | — |
-| E1 | Encerramento | 28 s | Se você é estudante de Engenharia de Materiais, participe do teste de usabilidade pelo formulário. O código está no repositório público, no GitHub. Obrigado. | — | — | Vinheta final: "Teste de usabilidade: link na descrição" · `material-select-ai-web.vercel.app` · `github.com/Streeft/MaterialSelect-AI` · autor, orientador, UFRGS · "Dados demonstrativos (fictícios)" · "Trilha e sons: ver CREDITOS.md" | trilha sai em fade de 3 s | nenhum |
+| E1 | Encerramento | 28 s | Se você é estudante de Engenharia de Materiais, participe do teste de usabilidade pelo formulário. O código está no repositório público, no GitHub. Obrigado. | — | — | Vinheta final: "Teste de usabilidade: link na descrição" · `materialselect.com.br` · `github.com/Streeft/MaterialSelect-AI` · autor, orientador, UFRGS · "Dados demonstrativos (fictícios)" · "Trilha e sons: ver CREDITOS.md" | trilha sai em fade de 3 s | nenhum |
 
 ---
 
