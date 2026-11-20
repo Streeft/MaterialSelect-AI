@@ -15321,3 +15321,38 @@ backend e 7 no frontend, mais um teste em `e2e/ensaio.spec.ts` e um em `e2e/proj
 **Consequências.** Só documentação e textos do vídeo da banca; sem código de app, sem migração. O login começa e termina no host de `BACKEND_BASE_URL` (cookie de *state* por host): login iniciado no domínio antigo pode falhar. Texto histórico (changelog e decisões anteriores) não foi reescrito. Na Vercel, `NEXT_PUBLIC_API_URL` precisa ser `https://materialselect.com.br` (com redeploy, pois é variável de build): o botão de login usa `${NEXT_PUBLIC_API_URL}/api/auth/google/login`, e com o valor antigo o login começava no domínio antigo e voltava no novo, caindo em `/entrar?erro=sessao`. Guia em `docs/13-deploy.md`, "Domínio oficial".
 
 **Numeração.** D-262, Sessão 219 (conferidas em `origin/main`).
+
+## D-263 — O laudo do projeto (o projeto e o ensaio como um documento) e a ordem do grupo "Estudar"
+
+**Contexto.** A camada 5 da Oficina (D-256) termina em laudo: o que se montou, o que soma e se passou no ensaio, num documento que outra pessoa lê
+sem a ferramenta. As D-260 e D-261 fizeram o ensaio; faltava o documento. No mesmo pedido (20/11/2026) o autor pediu que **Projetos** e
+**Cadernos** fossem para o fim do grupo "Estudar", abaixo de Baterias.
+
+**Decisão.**
+
+1. **O laudo do projeto não calcula nada.** `AssemblyReportService` lê o que `AssemblyService` já responde para a tela (`get_assembly` e `trial`)
+   e o dispõe como um `Report`, o modelo de relatório que o app já tem. Página, ensaio e documento não podem discordar; há teste que compara.
+2. **Seis tabelas, na ordem da leitura:** Resumo; Peças (o que cada uma é); Números por peça; Soma do projeto; Ensaio (uma linha por requisito, com
+   as duas massas quando é caso de carga); Casos de carga declarados (cada medida, com unidade e apoio, para refazer a massa mínima à mão).
+3. **Figura ausente sai com o motivo escrito** (princípio 3): a célula traz a frase do servidor ("Sem massa unitária informada."), nunca vazio
+   nem zero. Total recusado sai como "sem total", com as peças que faltam e a soma parcial **dita como parcial**, fora da coluna do total.
+4. **Custo sem moeda** (D-257): a coluna diz só "Custo do material", e a nota do servidor aparece uma vez no topo.
+5. **Quatro formatos pelo mesmo `Report`:** HTML para imprimir (abre no navegador, sob `Content-Security-Policy: default-src 'none'`, com todo
+   texto de pessoa escapado), XLSX, CSV e DOCX. Rota `GET /api/exports/projetos/{id}/laudo.{fmt}`.
+6. **Não é guardado, e diz isso.** O laudo responde com o catálogo, os estudos e as peças como estão, com a data. **Não é o laudo emitido** de um
+   estudo (D-241): sem selo, código de verificação, QR nem assinatura. Um aviso no próprio documento diz as duas coisas.
+7. **Peças e números em tabelas separadas.** Juntas davam 12 colunas e a última saía cortada da página impressa; coluna cortada é figura perdida.
+8. **Na tela,** o menu "Mais ações" do projeto ganha os quatro formatos (links, para o navegador abrir ou salvar) e a seção "Ensaio" ganha
+   "Abrir o laudo do projeto".
+9. **Ordem do "Estudar"** (pedido do autor): Seleção, Mapas, Comparar, Dimensionar, Custo, Eco, Baterias, **Projetos, Cadernos**. As ferramentas
+   vêm antes; o que reúne o trabalho fecha o grupo. Os dois continuam em "Estudar" (D-92, D-257). Revê só a posição que a D-257 tinha dado a
+   Projetos ("logo depois da Seleção").
+
+**Alternativas recusadas.** Um laudo emitido e versionado do projeto, com selo e envio (é outro tamanho de trabalho, e sem pedido; fica anotado).
+Montar o documento no navegador a partir da tela (princípio 2, e o HTML impresso do app é do servidor). Um desenho próprio para este laudo, como o
+do laudo de engenharia (o `Report` já dá quatro formatos e o mesmo escape). Deixar a soma parcial na coluna do total com um asterisco.
+
+**Consequências.** Toca `apps/api`, **sem migração**: depois do merge, **Deploy da API**. 11 testes novos no backend (`test_assembly_report.py`) e
+3 no frontend, mais um teste em `e2e/ensaio.spec.ts`.
+
+**Numeração.** D-263, Sessão 220 (a D-262 e a Sessão 219 são do domínio oficial, já na `main`).

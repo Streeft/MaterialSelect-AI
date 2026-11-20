@@ -55,6 +55,7 @@ from app.models.user import User
 from app.schemas.cae_export import CaeFormatOut
 from app.schemas.laudo import IssuedReportOut, LaudoInputs, SignedPdfOut
 from app.schemas.report_delivery import LaudoEmailPreviewOut, LaudoSendRequest, ReportDeliveryOut
+from app.services.assembly_report_service import AssemblyReportService
 from app.services.cae_export_service import CaeExportService
 from app.services.catalog_release_service import CatalogReleaseService
 from app.services.curve_service import CurveService
@@ -75,6 +76,8 @@ HTML_MEDIA_TYPE = "text/html; charset=utf-8"
 SUPPORTED_FORMATS = ("csv", "xlsx", "html", "docx", "pptx")
 LAUDO_SUPPORTED_FORMATS = ("html", "docx", "pptx")
 MATERIAL_SUPPORTED_FORMATS = ("html", "csv", "xlsx")
+#: The project report is tables: a page to print, a sheet to keep working, a document to send.
+PROJECT_SUPPORTED_FORMATS = ("html", "csv", "xlsx", "docx")
 
 # The report needs its own inline stylesheet and nothing else whatsoever.
 HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'"
@@ -169,6 +172,27 @@ def export_study(
     return _file_response(
         ExportService(db, user, unit_choices).study_report(study_id, project.id), fmt
     )
+
+
+@router.get("/projetos/{assembly_id}/laudo.{fmt}")
+def export_project_report(
+    assembly_id: int,
+    fmt: str,
+    db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
+    user: User = Depends(get_current_user),
+) -> Response:
+    """The report of a project with parts (D-263): the parts, the sums and the trial.
+
+    Answered from the catalogue, the studies and the parts as they stand — nothing
+    is stored, and it is not the issued laudo of a study.
+    """
+    if fmt not in PROJECT_SUPPORTED_FORMATS:
+        raise ValidationError(
+            f"Formato de exportação não suportado: '{fmt}'. "
+            f"Use {', '.join(PROJECT_SUPPORTED_FORMATS)}."
+        )
+    return _file_response(AssemblyReportService(db, project.id, user).report(assembly_id), fmt)
 
 
 @router.get("/estudos/{study_id}/laudo.{fmt}")
