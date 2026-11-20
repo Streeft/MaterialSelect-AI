@@ -15298,12 +15298,16 @@ requisito; e, depois, o laudo do projeto.
 7. **Na tela**, `PartLoadCase` só recolhe a declaração (caso, medidas, condição de apoio escolhida entre as do caso) e a manda; o ensaio mostra
    "Massa mínima: X kg; massa informada: Y kg." com os dois números do servidor.
 
+8. **A lista do `Combobox` cabe na tela.** A suíte de navegador da CI pegou um defeito antigo que a peça mais alta expôs: a lista é fixa na janela e
+   abria sempre abaixo do campo, então um campo no pé da tela mostrava opções fora dela, onde o ponteiro não chega. Agora ela toma o espaço que há
+   abaixo, abre para cima quando há pouco ali e mais acima, e encolhe até caber (nunca menos que umas duas opções). Vale para todo `Combobox`.
+
 **Alternativas recusadas.** Comparar a variável livre (a área) em vez da massa: a peça não declara área, e pedir mais um número seria pedir o que a
 massa já diz. Calcular a massa mínima no cliente a partir da ficha (princípio 2). Um fator de segurança embutido: seria um número inventado; quem
 quer margem declara uma carga maior. Guardar a massa mínima na peça: envelheceria quando o catálogo fosse corrigido. Rodar o solver sobre o catálogo
 inteiro e procurar o material no resultado: o resultado é limitado aos primeiros, e a peça pode usar um material mal colocado.
 
 **Consequências.** Toca `apps/api` e **tem migração** (`ba2af8a23955`, duas colunas). Depois do merge: **Deploy da API**. 10 testes novos no
-backend e 3 no frontend, mais um teste em `e2e/ensaio.spec.ts`. Fica para depois o laudo do projeto.
+backend e 7 no frontend, mais um teste em `e2e/ensaio.spec.ts` e um em `e2e/projetos.spec.ts`. Fica para depois o laudo do projeto.
 
 **Numeração.** D-261, Sessão 218 (conferidas em `origin/main`).

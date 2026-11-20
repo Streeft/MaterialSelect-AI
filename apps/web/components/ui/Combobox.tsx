@@ -29,6 +29,10 @@ export interface ComboboxOption {
 const GAP = 4;
 const MARGIN = 8;
 const MAX_HEIGHT = 280;
+/** Below this much room under the field the list opens upwards, if there is more above. */
+const MIN_ROOM = 160;
+/** The list never shrinks under about two options. */
+const MIN_LIST = 96;
 
 /**
  * A text field that filters a list as you type (D-85) — the ARIA 1.2 editable
@@ -93,9 +97,13 @@ export function Combobox({
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [editing, setEditing] = useState(false);
-  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(
-    null,
-  );
+  const [position, setPosition] = useState<{
+    top?: number;
+    bottom?: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -111,10 +119,17 @@ export function Combobox({
   const place = useCallback(() => {
     const rect = inputRef.current?.getBoundingClientRect();
     if (!rect) return;
+    // The list is fixed to the viewport, so it has to fit in it: a field low on the screen
+    // would otherwise open options no pointer can reach (D-261). It takes the room below, and
+    // opens upwards when there is too little there and more above.
+    const below = window.innerHeight - rect.bottom - GAP - MARGIN;
+    const above = rect.top - GAP - MARGIN;
+    const upwards = below < Math.min(MAX_HEIGHT, MIN_ROOM) && above > below;
     setPosition({
-      top: rect.bottom + GAP,
+      ...(upwards ? { bottom: window.innerHeight - rect.top + GAP } : { top: rect.bottom + GAP }),
       left: Math.max(MARGIN, rect.left),
       width: Math.max(rect.width, 200),
+      maxHeight: Math.max(MIN_LIST, Math.min(MAX_HEIGHT, upwards ? above : below)),
     });
   }, []);
 
@@ -208,7 +223,13 @@ export function Combobox({
             id={listId}
             role="listbox"
             aria-label={label ?? ariaLabel}
-            style={{ top: position.top, left: position.left, width: position.width, maxHeight: MAX_HEIGHT }}
+            style={{
+              top: position.top,
+              bottom: position.bottom,
+              left: position.left,
+              width: position.width,
+              maxHeight: position.maxHeight,
+            }}
             className="msds-command-list fixed z-50 overflow-y-auto rounded-card border border-edge bg-surface-raised shadow-overlay"
           >
             {filtered.length === 0 ? (

@@ -129,9 +129,13 @@ sobre um material só), `judge_load` em `app/calculations/assembly_trial.py`, e 
 **Por quê.** Segunda parte da camada 5: limite de propriedade diz se o material serve; o caso de carga diz se a peça, com aquele tamanho, aguenta.
 
 **Como foi conferido.** Backend: `ruff`, `black --check`, `pytest` inteiro (6605 coletados em 264 arquivos), migração subindo, descendo e subindo
-de novo, `alembic check` sem diferença. Frontend: `typecheck`, `lint` (0 erros), `vitest run` (2815 em 252 arquivos). No Chromium, com a API real:
+de novo, `alembic check` sem diferença. Frontend: `typecheck`, `lint` (0 erros), `vitest run` (2819 em 253 arquivos). No Chromium, com a API real:
 um tirante de alumínio de 1 m com rigidez de 10⁶ N/m pede 0,0391 kg (ρ/E × S × L², conferido à mão); com 0,001 kg não passa, com mais massa passa
 e o projeto vira "Solucionado", e sem massa informada fica "Sem dado"; axe nos dois estados e 375 px.
+
+**O que a CI pegou.** `E2E (Playwright)` falhou no teste de ensaio da D-260: a opção do campo de material estava "fora da janela". Causa: a lista
+do `Combobox` é fixa na janela e abria sempre abaixo do campo; com a peça mais alta, o campo ficou no pé da tela. Corrigido no componente (cabe na
+tela ou abre para cima), com `Combobox.placement.test.tsx` e um teste de navegador que falha sem a correção e passa com ela.
 
 **Ficou de fora, com motivo.** O laudo do projeto. Fator de segurança (D-261, alternativas).
 
