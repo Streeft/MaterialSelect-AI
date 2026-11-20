@@ -673,6 +673,8 @@ Deploy da API.
 
 **Sessão 207 (D-250):** pendências do TODO, parte 8 — Painel com o catálogo por versão (`catalog_release_count`, migração `e62aba5c6884`, preenchida para as releases já importadas), várias subclasses no filtro e correlação por classe em pequenos múltiplos; no Comparar, "Do seu último estudo executado" lê a última execução guardada (D-245). Depois do merge: Deploy da API.
 
+**Sessão 219 (D-262):** domínio oficial https://materialselect.com.br (DNS no Registro.br, segredos do Fly e cliente OAuth atualizados); o domínio antigo segue ativo por causa dos laudos. Só documentação.
+
 **Sessão 218 (D-261):** o ensaio com caso de carga — a peça declara um caso do Dimensionar (`load_case_key`, `load_case_inputs`; migração `ba2af8a23955`) e o ensaio compara a massa informada com a massa mínima que o solver calcula para o material (`SolverService.required_mass`, `judge_load`); número ausente é "Sem dado". Na peça, `PartLoadCase`. **Pede Deploy da API** (migração).
 
 **Sessão 217 (D-260):** o ensaio, camada 5 da Oficina (primeira parte) — `GET /api/assemblies/{id}/trial` confere o material de cada peça contra os requisitos do estudo ligado a ela, julgado pelo motor da Seleção (Passa, Não passa, Sem dado; ausência nunca aprova); o projeto só é "Solucionado" com todas as peças passando; nada é guardado. Na página do projeto, a seção "Ensaio" (`ProjectTrial`). Sem migração; **pede Deploy da API**.
@@ -783,7 +785,7 @@ no ar, com login pelo Google funcionando de ponta a ponta:
 
 | Peça | Onde | Endereço |
 |---|---|---|
-| Frontend | Vercel | <https://material-select-ai-web.vercel.app> |
+| Frontend | Vercel | <https://materialselect.com.br> (domínio oficial, D-262); o antigo <https://material-select-ai-web.vercel.app> segue ativo por causa dos laudos já emitidos |
 | API | Fly.io (`gru`) | <https://materialselect-ai.fly.dev> |
 | Postgres | Neon (`sa-east-1`) | — |
 

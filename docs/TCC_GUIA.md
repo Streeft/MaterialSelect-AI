@@ -55,7 +55,7 @@ português do Brasil ([`CLAUDE.md`](../CLAUDE.md), "Idiomas";
 usabilidade com estudantes está **instrumentado mas não foi aplicado**
 ([`11-usabilidade.md`](11-usabilidade.md); seção 6).
 
-**Onde está.** Frontend em <https://material-select-ai-web.vercel.app>, com login
+**Onde está.** Frontend em <https://materialselect.com.br>, com login
 pelo Google (`README.md`). A ferramenta fica atrás de um portão de assinatura,
 que o autor abre para uma turma pelo "modo de acesso" ([D-46](DECISIONS.md),
 [D-83](DECISIONS.md)).

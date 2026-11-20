@@ -15311,3 +15311,13 @@ inteiro e procurar o material no resultado: o resultado é limitado aos primeiro
 backend e 7 no frontend, mais um teste em `e2e/ensaio.spec.ts` e um em `e2e/projetos.spec.ts`. Fica para depois o laudo do projeto.
 
 **Numeração.** D-261, Sessão 218 (conferidas em `origin/main`).
+
+## D-262 — Domínio oficial: materialselect.com.br
+
+**Contexto.** O app respondia só em `material-select-ai-web.vercel.app`.
+
+**Decisão.** O endereço público passa a ser **https://materialselect.com.br** (DNS no Registro.br: `A` em `@` para a Vercel; `CNAME` em `www`, que redireciona 308 para o raiz). No Fly, `BACKEND_BASE_URL` e `FRONTEND_URL` valem o domínio novo, e `CORS_ORIGINS` lista o raiz, o `www` e o domínio antigo. O cliente OAuth do Google ganhou a origem e o redirect novos, mantendo os antigos. O domínio antigo continua ativo porque QR codes e links de laudos já emitidos apontam para ele.
+
+**Consequências.** Só documentação e textos do vídeo da banca; sem código de app, sem migração. O login começa e termina no host de `BACKEND_BASE_URL` (cookie de *state* por host): login iniciado no domínio antigo pode falhar. Texto histórico (changelog e decisões anteriores) não foi reescrito. Guia em `docs/13-deploy.md`, "Domínio oficial".
+
+**Numeração.** D-262, Sessão 219 (conferidas em `origin/main`).

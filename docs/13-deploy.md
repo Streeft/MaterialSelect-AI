@@ -96,7 +96,8 @@ deles apontam para ela. Crie o projeto na Vercel primeiro (§4, os dois
 primeiros passos) e anote a URL atribuída.
 
 > As URLs deste guia são as **desta instalação** — API em
-> `materialselect-ai.fly.dev`, frontend em `material-select-ai-web.vercel.app`.
+> `materialselect-ai.fly.dev`, frontend em `materialselect.com.br` (o
+> `material-select-ai-web.vercel.app` segue ativo; ver "Domínio oficial" abaixo).
 > Numa instalação nova, troque as duas em todo o documento e ajuste `app` no
 > `fly.toml`.
 
@@ -105,9 +106,9 @@ fly secrets set \
   DATABASE_URL='postgresql+psycopg://…neon…' \
   GOOGLE_CLIENT_ID='…' \
   GOOGLE_CLIENT_SECRET='…' \
-  BACKEND_BASE_URL='https://material-select-ai-web.vercel.app' \
-  FRONTEND_URL='https://material-select-ai-web.vercel.app' \
-  CORS_ORIGINS='https://material-select-ai-web.vercel.app'
+  BACKEND_BASE_URL='https://materialselect.com.br' \
+  FRONTEND_URL='https://materialselect.com.br' \
+  CORS_ORIGINS='https://materialselect.com.br,https://www.materialselect.com.br,https://material-select-ai-web.vercel.app'
 ```
 
 **`BACKEND_BASE_URL` é a URL do frontend, e não é engano.** Ele existe só para
@@ -226,14 +227,40 @@ No [Google Cloud Console](https://console.cloud.google.com) → *APIs e serviço
 → *Credenciais* → *ID do cliente OAuth* (tipo: aplicação web):
 
 - **URI de redirecionamento autorizado:**
-  `https://material-select-ai-web.vercel.app/api/auth/google/callback`
+  `https://materialselect.com.br/api/auth/google/callback`
   — a URL do **frontend**, porque é ela que serve o callback através do proxy.
   O Google compara caractere a caractere; um `/` a mais já derruba.
-- **Origem JavaScript autorizada:** `https://material-select-ai-web.vercel.app`.
+- **Origem JavaScript autorizada:** `https://materialselect.com.br` (só a
+  origem, sem caminho).
+- Os valores antigos (`material-select-ai-web.vercel.app`) ficam cadastrados
+  junto com os novos; não remova (ver "Domínio oficial", abaixo).
 - Copie o *client id* e o *secret* para os segredos do Fly (§2).
 
 Se quiser restringir a uma turma ou instituição, `GOOGLE_ALLOWED_DOMAIN` filtra
 por sufixo de e-mail.
+
+### Domínio oficial (D-262)
+
+O endereço público do app é **https://materialselect.com.br**. O
+`material-select-ai-web.vercel.app` continua ativo: os QR codes e links dos
+laudos já emitidos apontam para ele, então não o remova da Vercel, do Google
+nem do CORS.
+
+- **DNS (Registro.br):** registro `A` em `@` apontando para o IP que a Vercel
+  mostra em *Settings → Domains*; `CNAME` em `www` apontando para o valor
+  mostrado ali. Na Vercel, o `www` fica configurado para redirecionar (308)
+  para o domínio raiz.
+- **Segredos do Fly** (`fly secrets set`):
+  `BACKEND_BASE_URL=https://materialselect.com.br`,
+  `FRONTEND_URL=https://materialselect.com.br` e
+  `CORS_ORIGINS=https://materialselect.com.br,https://www.materialselect.com.br,https://material-select-ai-web.vercel.app`.
+- **Cliente OAuth do Google (§3):** origem autorizada
+  `https://materialselect.com.br` (sem caminho) e redirect
+  `https://materialselect.com.br/api/auth/google/callback`. Os URIs antigos
+  permanecem.
+- **Atenção:** o login começa e termina no host de `BACKEND_BASE_URL` (o cookie
+  de *state* é por host). Um login iniciado no domínio antigo pode falhar;
+  entre sempre pelo domínio novo.
 
 ## 4. Vercel (frontend)
 
@@ -1051,7 +1078,7 @@ curl https://materialselect-ai.fly.dev/api/health
 curl https://materialselect-ai.fly.dev/api/health/db
 
 # E através do proxy, que é o caminho que o navegador usa:
-curl https://material-select-ai-web.vercel.app/api/health
+curl https://materialselect.com.br/api/health
 curl -i https://material-select-ai-web.vercel.app/api/materiais   # deve dar 401, não 500
 ```
 
@@ -1063,7 +1090,7 @@ Um **401** é o esperado — o portão funcionando.
 
 Depois, no navegador:
 
-3. Abra `https://material-select-ai-web.vercel.app` — a vitrine pública carrega sem login.
+3. Abra `https://materialselect.com.br` — a vitrine pública carrega sem login.
 4. Entre pelo Google. **Se voltar para a tela de login em laço**, confira se
    `BACKEND_BASE_URL` é a URL da Vercel e não a do Fly (§2): é o erro mais
    provável, porque o cookie acaba gravado no domínio errado.
