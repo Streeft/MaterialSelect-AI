@@ -4775,11 +4775,23 @@ export interface AssemblyPart {
   /** A material was chosen and can no longer be read. */
   material_unavailable: boolean;
   study: { id: number; name: string } | null;
+  /** D-261: the load the part has to carry, as one of the solver's cases; `null` is none declared. */
+  load_case: PartLoadCase | null;
   notes: string | null;
   mass: AssemblyFigure;
   material_cost: AssemblyFigure;
   embodied_energy: AssemblyFigure;
   carbon: AssemblyFigure;
+}
+
+/** A part's declared load case: the case, named as the solver names it, and the reader's numbers. */
+export interface PartLoadCase {
+  key: string;
+  label: string;
+  /** One value per design variable of the case, in that variable's canonical unit. */
+  inputs: Record<string, number>;
+  /** The case left the solver's catalogue: it cannot be tried. */
+  unavailable: boolean;
 }
 
 export type AssemblyQuantity = "mass" | "material_cost" | "embodied_energy" | "carbon";
@@ -4812,6 +4824,8 @@ export interface AssemblyPartInput {
   material_id?: number | null;
   study_id?: number | null;
   notes?: string | null;
+  /** D-261: sent as `null`, the part goes back to having no load case. */
+  load_case?: { key: string; inputs: Record<string, number> } | null;
 }
 
 /** Only the fields sent are changed; a nullable field sent as `null` is cleared. */
@@ -4875,6 +4889,14 @@ export interface TrialRequirement {
   label: string;
   verdict: TrialVerdict;
   verdict_label: string;
+  /** A limit of the part's study, or its load case (D-261). */
+  kind: "limite" | "carga";
+  /** For a load case: the minimum mass the solver answers and the declared mass, in `unit`. */
+  required_value: number | null;
+  declared_value: number | null;
+  unit: string | null;
+  /** Why the verdict is "sem dado", in the server's words. */
+  detail: string | null;
 }
 
 export interface PartTrial {

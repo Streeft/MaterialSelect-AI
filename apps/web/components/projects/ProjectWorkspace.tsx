@@ -9,6 +9,7 @@ import {
   deleteAssembly,
   deleteAssemblyPart,
   getAssembly,
+  listLoadCases,
   listMaterials,
   listStudies,
   updateAssembly,
@@ -52,7 +53,8 @@ import {
 } from "@/components/ui";
 import { IconPlus } from "@/components/ui/icons";
 import { trayDragProps, trayMaterials, useTray, useTrayDrop } from "@/lib/tray";
-import type { TrayItem } from "@/lib/types";
+import type { LoadCase, TrayItem } from "@/lib/types";
+import { PartLoadCase } from "./PartLoadCase";
 import { ProjectTrial } from "./ProjectTrial";
 import { ASSEMBLIES_KEY, assemblyKey } from "./keys";
 
@@ -126,6 +128,9 @@ function PartCard({
   onRemove,
   carried,
   onUseCarried,
+  loadCases,
+  loadCasesState,
+  onLoadCase,
 }: {
   part: AssemblyPart;
   units: Record<AssemblyQuantity, string>;
@@ -137,6 +142,10 @@ function PartCard({
   /** D-258: the tray's materials, offered in the part's menu and accepted when dropped here. */
   carried: TrayItem[];
   onUseCarried: (materialId: number, materialName: string) => void;
+  /** D-261: the solver's cases, for the part's load case. */
+  loadCases: LoadCase[];
+  loadCasesState: "loading" | "error" | "ready";
+  onLoadCase: (declared: { key: string; inputs: Record<string, number> } | null) => void;
 }) {
   const [name, setName] = useState(part.name);
   const drop = useTrayDrop(onUseCarried);
@@ -291,6 +300,14 @@ function PartCard({
           </div>
         </div>
 
+        <PartLoadCase
+          part={part}
+          cases={loadCases}
+          casesState={loadCasesState}
+          busy={busy}
+          onSave={onLoadCase}
+        />
+
         <dl aria-label={t.figures(part.name)} className="well grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
           {QUANTITIES.map((quantity) => (
             <div key={quantity} className="flex min-w-0 flex-col gap-0.5">
@@ -323,6 +340,8 @@ export function ProjectWorkspace({ id }: { id: number }) {
   const project = useQuery({ queryKey: key, queryFn: () => getAssembly(id), retry: false });
   const materials = useQuery({ queryKey: ["materials"], queryFn: () => listMaterials() });
   const studies = useQuery({ queryKey: ["studies"], queryFn: listStudies });
+  // D-261: the Dimensionar's own cases; a part's load case is one of them.
+  const loadCases = useQuery({ queryKey: ["load-cases"], queryFn: () => listLoadCases(), staleTime: 300_000 });
   // D-258: what the reader carried here. Materials and fixings both can be a part's material.
   const tray = useTray();
   const carried = trayMaterials(tray.data);
@@ -498,6 +517,14 @@ export function ProjectWorkspace({ id }: { id: number }) {
                     onPatch={(patch) => write.mutate(() => updateAssemblyPart(id, part.id, patch))}
                     onRemove={() => removePart(part)}
                     carried={carried}
+                    loadCases={loadCases.data ?? []}
+                    loadCasesState={loadCases.isError ? "error" : loadCases.isSuccess ? "ready" : "loading"}
+                    onLoadCase={(declared) =>
+                      write.mutate(() => updateAssemblyPart(id, part.id, { load_case: declared }), {
+                        onSuccess: () =>
+                          announce(declared ? t.load.saved(part.name) : t.load.removed(part.name)),
+                      })
+                    }
                     onUseCarried={(materialId, materialName) =>
                       write.mutate(() => updateAssemblyPart(id, part.id, { material_id: materialId }), {
                         onSuccess: () => announce(ptBR.tray.usedInPart(materialName, part.name)),

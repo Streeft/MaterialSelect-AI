@@ -22,6 +22,7 @@ Revision ID: 6845a9523f17
 Revises: f8c93a1d8844
 Create Date: 2026-09-01 12:16:47.425280
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -29,10 +30,9 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-
 # revision identifiers, used by Alembic.
-revision: str = '6845a9523f17'
-down_revision: Union[str, None] = 'f8c93a1d8844'
+revision: str = "6845a9523f17"
+down_revision: Union[str, None] = "f8c93a1d8844"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -129,9 +129,7 @@ def _backfill_root_groups() -> None:
             )
         ).inserted_primary_key[0]
         bind.execute(
-            constraint.update()
-            .where(constraint.c.study_id == row.id)
-            .values(group_id=new_group_id)
+            constraint.update().where(constraint.c.study_id == row.id).values(group_id=new_group_id)
         )
 
 

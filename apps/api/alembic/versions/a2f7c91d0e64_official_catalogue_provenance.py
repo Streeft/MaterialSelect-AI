@@ -77,9 +77,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["dataset_id"], ["catalog_dataset.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["material_id"], ["material.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["process_id"], ["process.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
-            ["transport_mode_id"], ["transport_mode.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["transport_mode_id"], ["transport_mode.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
             "dataset_id",
@@ -146,9 +144,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["dataset_id"], ["catalog_dataset.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["material_id"], ["material.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["process_id"], ["process.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
-            ["transport_mode_id"], ["transport_mode.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["transport_mode_id"], ["transport_mode.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
             "dataset_id",
@@ -196,9 +192,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["dataset_id"], ["catalog_dataset.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "dataset_id", "namespace", "key", name="uq_catalog_dataset_value_key"
-        ),
+        sa.UniqueConstraint("dataset_id", "namespace", "key", name="uq_catalog_dataset_value_key"),
     )
     op.create_index(
         op.f("ix_catalog_dataset_value_dataset_id"),

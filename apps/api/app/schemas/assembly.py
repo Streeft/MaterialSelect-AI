@@ -70,6 +70,29 @@ class AssemblyPatch(BaseModel):
         return _clean(value)
 
 
+class PartLoadCaseIn(BaseModel):
+    """The load a part has to carry (D-261): one of the solver's cases and one
+    number per design variable, in that variable's canonical unit. Which
+    variables, and that each is usable, is the service's check against the case."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    key: str = Field(min_length=1, max_length=80)
+    inputs: dict[str, float]
+
+    @field_validator("inputs")
+    @classmethod
+    def _bounded_and_finite(cls, value: dict[str, float]) -> dict[str, float]:
+        if not value:
+            raise ValueError("Informe as variáveis do caso de carga.")
+        if len(value) > 12:
+            raise ValueError("Variáveis demais para um caso de carga.")
+        for key, number in value.items():
+            if number != number or number in (float("inf"), float("-inf")):
+                raise ValueError(f"Valor inválido para {key}.")
+        return value
+
+
 class PartIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -81,6 +104,7 @@ class PartIn(BaseModel):
     material_id: int | None = Field(default=None, gt=0)
     study_id: int | None = Field(default=None, gt=0)
     notes: str | None = Field(default=None, max_length=500)
+    load_case: PartLoadCaseIn | None = None
 
     @field_validator("name")
     @classmethod
@@ -110,6 +134,8 @@ class PartPatch(BaseModel):
     study_id: int | None = Field(default=None, gt=0)
     notes: str | None = Field(default=None, max_length=500)
     position: int | None = Field(default=None, ge=0, le=10_000)
+    #: Sent as ``null``, the part goes back to having no load case.
+    load_case: PartLoadCaseIn | None = None
 
     @field_validator("name")
     @classmethod
@@ -155,6 +181,16 @@ class PartStudyOut(BaseModel):
     name: str
 
 
+class PartLoadCaseOut(BaseModel):
+    """The part's declared load case, named as the solver names it."""
+
+    key: str
+    label: str
+    inputs: dict[str, float]
+    #: The case is no longer in the solver's catalogue: it cannot be tried.
+    unavailable: bool = False
+
+
 class PartOut(BaseModel):
     id: int
     position: int
@@ -168,6 +204,7 @@ class PartOut(BaseModel):
     #: A material was chosen and can no longer be read by this reader.
     material_unavailable: bool = False
     study: PartStudyOut | None = None
+    load_case: PartLoadCaseOut | None = None
     notes: str | None = None
     mass: FigureOut
     material_cost: FigureOut
@@ -223,6 +260,15 @@ class TrialRequirementOut(BaseModel):
     #: ``passa`` | ``falha`` | ``sem_dado`` — and the same thing in words.
     verdict: Literal["passa", "falha", "sem_dado"]
     verdict_label: str
+    #: ``limite`` (a limit of the study) or ``carga`` (the part's load case, D-261).
+    kind: Literal["limite", "carga"] = "limite"
+    #: For a load case: the minimum mass the solver answers for the material and
+    #: the mass declared for one part, in ``unit``. ``None`` is "not known".
+    required_value: float | None = None
+    declared_value: float | None = None
+    unit: str | None = None
+    #: Why the verdict is "sem dado", in words.
+    detail: str | None = None
 
 
 class PartTrialOut(BaseModel):

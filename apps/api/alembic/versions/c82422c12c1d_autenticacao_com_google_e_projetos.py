@@ -185,9 +185,7 @@ def upgrade() -> None:
             copy_from=_pre_migration_selection_study,
             recreate="always",
         ) as batch_op:
-            batch_op.alter_column(
-                "project_id", existing_type=sa.Integer(), nullable=False
-            )
+            batch_op.alter_column("project_id", existing_type=sa.Integer(), nullable=False)
             batch_op.create_index(
                 batch_op.f("ix_selection_study_project_id"), ["project_id"], unique=False
             )
@@ -205,9 +203,7 @@ def upgrade() -> None:
         for unique in sa.inspect(op.get_bind()).get_unique_constraints("selection_study"):
             if unique["column_names"] == ["name"] and unique["name"]:
                 op.drop_constraint(unique["name"], "selection_study", type_="unique")
-        op.alter_column(
-            "selection_study", "project_id", existing_type=sa.Integer(), nullable=False
-        )
+        op.alter_column("selection_study", "project_id", existing_type=sa.Integer(), nullable=False)
         op.create_index(
             op.f("ix_selection_study_project_id"),
             "selection_study",

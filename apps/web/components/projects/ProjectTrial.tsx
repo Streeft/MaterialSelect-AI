@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAssemblyTrial } from "@/lib/api";
+import { formatNumber } from "@/lib/format";
 import { ptBR } from "@/lib/i18n";
 import type { AssemblyTrial, PartTrialStatus, TrialVerdict } from "@/lib/types";
 import { useAnnounce } from "@/components/ui/Announcer";
@@ -112,7 +113,25 @@ function TrialResult({ trial }: { trial: AssemblyTrial }) {
                     key={index}
                     className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-line py-2"
                   >
-                    <span className="min-w-0 break-words text-body text-ink">{requirement.label}</span>
+                    <span className="flex min-w-0 flex-col">
+                      <span className="break-words text-body text-ink">{requirement.label}</span>
+                      {requirement.kind === "carga" ? (
+                        // D-261: both masses are the server's; the sentence only places them.
+                        <span className="text-support text-ink-muted">
+                          {requirement.required_value === null
+                            ? t.minimumUnknown
+                            : t.minimum(`${formatNumber(requirement.required_value)} ${requirement.unit ?? ""}`.trim())}
+                          {"; "}
+                          {requirement.declared_value === null
+                            ? t.declaredUnknown
+                            : t.declared(`${formatNumber(requirement.declared_value)} ${requirement.unit ?? ""}`.trim())}
+                          .
+                        </span>
+                      ) : null}
+                      {requirement.detail ? (
+                        <span className="text-support text-ink">{requirement.detail}</span>
+                      ) : null}
+                    </span>
                     <Badge tone={VERDICT_TONE[requirement.verdict]}>{requirement.verdict_label}</Badge>
                   </li>
                 ))}

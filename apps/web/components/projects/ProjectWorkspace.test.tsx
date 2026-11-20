@@ -26,6 +26,32 @@ vi.mock("@/lib/api", () => ({
       { id: 7, name: "Pinho", class_name: "Naturais", class_slug: "naturais", subclass: "Madeira" },
       { id: 9, name: "Aço 1020", class_name: "Metais", class_slug: "metais", subclass: null },
     ]),
+  listLoadCases: () =>
+    Promise.resolve([
+      {
+        key: "tirante-rigidez",
+        label: "Tirante em tração, rigidez especificada",
+        summary: "Um tirante que não pode alongar mais que o permitido.",
+        variables: [
+          { key: "comprimento", label: "Comprimento", unit: "m", help_text: "Entre os apoios." },
+          { key: "rigidez", label: "Rigidez", unit: "N/m", help_text: "Força por alongamento." },
+        ],
+        supports: [],
+      },
+      {
+        key: "viga-rigidez",
+        label: "Viga em flexão, rigidez especificada",
+        summary: "Uma viga que não pode fletir mais que o permitido.",
+        variables: [
+          { key: "comprimento", label: "Comprimento", unit: "m", help_text: "Vão." },
+          { key: "constante_apoio", label: "Constante de apoio", unit: "dimensionless", help_text: "Do apoio." },
+        ],
+        supports: [
+          { key: "engastada-livre", label: "Engastada e livre", variable_key: "constante_apoio", value: 3, note: null },
+          { key: "biapoiada-central", label: "Biapoiada, carga central", variable_key: "constante_apoio", value: 48, note: null },
+        ],
+      },
+    ]),
   listStudies: () =>
     Promise.resolve([
       { id: 3, name: "Tampo leve", universe: "material" },
@@ -50,6 +76,7 @@ function part(over: Partial<AssemblyPart>): AssemblyPart {
     material: { id: 7, name: "Pinho", class_name: "Naturais" },
     material_unavailable: false,
     study: null,
+    load_case: null,
     notes: null,
     mass: { value: 12, reason: null, quality: null },
     material_cost: { value: 48, reason: null, quality: "IMPORTADO" },
@@ -275,5 +302,72 @@ describe("ProjectWorkspace (D-257)", () => {
     renderWorkspace();
     await screen.findByRole("region", { name: t.partRegion("Tampo") });
     expect(screen.queryByRole("group", { name: ptBR.tray.stripTitle })).not.toBeInTheDocument();
+  });
+
+  it("o caso de carga se declara na peça: o caso, as medidas e o apoio vão ao servidor como foram escritos (D-261)", async () => {
+    api.getAssembly.mockResolvedValue(project([part({})]));
+    api.updateAssemblyPart.mockResolvedValue(
+      project([
+        part({
+          load_case: {
+            key: "tirante-rigidez",
+            label: "Tirante em tração, rigidez especificada",
+            inputs: { comprimento: 1.2, rigidez: 500000 },
+            unavailable: false,
+          },
+        }),
+      ]),
+    );
+    const user = userEvent.setup();
+    renderWorkspace();
+    const card = await screen.findByRole("region", { name: t.partRegion("Tampo") });
+    expect(within(card).getByText(t.load.none)).toBeInTheDocument();
+    await user.click(await within(card).findByRole("button", { name: t.load.declare }));
+
+    const form = within(card).getByRole("form", { name: t.load.formOf("Tampo") });
+    // A number that is not one is refused here, in words, and nothing is sent.
+    await user.type(within(form).getByRole("spinbutton", { name: /Comprimento/ }), "1.2");
+    await user.click(within(form).getByRole("button", { name: t.load.save }));
+    expect(within(form).getByRole("alert")).toHaveTextContent(t.load.invalid("Rigidez"));
+    expect(api.updateAssemblyPart).not.toHaveBeenCalled();
+
+    await user.type(within(form).getByRole("spinbutton", { name: /Rigidez/ }), "500000");
+    await user.click(within(form).getByRole("button", { name: t.load.save }));
+    await waitFor(() =>
+      expect(api.updateAssemblyPart).toHaveBeenCalledWith(5, 1, {
+        load_case: { key: "tirante-rigidez", inputs: { comprimento: 1.2, rigidez: 500000 } },
+      }),
+    );
+    // What is shown afterwards is what the server stored, named as it names it.
+    expect(await within(card).findByText("Tirante em tração, rigidez especificada")).toBeInTheDocument();
+    expect(within(card).getByText("500.000 N/m")).toBeInTheDocument();
+  });
+
+  it("um apoio é escolha entre as condições do caso, e remover o caso manda nulo (D-261)", async () => {
+    api.getAssembly.mockResolvedValue(
+      project([
+        part({
+          load_case: {
+            key: "viga-rigidez",
+            label: "Viga em flexão, rigidez especificada",
+            inputs: { comprimento: 2, constante_apoio: 48 },
+            unavailable: false,
+          },
+        }),
+      ]),
+    );
+    api.updateAssemblyPart.mockResolvedValue(project([part({})]));
+    const user = userEvent.setup();
+    renderWorkspace();
+    const card = await screen.findByRole("region", { name: t.partRegion("Tampo") });
+    // The stored constant reads as the support it is, never as a bare number.
+    expect(await within(card).findByText("Biapoiada, carga central")).toBeInTheDocument();
+    await user.click(within(card).getByRole("button", { name: t.load.change }));
+    const form = within(card).getByRole("form", { name: t.load.formOf("Tampo") });
+    expect(within(form).getByRole("combobox", { name: t.load.support })).toHaveValue("48");
+    await user.click(within(form).getByRole("button", { name: t.load.cancel }));
+
+    await user.click(within(card).getByRole("button", { name: t.load.remove }));
+    await waitFor(() => expect(api.updateAssemblyPart).toHaveBeenCalledWith(5, 1, { load_case: null }));
   });
 });

@@ -26,6 +26,7 @@ Revision ID: f2b6d0e39c47
 Revises: e6c3f45a91d8
 Create Date: 2026-09-11T14:10:00.000000
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -33,10 +34,9 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-
 # revision identifiers, used by Alembic.
-revision: str = 'f2b6d0e39c47'
-down_revision: Union[str, None] = 'e6c3f45a91d8'
+revision: str = "f2b6d0e39c47"
+down_revision: Union[str, None] = "e6c3f45a91d8"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

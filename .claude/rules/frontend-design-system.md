@@ -261,7 +261,9 @@ ficou sem objeto. Três regras que não são questão de gosto:
 
 - **O ensaio** ([D-260](docs/DECISIONS.md)): `ProjectTrial` só imprime `GET /api/assemblies/{id}/trial`. Veredito, rótulo, contagem, frase e o
   "Solucionado" vêm do servidor; a tela nunca decide se uma peça passa nem conta as que passaram. "Sem dado" é um estado próprio, nunca um
-  "passa". A cor do selo concorda com a palavra, não a substitui. O ensaio se pede por botão e depois acompanha o projeto; nada é guardado.
+  "passa". A cor do selo concorda com a palavra, não a substitui. O ensaio se pede por botão e depois acompanha o projeto; nada é guardado. No caso de carga
+  ([D-261](docs/DECISIONS.md)) `PartLoadCase` só recolhe a declaração (caso, medidas, apoio) e as duas massas da linha vêm do servidor: a tela
+  nunca calcula a massa mínima nem compara.
 
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de

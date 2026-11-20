@@ -63,14 +63,10 @@ def upgrade() -> None:
         ["source_id"],
         unique=False,
     )
-    op.create_index(
-        op.f("ix_battery_chemistry_slug"), "battery_chemistry", ["slug"], unique=True
-    )
+    op.create_index(op.f("ix_battery_chemistry_slug"), "battery_chemistry", ["slug"], unique=True)
 
 
 def downgrade() -> None:
     op.drop_index(op.f("ix_battery_chemistry_slug"), table_name="battery_chemistry")
-    op.drop_index(
-        op.f("ix_battery_chemistry_source_id"), table_name="battery_chemistry"
-    )
+    op.drop_index(op.f("ix_battery_chemistry_source_id"), table_name="battery_chemistry")
     op.drop_table("battery_chemistry")

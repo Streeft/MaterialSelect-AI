@@ -120,6 +120,23 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 218 — 20/11/26 — O ensaio com caso de carga: a massa informada contra a massa mínima do Dimensionar (D-261)
+
+**O que mudou.** *Backend:* `assembly_part.load_case_key` e `load_case_inputs` (migração `ba2af8a23955`), `SolverService.required_mass` (o solver
+sobre um material só), `judge_load` em `app/calculations/assembly_trial.py`, e o caso de carga como mais um requisito em `AssemblyService.trial`.
+*Frontend:* `components/projects/PartLoadCase.tsx` (declarar, alterar e remover o caso na peça) e a linha das duas massas em `ProjectTrial`.
+
+**Por quê.** Segunda parte da camada 5: limite de propriedade diz se o material serve; o caso de carga diz se a peça, com aquele tamanho, aguenta.
+
+**Como foi conferido.** Backend: `ruff`, `black --check`, `pytest` inteiro (6605 coletados em 264 arquivos), migração subindo, descendo e subindo
+de novo, `alembic check` sem diferença. Frontend: `typecheck`, `lint` (0 erros), `vitest run` (2815 em 252 arquivos). No Chromium, com a API real:
+um tirante de alumínio de 1 m com rigidez de 10⁶ N/m pede 0,0391 kg (ρ/E × S × L², conferido à mão); com 0,001 kg não passa, com mais massa passa
+e o projeto vira "Solucionado", e sem massa informada fica "Sem dado"; axe nos dois estados e 375 px.
+
+**Ficou de fora, com motivo.** O laudo do projeto. Fator de segurança (D-261, alternativas).
+
+---
+
 ## Sessão 217 — 20/11/26 — O ensaio: cada peça contra os limites do seu estudo, e o carimbo "Solucionado" (D-260)
 
 **O que mudou.** *Backend:* `app/calculations/assembly_trial.py` (a contagem dos vereditos), `SelectionService.trial_requirements` (o motor da

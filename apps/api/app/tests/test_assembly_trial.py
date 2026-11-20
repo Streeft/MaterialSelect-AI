@@ -228,3 +228,179 @@ def test_an_empty_project_and_another_readers_project(client):
         "O projeto ainda não tem peças.",
     )
     assert client.get("/api/assemblies/999999/trial").status_code == 404
+
+
+# --- the load case of a part (D-261) -----------------------------------------------
+
+from app.calculations.assembly_trial import LOAD, NO_DECLARED_MASS, judge_load  # noqa: E402
+
+TIE = {"key": "tirante-rigidez", "inputs": {"comprimento": 1.0, "rigidez": 1.0e6}}
+
+
+def test_a_load_is_held_when_the_declared_mass_reaches_the_minimum():
+    held = judge_load("Tirante", required=2.0, declared=2.5, unit="kg")
+    assert (held.verdict, held.kind, held.required, held.declared, held.unit) == (
+        PASS,
+        LOAD,
+        2.0,
+        2.5,
+        "kg",
+    )
+    assert judge_load("Tirante", required=2.0, declared=2.0, unit="kg").verdict == PASS
+    assert judge_load("Tirante", required=2.0, declared=1.99, unit="kg").verdict == FAIL
+
+
+def test_a_load_with_a_number_missing_is_never_held():
+    no_mass = judge_load("Tirante", required=2.0, declared=None, unit="kg")
+    assert (no_mass.verdict, no_mass.detail) == (NO_DATA, NO_DECLARED_MASS)
+    no_minimum = judge_load(
+        "Tirante",
+        required=None,
+        declared=5.0,
+        unit="kg",
+        missing_reason="O material não tem: Módulo de Young.",
+    )
+    assert (no_minimum.verdict, no_minimum.detail) == (
+        NO_DATA,
+        "O material não tem: Módulo de Young.",
+    )
+
+
+def _minimum(client, material_id: int) -> float:
+    """What the Dimensionar itself answers for this material and this brief."""
+    resp = client.post(
+        "/api/solver/resolver", json={"case_key": TIE["key"], "inputs": TIE["inputs"], "limit": 50}
+    )
+    assert resp.status_code == 200, resp.text
+    return next(
+        r["objective_value"] for r in resp.json()["solved"] if r["record_id"] == material_id
+    )
+
+
+def test_a_part_with_a_load_case_is_tried_against_the_solvers_minimum_mass(client, db_session):
+    aluminium = _material(db_session, "%Alumínio%")
+    minimum = _minimum(client, aluminium.id)
+    project = _project(client)
+    body = _part(
+        client,
+        project,
+        name="Tirante",
+        material_id=aluminium.id,
+        unit_mass=minimum * 2,
+        load_case=TIE,
+    )
+    stored = body["parts"][0]["load_case"]
+    assert (stored["key"], stored["inputs"], stored["unavailable"]) == (
+        TIE["key"],
+        TIE["inputs"],
+        False,
+    )
+    assert stored["label"]
+
+    part = _trial(client, project)["parts"][0]
+    (requirement,) = part["requirements"]
+    assert requirement["kind"] == "carga"
+    assert requirement["label"] == f"Caso de carga: {stored['label']}"
+    # The trial's minimum is the Dimensionar's own number for the same brief.
+    assert requirement["required_value"] == pytest.approx(minimum)
+    assert requirement["declared_value"] == pytest.approx(minimum * 2)
+    assert (requirement["unit"], requirement["verdict"], part["status"]) == ("kg", "passa", "passa")
+
+    # Too light for the same load: it does not hold.
+    part_id = body["parts"][0]["id"]
+    client.patch(f"/api/assemblies/{project}/parts/{part_id}", json={"unit_mass": minimum / 2})
+    light = _trial(client, project)
+    assert light["parts"][0]["requirements"][0]["verdict"] == "falha"
+    assert (light["parts"][0]["status"], light["solved"]) == ("falha", False)
+
+    # No declared mass: nothing to compare, said in words.
+    client.patch(f"/api/assemblies/{project}/parts/{part_id}", json={"unit_mass": None})
+    unknown = _trial(client, project)["parts"][0]
+    assert unknown["requirements"][0]["verdict"] == "sem_dado"
+    assert unknown["requirements"][0]["detail"] == NO_DECLARED_MASS
+    assert unknown["requirements"][0]["required_value"] == pytest.approx(minimum)
+    assert unknown["status"] == "sem_dado"
+
+
+def test_the_load_case_comes_after_the_limits_of_the_study(client, db_session):
+    steel = _material(db_session, "Aço%")
+    study = _study(client, "Leve", [LIGHT])
+    project = _project(client)
+    _part(
+        client,
+        project,
+        name="Tirante",
+        material_id=steel.id,
+        study_id=study,
+        unit_mass=1.0e5,
+        load_case=TIE,
+    )
+    part = _trial(client, project)["parts"][0]
+    assert [(r["kind"], r["verdict"]) for r in part["requirements"]] == [
+        ("limite", "falha"),
+        ("carga", "passa"),
+    ]
+    assert part["status"] == "falha"
+
+
+def test_a_load_case_alone_is_enough_to_try_a_part_and_can_be_removed(client, db_session):
+    aluminium = _material(db_session, "%Alumínio%")
+    project = _project(client)
+    body = _part(
+        client, project, name="Tirante", material_id=aluminium.id, unit_mass=1.0e5, load_case=TIE
+    )
+    assert _trial(client, project)["solved"] is True
+    part_id = body["parts"][0]["id"]
+    cleared = client.patch(f"/api/assemblies/{project}/parts/{part_id}", json={"load_case": None})
+    assert cleared.json()["parts"][0]["load_case"] is None
+    after = _trial(client, project)["parts"][0]
+    assert after["status"] == "sem_estudo"
+    assert "nem um caso de carga" in after["reason"]
+
+
+def test_a_material_without_the_property_is_not_dimensioned(client, db_session):
+    """A material lacking a property of the case's index reads "sem dado", with the property named."""
+    aluminium = _material(db_session, "%Alumínio%")
+    modulus = next(
+        v for v in aluminium.property_values if v.property_definition.slug == "modulo_young"
+    )
+    modulus.is_missing = True
+    db_session.flush()
+    project = _project(client)
+    _part(client, project, name="Tirante", material_id=aluminium.id, unit_mass=5.0, load_case=TIE)
+    part = _trial(client, project)["parts"][0]
+    requirement = part["requirements"][0]
+    assert (requirement["verdict"], requirement["required_value"]) == ("sem_dado", None)
+    assert requirement["detail"] == f"O material não tem: {modulus.property_definition.name}."
+    assert part["status"] == "sem_dado"
+
+
+@pytest.mark.parametrize(
+    ("load_case", "status", "said"),
+    [
+        (
+            {"key": "nao-existe", "inputs": {"comprimento": 1.0}},
+            404,
+            "Caso de carga não encontrado",
+        ),
+        ({"key": "tirante-rigidez", "inputs": {"comprimento": 1.0}}, 400, "Faltam variáveis"),
+        (
+            {"key": "tirante-rigidez", "inputs": {"comprimento": 0, "rigidez": 1.0}},
+            400,
+            "maior que zero",
+        ),
+        (
+            {"key": "tirante-rigidez", "inputs": {"comprimento": 1, "rigidez": 1, "carga": 3}},
+            400,
+            "não tem estas",
+        ),
+    ],
+)
+def test_a_load_case_the_solver_would_refuse_is_not_stored(client, load_case, status, said):
+    project = _project(client)
+    resp = client.post(
+        f"/api/assemblies/{project}/parts", json={"name": "Tirante", "load_case": load_case}
+    )
+    assert resp.status_code == status, resp.text
+    assert said in resp.text
+    assert client.get(f"/api/assemblies/{project}").json()["parts"] == []

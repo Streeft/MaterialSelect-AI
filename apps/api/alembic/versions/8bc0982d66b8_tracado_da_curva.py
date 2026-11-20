@@ -17,6 +17,7 @@ Revision ID: 8bc0982d66b8
 Revises: 703bbf25ce90
 Create Date: 2026-10-13
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -24,26 +25,25 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-
 # revision identifiers, used by Alembic.
-revision: str = '8bc0982d66b8'
-down_revision: Union[str, None] = '703bbf25ce90'
+revision: str = "8bc0982d66b8"
+down_revision: Union[str, None] = "703bbf25ce90"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table('material_curve', schema=None) as batch_op:
+    with op.batch_alter_table("material_curve", schema=None) as batch_op:
         batch_op.add_column(
-            sa.Column('path_kind', sa.String(length=10), server_default='function', nullable=False)
+            sa.Column("path_kind", sa.String(length=10), server_default="function", nullable=False)
         )
         batch_op.create_check_constraint(
-            'ck_material_curve_path_kind',
+            "ck_material_curve_path_kind",
             "path_kind IN ('function', 'path')",
         )
 
 
 def downgrade() -> None:
-    with op.batch_alter_table('material_curve', schema=None) as batch_op:
-        batch_op.drop_constraint('ck_material_curve_path_kind', type_='check')
-        batch_op.drop_column('path_kind')
+    with op.batch_alter_table("material_curve", schema=None) as batch_op:
+        batch_op.drop_constraint("ck_material_curve_path_kind", type_="check")
+        batch_op.drop_column("path_kind")

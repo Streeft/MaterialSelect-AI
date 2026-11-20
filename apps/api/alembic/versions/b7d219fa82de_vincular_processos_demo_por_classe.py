@@ -67,14 +67,12 @@ def upgrade() -> None:
 
     # 2. Buscar materiais com os slugs de suas classes
     materials = conn.execute(
-        sa.text(
-            """
+        sa.text("""
             SELECT m.id, c.slug
             FROM material m
             JOIN material_class c ON m.class_id = c.id
             WHERE m.is_active = :active
-            """
-        ),
+            """),
         {"active": True},
     ).fetchall()
 

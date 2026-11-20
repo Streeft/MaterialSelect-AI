@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -86,5 +86,12 @@ class AssemblyPart(Base):
         ForeignKey("selection_study.id", ondelete="SET NULL"), nullable=True, index=True
     )
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    #: D-261: the load the part has to carry, as one of the solver's cases
+    #: (``app.calculations.load_cases``) and the reader's numbers for it, one
+    #: per design variable, in that variable's canonical unit. Both NULL until
+    #: the reader declares one; only what was declared is stored — the minimum
+    #: mass it implies is answered on every trial, never kept.
+    load_case_key: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    load_case_inputs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     assembly: Mapped[Assembly] = relationship(back_populates="parts")

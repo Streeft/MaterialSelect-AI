@@ -78,12 +78,8 @@ def upgrade() -> None:
     with op.batch_alter_table("audit_event", schema=None) as batch_op:
         batch_op.create_index("ix_audit_event_created_at", ["created_at"], unique=False)
         batch_op.create_index("ix_audit_event_entity", ["entity_type", "entity_id"], unique=False)
-        batch_op.create_index(
-            batch_op.f("ix_audit_event_project_id"), ["project_id"], unique=False
-        )
-        batch_op.create_index(
-            batch_op.f("ix_audit_event_user_id"), ["user_id"], unique=False
-        )
+        batch_op.create_index(batch_op.f("ix_audit_event_project_id"), ["project_id"], unique=False)
+        batch_op.create_index(batch_op.f("ix_audit_event_user_id"), ["user_id"], unique=False)
 
 
 def downgrade() -> None:

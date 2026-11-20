@@ -14,6 +14,11 @@ Three verdicts, and the third is not a softer form of the first (principle 3):
 * ``sem_dado`` — it holds no datum the requirement could read. Absence is never
   a pass: a part with one ``sem_dado`` is not approved, it is *not tried*.
 
+Since D-261 a part may also carry a **load case**: one more requirement, judged
+by comparing the mass the reader declared with the minimum mass the solver
+answers for the material (``judge_load``). The comparison is the only arithmetic
+here, and both numbers arrive already computed.
+
 A project is "Solucionado" only when it has parts and **every** part passes
 every requirement (author's decision, 20/11/2026). A part without a material,
 without a study or whose study asks nothing is not approved either — there was
@@ -50,17 +55,71 @@ STATUS_LABELS = {
 STATUS_REASONS = {
     NO_MATERIAL: "Escolha um material para a peça.",
     MATERIAL_GONE: "O material escolhido não está mais disponível no catálogo. Escolha outro.",
-    NO_STUDY: "A peça não tem um estudo da Seleção: não há requisito contra o qual ensaiar.",
+    NO_STUDY: (
+        "A peça não tem um estudo da Seleção nem um caso de carga: "
+        "não há requisito contra o qual ensaiar."
+    ),
     NO_REQUIREMENTS: "O estudo da peça não tem nenhum limite nem estágio ligado.",
 }
 
 
+#: Where a requirement comes from: a limit of the part's study, or its load case.
+LIMIT = "limite"
+LOAD = "carga"
+
+NO_DECLARED_MASS = "Informe a massa de cada peça: sem ela não há o que comparar."
+
+
 @dataclass(frozen=True)
 class Requirement:
-    """One thing the study asks, and how the chosen material answered it."""
+    """One thing asked of the part, and how the chosen material answered it."""
 
     label: str
     verdict: str
+    kind: str = LIMIT
+    #: For a load case: the minimum mass the case asks of this material and the
+    #: mass the reader declared, both in ``unit``. ``None`` is "not known".
+    required: float | None = None
+    declared: float | None = None
+    unit: str | None = None
+    #: Why a verdict is "sem dado", in words.
+    detail: str | None = None
+
+
+#: Float noise only: a part declared at exactly its minimum passes.
+_RELATIVE_SLACK = 1e-9
+
+
+def judge_load(
+    label: str,
+    *,
+    required: float | None,
+    declared: float | None,
+    unit: str,
+    missing_reason: str | None = None,
+) -> Requirement:
+    """A load case as a requirement (D-261).
+
+    The solver gives the **minimum mass** the case asks of the material, with
+    the part's fixed dimensions and its free variable sized to just meet the
+    constraint. The part holds when the mass the reader declared for it is at
+    least that: more mass at the same fixed dimensions is more section. Either
+    number missing is "sem dado", never a pass (principle 3).
+    """
+    if required is None:
+        return Requirement(
+            label,
+            NO_DATA,
+            LOAD,
+            None,
+            declared,
+            unit,
+            missing_reason or "Não foi possível dimensionar.",
+        )
+    if declared is None:
+        return Requirement(label, NO_DATA, LOAD, required, None, unit, NO_DECLARED_MASS)
+    holds = declared >= required * (1 - _RELATIVE_SLACK)
+    return Requirement(label, PASS if holds else FAIL, LOAD, required, declared, unit)
 
 
 @dataclass(frozen=True)
