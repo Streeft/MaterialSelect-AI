@@ -25,7 +25,6 @@ Revision ID: 703bbf25ce90
 Revises: 81adb0b92f72
 Create Date: 2026-10-13
 """
-
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -33,9 +32,10 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+
 # revision identifiers, used by Alembic.
-revision: str = "703bbf25ce90"
-down_revision: Union[str, None] = "81adb0b92f72"
+revision: str = '703bbf25ce90'
+down_revision: Union[str, None] = '81adb0b92f72'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -46,39 +46,39 @@ _LABEL_CHECK = (
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("material_composition", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("condition_label", sa.String(length=60), nullable=True))
-        batch_op.drop_constraint("uq_material_composition_element", type_="unique")
+    with op.batch_alter_table('material_composition', schema=None) as batch_op:
+        batch_op.add_column(sa.Column('condition_label', sa.String(length=60), nullable=True))
+        batch_op.drop_constraint('uq_material_composition_element', type_='unique')
         batch_op.drop_index(
-            "uq_material_composition_one_balance",
-            sqlite_where=sa.text("is_balance"),
-            postgresql_where=sa.text("is_balance"),
+            'uq_material_composition_one_balance',
+            sqlite_where=sa.text('is_balance'),
+            postgresql_where=sa.text('is_balance'),
         )
-        batch_op.create_check_constraint("ck_material_composition_condition_label", _LABEL_CHECK)
+        batch_op.create_check_constraint('ck_material_composition_condition_label', _LABEL_CHECK)
         batch_op.create_unique_constraint(
-            "uq_material_composition_condition_element",
-            ["material_id", "condition_label", "element"],
+            'uq_material_composition_condition_element',
+            ['material_id', 'condition_label', 'element'],
         )
         batch_op.create_index(
-            "uq_material_composition_element_unconditioned",
-            ["material_id", "element"],
+            'uq_material_composition_element_unconditioned',
+            ['material_id', 'element'],
             unique=True,
-            sqlite_where=sa.text("condition_label IS NULL"),
-            postgresql_where=sa.text("condition_label IS NULL"),
+            sqlite_where=sa.text('condition_label IS NULL'),
+            postgresql_where=sa.text('condition_label IS NULL'),
         )
         batch_op.create_index(
-            "uq_material_composition_one_balance",
-            ["material_id"],
+            'uq_material_composition_one_balance',
+            ['material_id'],
             unique=True,
-            sqlite_where=sa.text("is_balance AND condition_label IS NULL"),
-            postgresql_where=sa.text("is_balance AND condition_label IS NULL"),
+            sqlite_where=sa.text('is_balance AND condition_label IS NULL'),
+            postgresql_where=sa.text('is_balance AND condition_label IS NULL'),
         )
         batch_op.create_index(
-            "uq_material_composition_one_balance_per_condition",
-            ["material_id", "condition_label"],
+            'uq_material_composition_one_balance_per_condition',
+            ['material_id', 'condition_label'],
             unique=True,
-            sqlite_where=sa.text("is_balance AND condition_label IS NOT NULL"),
-            postgresql_where=sa.text("is_balance AND condition_label IS NOT NULL"),
+            sqlite_where=sa.text('is_balance AND condition_label IS NOT NULL'),
+            postgresql_where=sa.text('is_balance AND condition_label IS NOT NULL'),
         )
 
 
@@ -86,32 +86,32 @@ def downgrade() -> None:
     # Rows with a condition cannot be represented without the column: a
     # downgrade over them would collide on the old (material, element) key.
     op.execute("DELETE FROM material_composition WHERE condition_label IS NOT NULL")
-    with op.batch_alter_table("material_composition", schema=None) as batch_op:
+    with op.batch_alter_table('material_composition', schema=None) as batch_op:
         batch_op.drop_index(
-            "uq_material_composition_one_balance_per_condition",
-            sqlite_where=sa.text("is_balance AND condition_label IS NOT NULL"),
-            postgresql_where=sa.text("is_balance AND condition_label IS NOT NULL"),
+            'uq_material_composition_one_balance_per_condition',
+            sqlite_where=sa.text('is_balance AND condition_label IS NOT NULL'),
+            postgresql_where=sa.text('is_balance AND condition_label IS NOT NULL'),
         )
         batch_op.drop_index(
-            "uq_material_composition_one_balance",
-            sqlite_where=sa.text("is_balance AND condition_label IS NULL"),
-            postgresql_where=sa.text("is_balance AND condition_label IS NULL"),
+            'uq_material_composition_one_balance',
+            sqlite_where=sa.text('is_balance AND condition_label IS NULL'),
+            postgresql_where=sa.text('is_balance AND condition_label IS NULL'),
         )
         batch_op.drop_index(
-            "uq_material_composition_element_unconditioned",
-            sqlite_where=sa.text("condition_label IS NULL"),
-            postgresql_where=sa.text("condition_label IS NULL"),
+            'uq_material_composition_element_unconditioned',
+            sqlite_where=sa.text('condition_label IS NULL'),
+            postgresql_where=sa.text('condition_label IS NULL'),
         )
-        batch_op.drop_constraint("uq_material_composition_condition_element", type_="unique")
-        batch_op.drop_constraint("ck_material_composition_condition_label", type_="check")
+        batch_op.drop_constraint('uq_material_composition_condition_element', type_='unique')
+        batch_op.drop_constraint('ck_material_composition_condition_label', type_='check')
         batch_op.create_unique_constraint(
-            "uq_material_composition_element", ["material_id", "element"]
+            'uq_material_composition_element', ['material_id', 'element']
         )
         batch_op.create_index(
-            "uq_material_composition_one_balance",
-            ["material_id"],
+            'uq_material_composition_one_balance',
+            ['material_id'],
             unique=True,
-            sqlite_where=sa.text("is_balance"),
-            postgresql_where=sa.text("is_balance"),
+            sqlite_where=sa.text('is_balance'),
+            postgresql_where=sa.text('is_balance'),
         )
-        batch_op.drop_column("condition_label")
+        batch_op.drop_column('condition_label')

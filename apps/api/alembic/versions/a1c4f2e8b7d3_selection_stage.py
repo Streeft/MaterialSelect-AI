@@ -23,7 +23,6 @@ Revision ID: a1c4f2e8b7d3
 Revises: 6845a9523f17
 Create Date: 2026-09-09 14:20:00.000000
 """
-
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -31,9 +30,10 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+
 # revision identifiers, used by Alembic.
-revision: str = "a1c4f2e8b7d3"
-down_revision: Union[str, None] = "6845a9523f17"
+revision: str = 'a1c4f2e8b7d3'
+down_revision: Union[str, None] = '6845a9523f17'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -53,7 +53,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     with op.batch_alter_table("selection_stage", schema=None) as batch_op:
-        batch_op.create_index(batch_op.f("ix_selection_stage_study_id"), ["study_id"], unique=False)
+        batch_op.create_index(
+            batch_op.f("ix_selection_stage_study_id"), ["study_id"], unique=False
+        )
 
     with op.batch_alter_table("selection_constraint_group", schema=None) as batch_op:
         batch_op.add_column(sa.Column("stage_id", sa.Integer(), nullable=True))
@@ -119,7 +121,9 @@ def _backfill_stages() -> None:
                 include_descendants=True,
             )
         ).inserted_primary_key[0]
-        bind.execute(group.update().where(group.c.study_id == row.id).values(stage_id=new_stage_id))
+        bind.execute(
+            group.update().where(group.c.study_id == row.id).values(stage_id=new_stage_id)
+        )
 
 
 def downgrade() -> None:

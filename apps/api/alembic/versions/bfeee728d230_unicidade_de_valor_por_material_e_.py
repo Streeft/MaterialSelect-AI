@@ -19,7 +19,6 @@ Revision ID: bfeee728d230
 Revises: 983b5bc9bf8f
 Create Date: 2026-08-05 00:55:49.388228
 """
-
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -27,19 +26,22 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+
 # revision identifiers, used by Alembic.
-revision: str = "bfeee728d230"
-down_revision: Union[str, None] = "983b5bc9bf8f"
+revision: str = 'bfeee728d230'
+down_revision: Union[str, None] = '983b5bc9bf8f'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-_DUPLICATES = sa.text("""
+_DUPLICATES = sa.text(
+    """
     SELECT material_id, property_id, COUNT(*) AS total
     FROM material_property_value
     GROUP BY material_id, property_id
     HAVING COUNT(*) > 1
     ORDER BY material_id, property_id
-    """)
+    """
+)
 
 
 def _fail_on_existing_duplicates() -> None:
@@ -65,12 +67,12 @@ def _fail_on_existing_duplicates() -> None:
 
 def upgrade() -> None:
     _fail_on_existing_duplicates()
-    with op.batch_alter_table("material_property_value", schema=None) as batch_op:
+    with op.batch_alter_table('material_property_value', schema=None) as batch_op:
         batch_op.create_unique_constraint(
-            "uq_material_property_value_pair", ["material_id", "property_id"]
+            'uq_material_property_value_pair', ['material_id', 'property_id']
         )
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("material_property_value", schema=None) as batch_op:
-        batch_op.drop_constraint("uq_material_property_value_pair", type_="unique")
+    with op.batch_alter_table('material_property_value', schema=None) as batch_op:
+        batch_op.drop_constraint('uq_material_property_value_pair', type_='unique')

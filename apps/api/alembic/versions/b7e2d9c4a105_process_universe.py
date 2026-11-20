@@ -25,7 +25,6 @@ Revision ID: b7e2d9c4a105
 Revises: a1c4f2e8b7d3
 Create Date: 2026-09-09 22:40:00.000000
 """
-
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -33,9 +32,10 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+
 # revision identifiers, used by Alembic.
-revision: str = "b7e2d9c4a105"
-down_revision: Union[str, None] = "a1c4f2e8b7d3"
+revision: str = 'b7e2d9c4a105'
+down_revision: Union[str, None] = 'a1c4f2e8b7d3'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

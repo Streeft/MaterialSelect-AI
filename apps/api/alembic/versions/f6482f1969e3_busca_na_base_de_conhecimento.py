@@ -26,7 +26,6 @@ Revision ID: f6482f1969e3
 Revises: 84eee98176f8
 Create Date: 2026-08-23 20:26:20.387667
 """
-
 from __future__ import annotations
 
 import unicodedata
@@ -35,9 +34,10 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+
 # revision identifiers, used by Alembic.
-revision: str = "f6482f1969e3"
-down_revision: Union[str, None] = "84eee98176f8"
+revision: str = 'f6482f1969e3'
+down_revision: Union[str, None] = '84eee98176f8'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -53,39 +53,40 @@ def _fold(text: str) -> str:
 
 
 def upgrade() -> None:
-    op.create_table(
-        "knowledge_embedding",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("chunk_id", sa.Integer(), nullable=False),
-        sa.Column("model", sa.String(length=120), nullable=False),
-        sa.Column("dimensions", sa.Integer(), nullable=False),
-        sa.Column("vector", sa.LargeBinary(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["chunk_id"], ["knowledge_chunk.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("chunk_id"),
+    op.create_table('knowledge_embedding',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('chunk_id', sa.Integer(), nullable=False),
+    sa.Column('model', sa.String(length=120), nullable=False),
+    sa.Column('dimensions', sa.Integer(), nullable=False),
+    sa.Column('vector', sa.LargeBinary(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.ForeignKeyConstraint(['chunk_id'], ['knowledge_chunk.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('chunk_id')
     )
 
     # server_default para que as linhas existentes tenham valor no momento em
     # que a coluna passa a ser NOT NULL; retirado logo abaixo, para que o padrao
     # continue sendo o do modelo e o autogenerate nao volte a acusar diferenca.
-    with op.batch_alter_table("knowledge_chunk", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("search_text", sa.Text(), nullable=False, server_default=""))
+    with op.batch_alter_table('knowledge_chunk', schema=None) as batch_op:
+        batch_op.add_column(
+            sa.Column('search_text', sa.Text(), nullable=False, server_default='')
+        )
 
     _backfill_search_text()
 
-    with op.batch_alter_table("knowledge_chunk", schema=None) as batch_op:
-        batch_op.alter_column("search_text", server_default=None)
+    with op.batch_alter_table('knowledge_chunk', schema=None) as batch_op:
+        batch_op.alter_column('search_text', server_default=None)
 
 
 def _backfill_search_text() -> None:
     """Preenche `search_text` a partir de `text`, em lotes."""
     connection = op.get_bind()
     chunk = sa.table(
-        "knowledge_chunk",
-        sa.column("id", sa.Integer),
-        sa.column("text", sa.Text),
-        sa.column("search_text", sa.Text),
+        'knowledge_chunk',
+        sa.column('id', sa.Integer),
+        sa.column('text', sa.Text),
+        sa.column('search_text', sa.Text),
     )
 
     last_id = 0
@@ -100,13 +101,13 @@ def _backfill_search_text() -> None:
             break
         for row in rows:
             connection.execute(
-                chunk.update().where(chunk.c.id == row.id).values(search_text=_fold(row.text or ""))
+                chunk.update().where(chunk.c.id == row.id).values(search_text=_fold(row.text or ''))
             )
         last_id = rows[-1].id
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("knowledge_chunk", schema=None) as batch_op:
-        batch_op.drop_column("search_text")
+    with op.batch_alter_table('knowledge_chunk', schema=None) as batch_op:
+        batch_op.drop_column('search_text')
 
-    op.drop_table("knowledge_embedding")
+    op.drop_table('knowledge_embedding')

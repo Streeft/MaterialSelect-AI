@@ -23,7 +23,6 @@ Revision ID: 81adb0b92f72
 Revises: 129a7dbbd361
 Create Date: 2026-10-08
 """
-
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -31,32 +30,33 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+
 # revision identifiers, used by Alembic.
-revision: str = "81adb0b92f72"
-down_revision: Union[str, None] = "129a7dbbd361"
+revision: str = '81adb0b92f72'
+down_revision: Union[str, None] = '129a7dbbd361'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("material_curve", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("strain_measure", sa.String(length=12), nullable=True))
-        batch_op.add_column(sa.Column("modulus_kind", sa.String(length=12), nullable=True))
+    with op.batch_alter_table('material_curve', schema=None) as batch_op:
+        batch_op.add_column(sa.Column('strain_measure', sa.String(length=12), nullable=True))
+        batch_op.add_column(sa.Column('modulus_kind', sa.String(length=12), nullable=True))
         batch_op.create_check_constraint(
-            "ck_material_curve_strain_measure",
+            'ck_material_curve_strain_measure',
             "strain_measure IS NULL OR (strain_measure IN ('engineering', 'true') "
             "AND kind = 'TENSAO_DEFORMACAO')",
         )
         batch_op.create_check_constraint(
-            "ck_material_curve_modulus_kind",
+            'ck_material_curve_modulus_kind',
             "modulus_kind IS NULL OR (modulus_kind IN ('bulk', 'shear', 'young') "
             "AND y_quantity = 'modulo')",
         )
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("material_curve", schema=None) as batch_op:
-        batch_op.drop_constraint("ck_material_curve_modulus_kind", type_="check")
-        batch_op.drop_constraint("ck_material_curve_strain_measure", type_="check")
-        batch_op.drop_column("modulus_kind")
-        batch_op.drop_column("strain_measure")
+    with op.batch_alter_table('material_curve', schema=None) as batch_op:
+        batch_op.drop_constraint('ck_material_curve_modulus_kind', type_='check')
+        batch_op.drop_constraint('ck_material_curve_strain_measure', type_='check')
+        batch_op.drop_column('modulus_kind')
+        batch_op.drop_column('strain_measure')

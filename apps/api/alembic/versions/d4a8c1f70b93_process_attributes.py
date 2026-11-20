@@ -25,7 +25,6 @@ Revision ID: d4a8c1f70b93
 Revises: c9f3a17b6e42
 Create Date: 2026-09-10T20:05:00.000000
 """
-
 from __future__ import annotations
 
 from typing import Sequence, Union
@@ -33,9 +32,10 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+
 # revision identifiers, used by Alembic.
-revision: str = "d4a8c1f70b93"
-down_revision: Union[str, None] = "c9f3a17b6e42"
+revision: str = 'd4a8c1f70b93'
+down_revision: Union[str, None] = 'c9f3a17b6e42'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -122,11 +122,15 @@ def upgrade() -> None:
         ),
         sa.Column("is_missing", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["attribute_id"], ["process_attribute_definition.id"]),
+        sa.ForeignKeyConstraint(
+            ["attribute_id"], ["process_attribute_definition.id"]
+        ),
         sa.ForeignKeyConstraint(["process_id"], ["process.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["source_id"], ["source.id"]),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("process_id", "attribute_id", name="uq_process_attribute_value_pair"),
+        sa.UniqueConstraint(
+            "process_id", "attribute_id", name="uq_process_attribute_value_pair"
+        ),
     )
     # `process_id` não ganha índice próprio: é a coluna que abre
     # uq_process_attribute_value_pair, que já serve toda busca por processo.
