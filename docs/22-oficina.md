@@ -55,7 +55,7 @@ Oficina é a mesma narrativa com cenário; nenhum número muda de lugar de cálc
 | 1 | Ambiente em Aparência, texturas, ícones-objeto, arquivo de gavetas, tabela como caderno de registro | **feito (D-256)** |
 | 2 | **Projeto com peças**: backend + telas de Projetos | **feito (D-257)** |
 | 3 | **Bandeja**: materiais, fixações e ferramentas guardados na conta | **feito (D-258)** |
-| 4 | **Bancada**: arrastar da bandeja para mapa, calculadora e comparador | a fazer |
+| 4 | **Bancada**: levar da bandeja para o mapa, o comparador, o Custo e o Eco | **feito (D-259)** |
 | 5 | **Ensaio** por peça e **"Solucionado"**; laudo do projeto | a fazer |
 | 6 | Tabelas leves de verdade: até 5 colunas, resto no detalhe da linha (resultados da Seleção) | a fazer |
 
@@ -79,7 +79,16 @@ Oficina é a mesma narrativa com cenário; nenhum número muda de lugar de cálc
 - **Entra** arrastando o envelope, o cartão ou a linha de Processos até a zona que aparece no canto, ou pelo botão "Levar para a bandeja" que
   está sempre ao lado (e nas fichas e na barra dos marcados).
 - **Serve** na página do projeto: a faixa "Da bandeja" solta o material numa peça; o menu da peça faz o mesmo sem arrastar.
-- **Regra para a camada 4:** destino novo aceita o mesmo arrasto (`readTrayDrag`, `lib/tray.ts`) e oferece o mesmo gesto por menu.
+
+### Camada 4 — a bancada (feita, D-259)
+
+- **A faixa "Da bandeja"** (`TrayStrip`) aparece em Mapas, Comparar, Custo e Eco: cada material é uma ficha que se arrasta e que traz os
+  comandos ao lado.
+- **O que cada tela faz:** Mapas destaca; Comparar acrescenta; Custo estima ou compara; Eco põe como componente, ou como material da
+  alternativa A, B, C ou D.
+- **Soltar** é `useTrayDrop` (ou `TrayDropZone`): o lugar ganha contorno e recebe id e nome. A tela muda a pergunta; o servidor responde.
+- **Do painel**, o menu do material leva às quatro telas (o painel é modal, nada sai dele arrastado).
+- **Regra para destino novo:** use `TrayStrip` + `useTrayDrop`, com o motivo escrito quando o comando não cabe, e anuncie o que mudou.
 
 ## Onde está cada coisa (camada 1)
 

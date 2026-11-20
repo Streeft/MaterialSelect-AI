@@ -49,6 +49,9 @@ import { aiField, revealField } from "@/lib/ai/revealField";
 import { isOwnKey } from "@/lib/ai/suggest";
 import { DefaultsGate } from "@/components/layout/DefaultsGate";
 import { ParamsPanel, ParamsResultLayout, ResultPanel } from "@/components/layout/ParamsResult";
+import { useTrayDrop } from "@/lib/tray";
+import { TrayStrip } from "@/components/tray/TrayStrip";
+import { useAnnounce } from "@/components/ui/Announcer";
 
 const t = ptBR.cost;
 
@@ -498,6 +501,19 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
   const nameOf = (id: number) =>
     materialOptions.find((option) => option.value === String(id))?.label ?? `#${id}`;
 
+  // D-259: a material of the tray becomes the one being estimated (a drop on the brief, or
+  // "Estimar"), or one more to compare. Only the brief changes; the estimate is the server's.
+  const announce = useAnnounce();
+  function estimateCarried(id: number, name: string) {
+    setBrief({ material: String(id), others: others.filter((other) => other !== id) });
+    announce(ptBR.tray.bench.costMainDone(name));
+  }
+  function compareCarried(id: number, name: string) {
+    setBrief({ others: [...others, id] });
+    announce(ptBR.tray.bench.costOtherDone(name));
+  }
+  const briefDrop = useTrayDrop(estimateCarried);
+
   if (materials.isLoading) return <SheetSkeleton label={t.title} />;
   if (materials.isError) return <ErrorState error={materials.error} onRetry={() => void materials.refetch()} />;
 
@@ -529,6 +545,31 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
 
       <ParamsResultLayout>
         <ParamsPanel>
+          <TrayStrip
+            hint={ptBR.tray.bench.costHint}
+            actions={[
+              {
+                label: ptBR.tray.bench.costMain,
+                describe: ptBR.tray.bench.costMainNamed,
+                run: estimateCarried,
+                disabledReason: (id) => (String(id) === selectedId ? ptBR.tray.bench.costIsMain : undefined),
+              },
+              {
+                label: ptBR.tray.bench.costOther,
+                describe: ptBR.tray.bench.costOtherNamed,
+                run: compareCarried,
+                disabledReason: (id) =>
+                  String(id) === selectedId
+                    ? ptBR.tray.bench.costIsMain
+                    : others.includes(id)
+                      ? ptBR.tray.bench.alreadyCompared
+                      : others.length >= MAX_COMPARED - 1
+                        ? ptBR.tray.bench.compareFull
+                        : undefined,
+              },
+            ]}
+          />
+          <div className="rounded-card" {...briefDrop}>
           <StepCard title={t.briefStep} bodyClassName="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Combobox
@@ -597,6 +638,7 @@ function CustoScreen({ defaults }: { defaults: DefaultsResult["custo"] }) {
               ) : null}
             </div>
           </StepCard>
+          </div>
 
           <StepCard title={t.assumptionsStep}>
             {/* Folded, with every value in the summary: the premises are the

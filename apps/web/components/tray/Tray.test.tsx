@@ -12,7 +12,8 @@ import { TakeToTrayButton } from "./AddToTray";
 import { Tray } from "./Tray";
 import { TrayButton } from "./TrayButton";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
+const push = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ push }) }));
 const api = vi.hoisted(() => ({
   getTray: vi.fn(),
   putTrayItems: vi.fn(),
@@ -180,6 +181,26 @@ describe("a bandeja (D-258)", () => {
         { tool: "custo", compartment: "ferramenta" },
       ]),
     );
+  });
+
+  it("do painel, um material vai para a bancada por comando; ferramenta e indisponível não (D-259)", async () => {
+    api.getTray.mockResolvedValue(tray([item({}), COST, item({ id: 5, record_id: 11, name: "Material indisponível", href: null, detail: null, unavailable: true })]));
+    const user = userEvent.setup();
+    renderTray();
+    const panel = await openPanel();
+    await user.click(await within(panel).findByRole("button", { name: t.itemMenu("Pinho") }));
+    for (const label of Object.values(t.takeTo)) expect(screen.getByRole("menuitem", { name: label })).toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: t.takeTo.map }));
+    expect(push).toHaveBeenCalledWith("/app/mapas?destaque=7");
+    // Following it closes the panel: the bench is behind it.
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: t.title })).toBeNull());
+
+    const again = await openPanel();
+    await user.click(within(again).getByRole("button", { name: t.itemMenu("Custo") }));
+    expect(screen.queryByRole("menuitem", { name: t.takeTo.map })).toBeNull();
+    await user.keyboard("{Escape}");
+    await user.click(within(again).getByRole("button", { name: t.itemMenu("Material indisponível") }));
+    expect(screen.queryByRole("menuitem", { name: t.takeTo.cost })).toBeNull();
   });
 
   it("a recusa do servidor aparece no painel", async () => {

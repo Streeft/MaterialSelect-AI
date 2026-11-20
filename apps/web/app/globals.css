@@ -2872,6 +2872,14 @@ div[data-surface="rail"] .msds-rail-item {
   font-size: 0.875rem;
   font-weight: 600;
   user-select: none;
+  /* D-259: the chip carries its commands beside the name. */
+  gap: 4px;
+  flex-wrap: wrap;
+}
+/* A command of the chip that does not apply now: said in the title, and muted (still readable). */
+.ds-tray-chip button[aria-disabled="true"] {
+  color: rgb(var(--ink-muted));
+  cursor: not-allowed;
 }
 /* The part a carried material is over. */
 [data-drop-over="true"] {

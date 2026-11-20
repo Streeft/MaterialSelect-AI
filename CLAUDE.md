@@ -144,7 +144,7 @@ Regras literais por área em [`docs/REGRAS_POR_AREA.md`](docs/REGRAS_POR_AREA.md
 | Acesso, portão, registros próprios | Acesso, portão e registros próprios | D-42, D-43, D-46, D-62, D-83 |
 | Demo e seed | Demo e seed | D-71, D-72 |
 | Cadernos e Estúdio | Estúdio e Cadernos | D-92, D-94, D-97, D-98 |
-| Oficina, projeto com peças e bandeja | (regras em [`docs/22-oficina.md`](docs/22-oficina.md)) | D-256, D-257, D-258 |
+| Oficina, projeto com peças, bandeja e bancada | (regras em [`docs/22-oficina.md`](docs/22-oficina.md)) | D-256, D-257, D-258, D-259 |
 | Cérebro, ingestão, RAG | Cérebro e ingestão | D-47, D-100, D-101 |
 | Cartão CAE | Exportação CAE | D-104, D-112, D-119 |
 | Composição e busca | Composição e busca | D-105 |

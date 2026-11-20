@@ -254,6 +254,11 @@ ficou sem objeto. Três regras que não são questão de gosto:
   oferece o mesmo por menu. Aviso com "Desfazer" de dentro de um painel modal fica **no painel**, nunca no snackbar atrás dele. O link dentro de
   um elemento arrastável leva `draggable={false}`.
 
+- **A bancada** ([D-259](docs/DECISIONS.md)): tela que recebe material da bandeja usa `TrayStrip` (a faixa "Da bandeja", fichas arrastáveis
+  com os comandos em botão) e `useTrayDrop`/`TrayDropZone` (o lugar que aceita, com contorno). O destino recebe **id e nome** e muda só a
+  pergunta (URL, rascunho); o que aparece depois é a resposta do servidor. Comando que não cabe agora fica com `aria-disabled` e o motivo no
+  `title`, nunca some. O que mudou é anunciado. Do painel modal o material sai por item de menu (`benchDestinations`), nunca arrastado.
+
 - **Fórmula é KaTeX vindo do backend** ([D-191](docs/DECISIONS.md)): `ExpressionBuilder` para editar índice (cartões arrastáveis por
   HTML5 nativo, com clique e teclado como alternativa) e `ExpressionLabel`/`MathTex` para mostrar. KaTeX (MIT) é a única dependência de
   fórmula; o TeX vem de `/api/expressions/describe` ou da paleta, nunca montado no cliente, e o slug não aparece fora do modo "Digitar".

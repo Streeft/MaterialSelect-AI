@@ -120,6 +120,27 @@ aqui**. O registro delas ficou em `TODO.md` ("Débitos já quitados") e em
 
 ---
 
+## Sessão 216 — 20/11/26 — A bancada: a faixa "Da bandeja" no mapa, no comparador, no Custo e no Eco (D-259)
+
+**O que mudou.** `components/tray/TrayStrip.tsx` (a faixa e `TrayDropZone`), `useTrayDrop` e `benchDestinations` em `lib/tray.ts`. Mapas destaca
+o material (`?destaque=`), Comparar o acrescenta, Custo o estima ou o compara, Eco o põe como componente ou como material de uma alternativa.
+No painel da bandeja, o menu de cada material leva às quatro telas. A peça do projeto usa o mesmo gancho de soltar.
+
+**Por quê.** Camada 4 do rumo da Oficina: a bandeja servia a uma tela só.
+
+**Como foi conferido.** `typecheck`, `lint` (0 erros), `vitest run` (2808 em 251 arquivos). No Chromium, com a API real, `e2e/bancada.spec.ts`:
+destaca pelo botão e soltando no mapa e tira o destaque; põe dois materiais na comparação (botão e arrasto) e lê o motivo do comando indisponível;
+troca o material do Custo e acrescenta outro à comparação; acrescenta um componente no Eco; vai do painel ao mapa pelo menu; e a faixa cabe a
+375 px. Axe em cada tela. `e2e/bandeja.spec.ts` continua passando.
+
+**O que os testes mostraram.** O arrasto simulado do Playwright (`dragTo`) não vira arrasto HTML5 sobre a camada do Plotly; o teste do mapa
+dispara os eventos do navegador com um `DataTransfer`, como o da zona de soltar da D-258. O destino recebe e responde.
+
+**Ficou de fora, com motivo.** Dimensionar, Sintetizar e Baterias não partem de um material escolhido (D-259, alternativas). Processos da bandeja
+ainda não têm destino na bancada.
+
+---
+
 ## Sessão 215 — 20/11/26 — A bandeja: `tray_item` na conta, painel no topo, arrastar com comando ao lado e o material levado até a peça (D-258)
 
 **O que mudou.** *Backend:* `TrayItem` (migração `0ad472526206`, um alvo entre material, processo e calculadora, três compartimentos),

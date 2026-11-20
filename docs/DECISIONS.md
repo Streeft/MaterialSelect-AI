@@ -15196,3 +15196,40 @@ já serve `Block` e o construtor de expressão). Deixar o painel não modal para
 novos no backend e 26 no frontend, mais `e2e/bandeja.spec.ts` (4 testes).
 
 **Numeração.** D-258, Sessão 215 (conferidas em `origin/main` e nas branches abertas).
+
+## D-259 — A bancada: a camada 4 da Oficina (a faixa "Da bandeja" no mapa, no comparador, no Custo e no Eco; soltar com comando ao lado)
+
+**Contexto.** A bandeja (D-258) guardava o que a pessoa separou, mas só a página do projeto sabia recebê-lo. Na ideia do autor (D-256) é na bancada
+que se projeta: mapa, contas, comparação. Pedido de 20/11/2026: fazer a camada 4, levar da bandeja para o mapa, a calculadora e o comparador.
+
+**Decisão.**
+
+1. **Uma peça só, `TrayStrip`.** A faixa "Da bandeja" lista os materiais e as fixações legíveis da bandeja como fichas arrastáveis, cada uma com
+   os seus comandos ao lado, em botões. É a mesma em toda tela; cada tela diz a dica e o que cada comando faz. Com a bandeja vazia, não aparece.
+2. **Um destino só, `useTrayDrop`/`TrayDropZone`.** O lugar que aceita o material ganha o contorno enquanto ele está por cima e recebe **id e
+   nome**, mais nada. A peça do projeto (D-258) passou a usar o mesmo gancho.
+3. **Cada tela faz com o material o que ela já sabia fazer pela URL**, e o servidor responde:
+   - **Mapas:** destaca (`?destaque=`, o mesmo parâmetro que uma execução da Seleção escreve). Soltar só acrescenta; o botão "Destacar" é um
+     alternador com `aria-pressed`. Só no universo de materiais.
+   - **Comparar:** entra na comparação, pela barra ou pelo botão, respeitando o limite.
+   - **Custo:** "Estimar" faz dele o material da estimativa (é também o que soltar na peça e lote faz); "Comparar" o acrescenta aos outros.
+   - **Eco:** na auditoria de um produto, "Acrescentar" cria um componente com aquele material; em A × B, um botão por alternativa (A, B, C, D), e
+     soltar numa alternativa troca o material dela (o processo volta ao padrão, como quando se troca pelo campo).
+4. **Do painel, por comando.** O painel da bandeja é modal: nada sai dele arrastado. O menu de cada material ganhou "Ver no mapa", "Abrir no
+   comparador", "Estimar o custo" e "Auditar no Eco", que são os mesmos endereços (`benchDestinations`). Ferramenta e material indisponível não
+   têm esses itens.
+5. **Comando que não cabe agora fica, e diz por quê** (`aria-disabled` com o motivo no título: "Já está na comparação.", "A comparação está
+   cheia.", "Já é o material da estimativa."). Não some nem se desliga calado, e continua alcançável pelo teclado.
+6. **Tudo é anunciado** pela região viva do app (D-146): "Aço entrou na comparação.", "Pinho agora é o material da alternativa B.".
+7. **Nenhum número novo no cliente.** A faixa muda a pergunta (a URL, o rascunho da tela); destaque, tabela, estimativa e auditoria continuam
+   sendo a resposta do servidor a ela.
+
+**Alternativas recusadas.** Deixar o painel não modal para arrastar de dentro dele (perde o foco preso do `SidePeek`; a faixa resolve). Uma zona de
+soltar por tela desenhada à parte (duas coisas para aprender; o contorno no próprio lugar basta). Dimensionar, Sintetizar e Baterias como destino:
+nenhuma das três parte de **um** material escolhido (o Dimensionar ordena o catálogo; as outras duas têm entrada própria), e inventar um filtro
+por material ali seria funcionalidade nova, não bancada. Ficam com o atalho de calculadora da D-258.
+
+**Consequências.** Só frontend: sem migração, sem deploy da API. 6 testes novos no frontend (`TrayStrip.test.tsx` e um caso em `Tray.test.tsx`) e
+`e2e/bancada.spec.ts` (4 testes).
+
+**Numeração.** D-259, Sessão 216 (conferidas em `origin/main`).
